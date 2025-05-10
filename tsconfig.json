@@ -1,0 +1,37 @@
+{
+  "compilerOptions": {
+    /* Базовые настройки */
+    "target": "ESNext", // Современный JS (для Rollup/Vite)
+    "module": "ESNext", // Используем ES-модули (для tree-shaking)
+    "lib": [
+      "DOM",
+      "ESNext",
+      "es6"
+    ], // Поддержка DOM и современных API
+    "jsx": "react-jsx", // Автоматический импорт React для JSX
+    "declaration": true, // Генерировать .d.ts
+    "declarationDir": "./dist", // Куда складывать типы
+    "outDir": "./dist", // Папка для скомпилированного кода
+    "rootDir": "./src", // Исходники тут
+    /* Строгие проверки */
+    "strict": true,
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
+    "noImplicitReturns": true,
+    /* Совместимость */
+    "esModuleInterop": true, // Для совместимости с CommonJS
+    "moduleResolution": "node", // Как искать модули
+    "skipLibCheck": true, // Ускоряет сборку
+    "forceConsistentCasingInFileNames": true,
+    /* Дополнительно */
+    "allowSyntheticDefaultImports": true, // Упрощает импорты
+    "resolveJsonModule": true, // Если используете JSON"
+  },
+  "include": [
+    "src/**/*"
+  ], // Какие файлы компилировать
+  "exclude": [
+    "node_modules",
+    "**/*.test.ts"
+  ] // Игнорировать
+}

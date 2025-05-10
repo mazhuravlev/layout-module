@@ -1,0 +1,4 @@
+onlyBuiltDependencies:
+  - esbuild
+overrides:
+  layout-module: link:../../../../../../../home/mazhuravlev/.local/share/pnpm/global/5/node_modules/layout-module

@@ -1,0 +1,28 @@
+export const assertDefined = <T>(value: T | null | undefined): T => {
+  if (value === null || value === undefined) {
+    throw new Error('assertDefined')
+  }
+  return value
+}
+
+export const pairwise = <T>(array: T[]): T[][] => {
+  if (array.length < 2)
+    throw new Error('Array must have at least 2 elements to create pairs')
+
+  const result: T[][] = []
+  for (let i = 0; i < array.length - 1; i++) {
+    result.push([array[i], array[i + 1]])
+  }
+
+  return result
+}
+
+export const first = <T>(array: T[]): T => {
+  if (array.length === 0) throw new Error('Array is empty')
+  return array[0]
+}
+
+export const last = <T>(array: T[]): T => {
+  if (array.length === 0) throw new Error('Array is empty')
+  return array[array.length - 1]
+}

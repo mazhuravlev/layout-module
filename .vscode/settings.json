@@ -1,0 +1,35 @@
+{
+  // Форматирование через Prettier
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
+  "editor.formatOnSave": true,
+
+  // Автофикс ESLint при сохранении
+  "editor.codeActionsOnSave": {
+    "source.fixAll.eslint": "always"
+  },
+
+  // Проверка файлов ESLint
+  "eslint.validate": [
+    "javascript",
+    "javascriptreact",
+    "typescript",
+    "typescriptreact"
+  ],
+
+  // Настройки Prettier (если нет .prettierrc)
+  "prettier.semi": false,
+  "prettier.singleQuote": true,
+  "prettier.tabWidth": 2,
+
+  // Отключаем встроенный форматтер для JS/TS
+  "[javascript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[typescript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+
+  // Если используете EditorConfig (опционально)
+  "editor.formatOnSaveMode": "file",
+  "editor.config": true
+}

@@ -1,0 +1,38 @@
+.root {
+  display: flex;
+  height: 100%; // вместо 100vh
+}
+
+.leftSidebar {
+  width: 200px;
+  background: #eee;
+}
+
+.main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.header {
+  height: 60px;
+  background: #ccc;
+  flex-shrink: 0;
+}
+
+.content {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+}
+
+.editor {
+  flex: 1;
+  background: white;
+  overflow: hidden;
+}
+
+.rightSidebar {
+  width: 200px;
+  background: #ddd;
+}
