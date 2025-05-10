@@ -1,4 +1,4 @@
-import { Editor } from '../Editor/Editor'
+import { EditorComponent } from '../Editor/EditorComponent'
 import styles from './LayoutModule.module.scss'
 import { LayoutModuleProps } from './LayoutModuleProps'
 import { AppContext } from './AppContext'
@@ -16,7 +16,7 @@ export const LayoutModule: React.FC<LayoutModuleProps> = (props) => {
           <header className={styles.header}>Header</header>
           <div className={styles.content}>
             <main className={styles.editor}>
-              <Editor sectionOutline={props.section.outline} />
+              <EditorComponent sectionOutline={props.section.outline} />
             </main>
             <aside className={styles.rightSidebar}>Right Sidebar</aside>
           </div>
