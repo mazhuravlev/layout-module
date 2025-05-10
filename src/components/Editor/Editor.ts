@@ -1,4 +1,4 @@
-import { Application, Assets, Sprite, Texture } from 'pixi.js'
+import { Application, Assets, Sprite, Texture, Ticker } from 'pixi.js'
 
 export class Editor {
   private app = new Application()
@@ -20,9 +20,13 @@ export class Editor {
     sprite.position.set(app.screen.width / 2, app.screen.height / 2)
     sprite.eventMode = 'static'
     sprite.cursor = 'pointer'
-    sprite.on('pointerdown', () => {
-      sprite.scale.x *= 1.1
-      sprite.scale.y *= 1.1
+    sprite.on('pointerover', () => {
+      sprite.scale.x = 2
+      sprite.scale.y = 2
+    })
+    sprite.on('pointerout', () => {
+      sprite.scale.x = 1
+      sprite.scale.y = 1
     })
 
     app.stage.addChild(sprite)

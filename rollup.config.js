@@ -11,20 +11,16 @@ export default [
     input: 'src/index.ts',
     output: [
       {
-        file: 'dist/cjs/index.js',
-        format: 'cjs',
-        inlineDynamicImports: true,
-      },
-      {
         file: 'dist/esm/index.js',
         format: 'esm',
+        sourcemap: true,
         inlineDynamicImports: true,
       },
     ],
     plugins: [
       resolve(),
       commonjs(),
-      typescript({ tsconfig: './tsconfig.json' }),
+      typescript({ tsconfig: './tsconfig.json', sourceMap: true }),
       postcss({
         modules: true,
         extract: false,
