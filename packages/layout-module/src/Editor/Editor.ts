@@ -3,6 +3,7 @@ import { calculateZoomToExtents, drawOutline } from './func'
 import { Logger } from '../logger'
 import { PointLike } from '../types'
 import { Apartment } from './Apartment'
+import { EventService } from '../EventService/EventService'
 
 export class Editor {
   private _app = new Application()
@@ -10,6 +11,7 @@ export class Editor {
   private _sectionOutline: { graphics: Graphics; points: PointLike[] } | null = null
   private _apartments = new Map<string, Apartment>()
   private _selectedApartment: Apartment | null = null
+  private _eventService = new EventService()
 
   /**
    * @description Cleanup functions to be called on dispose
@@ -25,6 +27,15 @@ export class Editor {
       resizeTo: container,
     })
     container.appendChild(app.canvas)
+    this._eventService.events$.subscribe(e => {
+      if (e.type === 'click' && e.target instanceof Apartment) {
+        if (this._selectedApartment) {
+          this._selectedApartment.deselect()
+        }
+        e.target.select()
+        this._selectedApartment = e.target
+      }
+    })
   }
 
   /**
@@ -41,6 +52,7 @@ export class Editor {
     this.cleanupFns.forEach((fn) => fn())
     this.cleanupFns = []
     this._apartments.clear()
+    this._eventService.dispose()
   }
 
   public setSectionOutline(points: PointLike[]) {
@@ -53,16 +65,19 @@ export class Editor {
   }
 
   public addApartment(points: PointLike[]) {
-    const { _app: app } = this
-    const apartment = new Apartment(points)
-    apartment.events.subscribe(({ type, apartment }) => {
-      if (type === 'apartment-click') {
-        apartment.select()
-        this._selectedApartment = apartment
-      }
-    })
+    const { _app: _pixi, _eventService } = this
+    const apartment = new Apartment(points, _eventService)
     this._apartments.set(apartment.id, apartment)
-    app.stage.addChild(apartment.container)
+    _pixi.stage.addChild(apartment.container)
+  }
+
+  public deleteSelected() {
+    const { _app, _selectedApartment, _apartments } = this
+    if (!_selectedApartment) return
+    _app.stage.removeChild(_selectedApartment.container)
+    _apartments.delete(_selectedApartment.id)
+    _selectedApartment.dispose()
+    this._selectedApartment = null
   }
 
   public zoomToExtents() {

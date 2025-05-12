@@ -7,3 +7,7 @@ export interface ApartmentTemplate {
     name: string
     points: PointLike[]
 }
+
+export interface IDisposable {
+    dispose(): void
+}

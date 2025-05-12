@@ -3,7 +3,7 @@ import styles from './EditorComponent.module.scss'
 import { EditorProps } from './EditorProps'
 import { assertDefined } from '../../func'
 import { Editor } from '../../Editor/Editor'
-import { addApartmentEvent } from '../ToolSidebar/events'
+import { addApartmentEvent, deleteSelectedEvent } from '../ToolSidebar/events'
 
 export const EditorComponent: React.FC<EditorProps> = (props) => {
   const containerRef = useRef<HTMLDivElement>(null)
@@ -20,6 +20,9 @@ export const EditorComponent: React.FC<EditorProps> = (props) => {
 
     editor.addCleanupFn(addApartmentEvent.watch((shape) => {
       editor.addApartment(shape.points)
+    }))
+    editor.addCleanupFn(deleteSelectedEvent.watch(() => {
+      editor.deleteSelected()
     }))
   }
 
