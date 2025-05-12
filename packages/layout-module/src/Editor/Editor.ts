@@ -4,6 +4,7 @@ import { Logger } from '../logger'
 import { PointLike } from '../types'
 import { Apartment } from './Apartment'
 import { EventService } from '../EventService/EventService'
+import { addApartmentEvent, deleteSelectedEvent } from '../components/events'
 
 export class Editor {
   private _app = new Application()
@@ -27,22 +28,65 @@ export class Editor {
       resizeTo: container,
     })
     container.appendChild(app.canvas)
-    this._eventService.events$.subscribe(e => {
+    this.setupObjectEvents()
+    this.setupEvents()
+  }
+
+  /**
+   * @description Настройка входящих событий от компонентов
+   */
+  private setupEvents() {
+    this.addCleanupFn(addApartmentEvent.watch((shape) => {
+      this.addApartment(shape.points)
+    }))
+    this.addCleanupFn(deleteSelectedEvent.watch(() => {
+      this.deleteSelected()
+    }))
+  }
+
+  /**
+   * @description Настройка событий редактора
+   */
+  private setupObjectEvents() {
+    const clickSubscription = this._eventService.events$.subscribe(e => {
       if (e.type === 'click' && e.target instanceof Apartment) {
-        if (this._selectedApartment) {
-          this._selectedApartment.deselect()
-        }
+        this.deselectAll()
         e.target.select()
         this._selectedApartment = e.target
       }
     })
+    this.cleanupFns.push(() => {
+      clickSubscription.unsubscribe()
+    })
+
+    const { stage } = this._app
+    stage.eventMode = 'static'
+    stage.hitArea = this._app.screen
+    stage.on('click', (e: PointerEvent) => {
+      if (e.target === this._app.stage) {
+        this.deselectAll()
+      }
+    })
+
+    this.cleanupFns.push(() => {
+      if (this._app.stage) {
+        this._app.stage.removeAllListeners()
+      }
+    })
+  }
+
+  private deselectAll() {
+    if (this._selectedApartment) {
+      this._selectedApartment.deselect()
+      this._selectedApartment = null
+    }
   }
 
   /**
    * @param fn Function to be called on dispose
    * @description This function is called when the editor is disposed. It can be used to clean up resources, such as event listeners or textures.
    */
-  public addCleanupFn(fn: () => void) {
+  private addCleanupFn(fn: () => void) {
     this.cleanupFns.push(fn)
   }
 
@@ -64,7 +108,7 @@ export class Editor {
     this._sectionOutline = { graphics, points }
   }
 
-  public addApartment(points: PointLike[]) {
+  private addApartment(points: PointLike[]) {
     const { _app: _pixi, _eventService } = this
     const apartment = new Apartment(points, _eventService)
     this._apartments.set(apartment.id, apartment)

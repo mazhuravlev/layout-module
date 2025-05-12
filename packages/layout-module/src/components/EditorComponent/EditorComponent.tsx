@@ -3,7 +3,6 @@ import styles from './EditorComponent.module.scss'
 import { EditorProps } from './EditorProps'
 import { assertDefined } from '../../func'
 import { Editor } from '../../Editor/Editor'
-import { addApartmentEvent, deleteSelectedEvent } from '../ToolSidebar/events'
 
 export const EditorComponent: React.FC<EditorProps> = (props) => {
   const containerRef = useRef<HTMLDivElement>(null)
@@ -17,13 +16,6 @@ export const EditorComponent: React.FC<EditorProps> = (props) => {
       .then(() => editor.setSectionOutline(props.sectionOutline))
       .then(() => editor.zoomToExtents())
       .catch((error) => props.onError(error))
-
-    editor.addCleanupFn(addApartmentEvent.watch((shape) => {
-      editor.addApartment(shape.points)
-    }))
-    editor.addCleanupFn(deleteSelectedEvent.watch(() => {
-      editor.deleteSelected()
-    }))
   }
 
   useEffect(() => {

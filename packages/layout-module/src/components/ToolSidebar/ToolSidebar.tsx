@@ -1,6 +1,6 @@
 import { use } from 'react'
 import { ToolSidebarProps } from './ToolSidebarProps'
-import { addApartmentEvent, deleteSelectedEvent } from './events'
+import { addApartmentEvent, deleteSelectedEvent } from '../events'
 import { AppContext } from '../../AppContext'
 
 export const ToolSidebar: React.FC<ToolSidebarProps> = () => {
