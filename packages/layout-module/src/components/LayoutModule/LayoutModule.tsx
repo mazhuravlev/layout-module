@@ -15,7 +15,7 @@ export const LayoutModule: React.FC<LayoutModuleProps> = (props) => {
           <ToolSidebar />
         </aside>
         <div className={styles.main}>
-          <header className={styles.header}>Header test</header>
+          <header className={styles.header}>Header</header>
           <div className={styles.content}>
             <main className={styles.editor}>
               {!editorError && <EditorComponent

@@ -16,15 +16,15 @@ export default defineConfig({
   server: {
     watch: {
       awaitWriteFinish: {
-        stabilityThreshold: 500, // чтобы vite дождался завершения компиляции модуля
+        stabilityThreshold: 50, // чтобы vite дождался завершения компиляции модуля
         pollInterval: 100
       },
       // Отслеживаем изменения в модуле
-      ignored: ['!../layout-module/**'],
+      ignored: ['!../layout-module/dist/esm/**'],
     },
   },
-  // optimizeDeps: {
-  //   // Исключаем модуль из пред-сборки Vite
-  //   exclude: ['layout-module'],
-  // },
+  optimizeDeps: {
+    // Исключаем модуль из пред-сборки Vite
+    exclude: ['layout-module'],
+  },
 })
