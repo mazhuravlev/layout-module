@@ -1,9 +1,9 @@
 import { EditorComponent } from '../EditorComponent/EditorComponent'
 import styles from './LayoutModule.module.scss'
 import { LayoutModuleProps } from './LayoutModuleProps'
-import { AppContext } from './AppContext'
 import { ToolSidebar } from '../ToolSidebar/ToolSidebar'
 import { useState } from 'react'
+import { AppContext } from '../../AppContext'
 
 export const LayoutModule: React.FC<LayoutModuleProps> = (props) => {
   const [editorError, setEditorError] = useState<Error | null>(null)
@@ -15,7 +15,7 @@ export const LayoutModule: React.FC<LayoutModuleProps> = (props) => {
           <ToolSidebar />
         </aside>
         <div className={styles.main}>
-          <header className={styles.header}>Header</header>
+          <header className={styles.header}>Header test</header>
           <div className={styles.content}>
             <main className={styles.editor}>
               {!editorError && <EditorComponent

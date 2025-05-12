@@ -1,3 +1,5 @@
 packages:
-  - 'layout-module'
-  - 'demo'
+  - packages/*
+onlyBuiltDependencies:
+  - '@parcel/watcher'
+  - esbuild

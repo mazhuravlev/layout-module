@@ -7,7 +7,9 @@ export default defineConfig({
   resolve: {
     dedupe: ['react', 'react-dom'],
     alias: {
-      'layout-module': path.resolve(__dirname, '../dist/esm/index.js'),
+      'layout-module': path.resolve(__dirname, '../layout-module/dist/esm'),
+      // Или для исходников (если нужен HMR):
+      //'layout-module': path.resolve(__dirname, '../layout-module/src')
     },
   },
   plugins: [react()],
@@ -18,11 +20,11 @@ export default defineConfig({
         pollInterval: 100
       },
       // Отслеживаем изменения в модуле
-      ignored: ['!**/node_modules/layout-module/**'],
+      ignored: ['!../layout-module/**'],
     },
   },
-  optimizeDeps: {
-    // Исключаем модуль из пред-сборки Vite
-    exclude: ['layout-module'],
-  },
+  // optimizeDeps: {
+  //   // Исключаем модуль из пред-сборки Vite
+  //   exclude: ['layout-module'],
+  // },
 })

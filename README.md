@@ -1,7 +1,9 @@
 Запуск для разработки
 ---
+> pnpm install
+
 Библиотека в watch режиме:
-> pnpm start
+> pnpm run dev:demo
 
 Демонстрационное приложение:
-> cd demo && pnpm start
+> pnpm run dev:lib

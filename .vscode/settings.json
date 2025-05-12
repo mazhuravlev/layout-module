@@ -1,6 +1,6 @@
 {
   // Форматирование через Prettier
-  "editor.defaultFormatter": "esbenp.prettier-vscode",
+  "editor.defaultFormatter": "vscode.typescript-language-features",
   "editor.formatOnSave": true,
 
   // Автофикс ESLint при сохранении
@@ -16,23 +16,16 @@
     "typescriptreact"
   ],
 
-  // Настройки Prettier (если нет .prettierrc)
-  "prettier.semi": false,
-  "prettier.singleQuote": true,
-  "prettier.tabWidth": 2,
-
-  // Отключаем встроенный форматтер для JS/TS
   "[javascript]": {
-    "editor.defaultFormatter": "esbenp.prettier-vscode"
+    "editor.defaultFormatter": "vscode.typescript-language-features"
   },
   "[typescript]": {
     "editor.defaultFormatter": "vscode.typescript-language-features"
   },
-
-  // Если используете EditorConfig (опционально)
-  "editor.formatOnSaveMode": "file",
-  "editor.config": true,
+    "[json]": {
+    "editor.defaultFormatter": "vscode.json-language-features"
+  },
   "[typescriptreact]": {
     "editor.defaultFormatter": "vscode.typescript-language-features"
-  }
+  },
 }

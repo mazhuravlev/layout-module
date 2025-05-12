@@ -1,0 +1,48 @@
+{
+  "name": "layout-module",
+  "version": "0.0.1",
+  "main": "./dist/esm/index.js",
+  "type": "module",
+  "module": "./dist/esm/index.js",
+  "types": "./dist/types/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "exports": {
+    ".": {
+      "import": "./dist/esm/index.js"
+    }
+  },
+  "scripts": {
+    "start": "rollup -c -w",
+    "build": "rollup -c",
+    "lint": "eslint .",
+    "lint:fix": "eslint . -c eslint.config.js --fix"
+  },
+  "peerDependencies": {
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@rollup/plugin-commonjs": "28.0.3",
+    "@rollup/plugin-json": "6.1.0",
+    "@rollup/plugin-node-resolve": "15.3.1",
+    "@rollup/plugin-typescript": "11.1.6",
+    "@stylistic/eslint-plugin": "4.2.0",
+    "@stylistic/eslint-plugin-ts": "4.2.0",
+    "autoprefixer": "10.4.21",
+    "eslint-plugin-react": "7.37.5",
+    "rollup": "3.29.5",
+    "rollup-plugin-dts": "5.3.1",
+    "rollup-plugin-postcss": "4.0.2",
+    "sass": "1.87.0",
+    "tslib": "2.8.1"
+  },
+  "dependencies": {
+    "effector": "23.3.0",
+    "effector-react": "23.3.0",
+    "pixi.js": "8.9.2",
+    "rxjs": "7.8.2",
+    "uuid": "11.1.0"
+  }
+}
