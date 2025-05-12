@@ -1,8 +1,7 @@
 import { createContext } from 'react'
-import { LayoutModuleProps } from './components/LayoutModule/LayoutModuleProps'
 import { ApartmentShape, Point } from './outline/types'
 
-export const AppContext = createContext<LayoutModuleProps>({
+export const AppContext = createContext<AppContextType>({
   section: {
     outline: [],
   },

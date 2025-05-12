@@ -8,8 +8,8 @@ export const ToolSidebar: React.FC<ToolSidebarProps> = () => {
   return (
     <div>
       <ul>
-        {context.apartmentTemplates.map((template, index) => (
-          <li key={index} onClick={() => addApartmentEvent(template)}>
+        {context.apartmentTemplates.map((template) => (
+          <li key={template.name} onClick={() => addApartmentEvent(template)}>
             {template.name}
           </li>
         ))}

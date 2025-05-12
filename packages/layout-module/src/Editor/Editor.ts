@@ -1,7 +1,7 @@
 import { Application, Graphics } from 'pixi.js'
 import { calculateZoomToExtents } from './func'
-import { ApartmentShape, Point } from '../outline/types';
-import { Logger } from '../logger';
+import { ApartmentShape, Point } from '../outline/types'
+import { Logger } from '../logger'
 
 export class Editor {
   private app = new Application()

@@ -1,3 +1,1 @@
-import { ApartmentShape } from '../../outline/types'
-
-export interface ToolSidebarProps {}
+export interface ToolSidebarProps { }

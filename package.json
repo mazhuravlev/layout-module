@@ -3,7 +3,11 @@
   "private": true,
   "scripts": {
     "dev:demo": "pnpm --filter demo start",
-    "dev:lib": "pnpm --filter layout-module start"
+    "dev:lib": "pnpm --filter layout-module start",
+    "build": "pnpm --filter layout-module run build",
+    "lint": "pnpm --parallel run lint",
+    "lint:lib": "pnpm --filter layout-module run lint",
+    "lint:fix:lib": "pnpm --filter layout-module run lint:fix"
   },
   "devDependencies": {
     "@eslint/js": "9.26.0",

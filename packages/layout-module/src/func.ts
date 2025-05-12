@@ -1,3 +1,5 @@
+import { Point } from "./outline/types"
+
 export const assertDefined = <T>(value: T | null | undefined): T => {
   if (value === null || value === undefined) {
     throw new Error('assertDefined')
@@ -25,4 +27,8 @@ export const first = <T>(array: T[]): T => {
 export const last = <T>(array: T[]): T => {
   if (array.length === 0) throw new Error('Array is empty')
   return array[array.length - 1]
+}
+
+export const isSamePoint = (a: Point, b: Point, e = 0.001) => {
+  return Math.abs(a.x - b.x) < e && Math.abs(a.y - b.y) < e
 }

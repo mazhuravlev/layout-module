@@ -7,7 +7,10 @@ import stylisticTs from '@stylistic/eslint-plugin-ts'
 
 export default tseslint.config({
   files: ['**/*.ts', '**/*.tsx'],
-  ignores: ['**/node_modules/**', '**/dist/**', '**/demo/**'],
+  ignores: [
+    '**/node_modules/**',
+    '**/dist/**',
+  ],
   // Extend recommended rule sets from:
   // 1. ESLint JS's recommended rules
   // 2. TypeScript ESLint recommended rules
@@ -36,6 +39,6 @@ export default tseslint.config({
   rules: {
     '@eslint-react/no-missing-key': 'warn',
     '@stylistic/ts/semi': ['error', 'never'],
-    'no-unexpected-multiline-block': 'error',
+    '@typescript-eslint/no-unused-vars': 'warn'
   },
 })

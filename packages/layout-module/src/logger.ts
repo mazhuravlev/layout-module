@@ -1,4 +1,3 @@
-import { assertDefined } from './func'
 
 export enum LogLevel {
   DEBUG = 0,

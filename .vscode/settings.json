@@ -1,19 +1,20 @@
 {
-  // Форматирование через Prettier
   "editor.defaultFormatter": "vscode.typescript-language-features",
   "editor.formatOnSave": true,
 
-  // Автофикс ESLint при сохранении
   "editor.codeActionsOnSave": {
     "source.fixAll.eslint": "always"
   },
 
-  // Проверка файлов ESLint
+  "eslint.useFlatConfig": true,
   "eslint.validate": [
-    "javascript",
-    "javascriptreact",
     "typescript",
     "typescriptreact"
+  ],
+  "eslint.probe": ["typescript", "typescriptreact"],
+  "eslint.workingDirectories": [
+    {"directory": "packages/demo", "changeProcessCWD": true},
+    {"directory": "packages/layout-module", "changeProcessCWD": true}
   ],
 
   "[javascript]": {

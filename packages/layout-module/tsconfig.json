@@ -26,6 +26,11 @@
     /* Дополнительно */
     "allowSyntheticDefaultImports": true, // Упрощает импорты
     "resolveJsonModule": true, // Если используете JSON"
+    "plugins": [
+      {
+        "name": "@typescript-eslint/eslint-plugin"
+      }
+    ],
   },
   "include": [
     "src/**/*"
