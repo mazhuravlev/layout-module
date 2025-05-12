@@ -1,11 +1,13 @@
-import { EditorComponent } from '../Editor/EditorComponent'
+import { EditorComponent } from '../EditorComponent/EditorComponent'
 import styles from './LayoutModule.module.scss'
 import { LayoutModuleProps } from './LayoutModuleProps'
 import { AppContext } from './AppContext'
 import { ToolSidebar } from '../ToolSidebar/ToolSidebar'
-import { ApartmentShape } from '../../outline/types'
+import { useState } from 'react'
 
 export const LayoutModule: React.FC<LayoutModuleProps> = (props) => {
+  const [editorError, setEditorError] = useState<Error | null>(null)
+
   return (
     <AppContext value={props}>
       <div className={styles.root}>
@@ -16,9 +18,14 @@ export const LayoutModule: React.FC<LayoutModuleProps> = (props) => {
           <header className={styles.header}>Header</header>
           <div className={styles.content}>
             <main className={styles.editor}>
-              <EditorComponent sectionOutline={props.section.outline} />
+              {!editorError && <EditorComponent
+                sectionOutline={props.section.outline}
+                onError={(error) => setEditorError(error)}
+              />
+              }
+              {editorError && <div className={styles.error}>{editorError.message}</div>}
             </main>
-            <aside className={styles.rightSidebar}>Right Sidebar</aside>
+            <aside className={styles.rightSidebar}>Sidebar</aside>
           </div>
         </div>
       </div>

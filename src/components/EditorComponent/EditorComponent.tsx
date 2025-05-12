@@ -1,8 +1,9 @@
 import React, { useEffect, useRef } from 'react'
-import styles from './Editor.module.scss'
+import styles from './EditorComponent.module.scss'
 import { EditorProps } from './EditorProps'
 import { assertDefined } from '../../func'
-import { Editor } from './Editor'
+import { Editor } from '../../Editor/Editor'
+import { addApartmentEvent } from '../ToolSidebar/events'
 
 export const EditorComponent: React.FC<EditorProps> = (props) => {
   const containerRef = useRef<HTMLDivElement>(null)
@@ -13,6 +14,13 @@ export const EditorComponent: React.FC<EditorProps> = (props) => {
     const editor = new Editor(container)
     editorRef.current = editor
     initPromiseRef.current = editor.init()
+      .then(() => editor.setSectionOutline(props.sectionOutline))
+      .then(() => editor.zoomToExtents())
+      .catch((error) => props.onError(error))
+
+    editor.addCleanupFn(addApartmentEvent.watch((shape) => {
+      editor.addApartment(shape)
+    }))
   }
 
   useEffect(() => {

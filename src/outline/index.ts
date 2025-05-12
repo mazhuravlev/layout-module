@@ -1,7 +1,6 @@
 import { Outline, Point, Vertex, Wall } from './types'
 import { v4 as uuid } from 'uuid'
 import { first, last, pairwise } from '../func'
-import { Graphics } from 'pixi.js'
 
 export const createOutline = (points: Point[]): Outline => {
   const vertices: Vertex[] = points.map((x) => ({ id: uuid(), ...x }))

@@ -1,3 +1,3 @@
-onlyBuiltDependencies:
-  - '@parcel/watcher'
-  - canvas
+packages:
+  - 'layout-module'
+  - 'demo'
