@@ -39,6 +39,13 @@ export default tseslint.config({
   rules: {
     '@eslint-react/no-missing-key': 'warn',
     '@stylistic/ts/semi': ['error', 'never'],
-    '@typescript-eslint/no-unused-vars': 'warn'
+    '@typescript-eslint/no-unused-vars': [
+      'warn',
+      {
+        argsIgnorePattern: '^_',
+        varsIgnorePattern: '^_',
+        caughtErrorsIgnorePattern: '^_'
+      }
+    ],
   },
 })

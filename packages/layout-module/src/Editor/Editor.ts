@@ -1,22 +1,25 @@
 import { Application, Graphics } from 'pixi.js'
-import { calculateZoomToExtents } from './func'
-import { ApartmentShape, Point } from '../outline/types'
+import { calculateZoomToExtents, drawOutline } from './func'
 import { Logger } from '../logger'
+import { PointLike } from '../types'
+import { Apartment } from './Apartment'
 
 export class Editor {
-  private app = new Application()
-  private logger = new Logger('Editor')
-  private sectionOutline: { graphics: Graphics; points: Point[] } | null = null
+  private _app = new Application()
+  private _logger = new Logger('Editor')
+  private _sectionOutline: { graphics: Graphics; points: PointLike[] } | null = null
+  private _apartments = new Map<string, Apartment>()
+  private _selectedApartment: Apartment | null = null
 
   /**
    * @description Cleanup functions to be called on dispose
    */
   private cleanupFns: (() => void)[] = []
 
-  constructor(private container: HTMLDivElement) { }
+  constructor(private _container: HTMLDivElement) { }
 
   public async init(): Promise<void> {
-    const { app, container } = this
+    const { _app: app, _container: container } = this
     await app.init({
       background: '#ffffff',
       resizeTo: container,
@@ -34,40 +37,36 @@ export class Editor {
 
   public async dispose(): Promise<void> {
     // TODO: выгрузить все текстуры
-    this.app.destroy(true, { children: true })
+    this._app.destroy(true, { children: true })
     this.cleanupFns.forEach((fn) => fn())
     this.cleanupFns = []
+    this._apartments.clear()
   }
 
-  public setSectionOutline(points: Point[]) {
-    const { app } = this
+  public setSectionOutline(points: PointLike[]) {
+    const { _app: app } = this
     const graphics = new Graphics()
     drawOutline(graphics, points)
+    graphics.stroke({ color: 0x0, width: 1 })
     app.stage.addChild(graphics)
-    this.sectionOutline = { graphics, points }
+    this._sectionOutline = { graphics, points }
   }
 
-  public addApartment(shape: ApartmentShape) {
-    const { app } = this
-    const graphics = new Graphics()
-    drawOutline(graphics, shape.points)
-    graphics.interactive = true
-    graphics.eventMode = 'static'
-    graphics.on('click', () => {
+  public addApartment(points: PointLike[]) {
+    const { _app: app } = this
+    const apartment = new Apartment(points)
+    apartment.events.subscribe(({ type, apartment }) => {
+      if (type === 'apartment-click') {
+        apartment.select()
+        this._selectedApartment = apartment
+      }
     })
-    graphics.on('mouseover', () => {
-      graphics.fill({ color: 0x3333ff })
-      graphics.stroke({ color: 0x0, pixelLine: true, width: 1 })
-    })
-    graphics.on('mouseout', () => {
-      graphics.fill({ color: 0xffffff })
-      graphics.stroke({ color: 0x0, pixelLine: true, width: 1 })
-    })
-    app.stage.addChild(graphics)
+    this._apartments.set(apartment.id, apartment)
+    app.stage.addChild(apartment.container)
   }
 
   public zoomToExtents() {
-    const { app } = this
+    const { _app: app } = this
     if (!app.stage.children.length) return
     const { centerX, scale, centerY } = calculateZoomToExtents(app, 20)
     app.stage.position.set(
@@ -78,14 +77,5 @@ export class Editor {
   }
 }
 
-export const drawOutline = (graphics: Graphics, points: Point[]) => {
-  graphics.clear()
-  graphics.moveTo(points[0].x, points[0].y)
-  for (let i = 1; i < points.length; i++) {
-    graphics.lineTo(points[i].x, points[i].y)
-  }
-  graphics.lineTo(points[0].x, points[0].y)
-  graphics.fill({ color: 0xffffff })
-  graphics.stroke({ color: 0x0, pixelLine: true, width: 1 })
-}
+
 

@@ -1,4 +1,4 @@
 import { createEvent } from 'effector'
-import { ApartmentShape } from '../../outline/types'
+import { ApartmentTemplate } from '../../types'
 
-export const addApartmentEvent = createEvent<ApartmentShape>()
+export const addApartmentEvent = createEvent<ApartmentTemplate>()

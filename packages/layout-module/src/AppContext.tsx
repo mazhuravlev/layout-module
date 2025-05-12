@@ -1,5 +1,5 @@
 import { createContext } from 'react'
-import { ApartmentShape, Point } from './outline/types'
+import { ApartmentTemplate, PointLike } from './types'
 
 export const AppContext = createContext<AppContextType>({
   section: {
@@ -10,7 +10,7 @@ export const AppContext = createContext<AppContextType>({
 
 interface AppContextType {
   section: {
-    outline: Point[]
+    outline: PointLike[]
   }
-  apartmentTemplates: ApartmentShape[]
+  apartmentTemplates: ApartmentTemplate[]
 }

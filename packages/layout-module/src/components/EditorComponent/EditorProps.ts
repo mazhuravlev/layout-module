@@ -1,6 +1,6 @@
-import { Point } from '../../outline/types'
+import { PointLike } from "../../types"
 
 export interface EditorProps {
-  sectionOutline: Point[]
+  sectionOutline: PointLike[]
   onError: (error: Error) => void
 }

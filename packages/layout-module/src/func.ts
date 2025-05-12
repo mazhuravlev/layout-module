@@ -1,10 +1,15 @@
-import { Point } from "./outline/types"
+import { v4 as uuid } from 'uuid'
+import { PointLike } from './types'
 
 export const assertDefined = <T>(value: T | null | undefined): T => {
   if (value === null || value === undefined) {
     throw new Error('assertDefined')
   }
   return value
+}
+
+export const assertUnreachable = (_x: never): never => {
+  throw new Error("Didn't expect to get here")
 }
 
 export const pairwise = <T>(array: T[]): T[][] => {
@@ -29,6 +34,8 @@ export const last = <T>(array: T[]): T => {
   return array[array.length - 1]
 }
 
-export const isSamePoint = (a: Point, b: Point, e = 0.001) => {
+export const isSamePoint = (a: PointLike, b: PointLike, e = 0.001) => {
   return Math.abs(a.x - b.x) < e && Math.abs(a.y - b.y) < e
 }
+
+export const makeUuid = () => uuid()

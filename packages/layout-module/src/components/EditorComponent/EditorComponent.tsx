@@ -19,7 +19,7 @@ export const EditorComponent: React.FC<EditorProps> = (props) => {
       .catch((error) => props.onError(error))
 
     editor.addCleanupFn(addApartmentEvent.watch((shape) => {
-      editor.addApartment(shape)
+      editor.addApartment(shape.points)
     }))
   }
 
