@@ -1,6 +1,7 @@
 import { LayoutModule } from 'layout-module'
 import { parseShapes } from './data/parseShapes'
 import rawShapesJson from './data/shapesData.json'
+import { useState } from 'react'
 
 const apartmentTemplates = parseShapes(rawShapesJson)
 
@@ -14,17 +15,23 @@ const sectionOutline = [
 ]
 
 function App() {
+  const [showModule, setShowModule] = useState(true)
+
   return (
-    <div style={{ height: '90vh', width: '90vw', border: '2px solid black' }}>
-      <LayoutModule
-        apartmentTemplates={apartmentTemplates}
-        section={{
-          outline: sectionOutline.map((x) => ({
-            x: x.x * scaleFactor,
-            y: x.y * scaleFactor,
-          })),
-        }}
-      />
+    <div>
+      <button onClick={() => setShowModule(!showModule)}>Toggle module</button>
+      <div style={{ height: '90vh', width: '90vw', border: '2px solid black' }}>
+        {showModule && <LayoutModule
+          apartmentTemplates={apartmentTemplates}
+          section={{
+            outline: sectionOutline.map((x) => ({
+              x: x.x * scaleFactor,
+              y: x.y * scaleFactor,
+            })),
+          }}
+        />
+        }
+      </div>
     </div>
   )
 }

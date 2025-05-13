@@ -1,18 +1,14 @@
-import { EditorComponent } from '../EditorComponent/EditorComponent'
 import styles from './LayoutModule.module.scss'
 import { LayoutModuleProps } from './LayoutModuleProps'
 import { ToolSidebar } from '../ToolSidebar/ToolSidebar'
-import { useState } from 'react'
 import { AppContext } from '../../AppContext'
 import { PropertySidebar } from '../PropertySidebar/PropertySidebar'
 import { useUnit } from 'effector-react'
 import { selectionStore } from '../events'
-import { Editor } from '../../Editor/Editor'
+import { EditorComponent } from '../EditorComponent/EditorComponent'
 
 export const LayoutModule: React.FC<LayoutModuleProps> = (props) => {
-  const [editorError, setEditorError] = useState<Error | null>(null)
   const selectedIds = useUnit(selectionStore)
-  const [editor, setEditor] = useState<Editor | null>(null)
 
   return (
     <AppContext value={props}>
@@ -23,17 +19,13 @@ export const LayoutModule: React.FC<LayoutModuleProps> = (props) => {
         <div className={styles.main}>
           <header className={styles.header}>Header</header>
           <div className={styles.content}>
-            <main className={styles.editor}>
-              {!editorError && <EditorComponent
+            <div className={styles.editor}>
+              <EditorComponent
                 sectionOutline={props.section.outline}
-                setEditor={setEditor}
-                onError={(error) => setEditorError(error)}
               />
-              }
-              {editorError && <div className={styles.error}>{editorError.message}</div>}
-            </main>
+            </div>
             <aside className={styles.rightSidebar}>
-              {editor && selectedIds.length && <PropertySidebar />}
+              {<PropertySidebar />}
             </aside>
           </div>
         </div>

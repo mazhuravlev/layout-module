@@ -8,6 +8,12 @@ export const assertDefined = <T>(value: T | null | undefined): T => {
   return value
 }
 
+export const assert = (v: boolean, message?: string): void => {
+  if (!v) {
+    throw new Error(message || 'assert')
+  }
+}
+
 export const assertUnreachable = (_x: never): never => {
   throw new Error("Didn't expect to get here")
 }
@@ -41,3 +47,10 @@ export const isSamePoint = (a: PointLike, b: PointLike, e = 0.001) => {
 export const makeUuid = () => uuid()
 
 export const returnSecondArg = <T>(_: unknown, x: T): T => x
+
+export const toError = (value: unknown): Error => {
+  if (value instanceof Error) return value
+  if (typeof value === 'string') return new Error(value)
+  if (value instanceof Object && 'toString' in value && typeof value.toString === 'function') return new Error(value.toString())
+  return new Error(JSON.stringify(value))
+}

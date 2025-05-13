@@ -40,9 +40,9 @@ export class Logger {
     }
   }
 
-  public error(message: string): void {
+  public error(message: string, e: Error): void {
     if (this._logLevel <= LogLevel.ERROR) {
-      console.error(this.formatMessage(message))
+      console.error(this.formatMessage(message), e)
     }
   }
 }
