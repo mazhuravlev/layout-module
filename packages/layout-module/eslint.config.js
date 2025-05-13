@@ -39,6 +39,9 @@ export default tseslint.config({
   rules: {
     '@eslint-react/no-missing-key': 'warn',
     '@stylistic/ts/semi': ['error', 'never'],
+    'no-console': 'error',
+    '@stylistic/quotes': ['error', 'single'],
+    '@stylistic/jsx-quotes': ['error', 'prefer-single'],
     '@typescript-eslint/no-unused-vars': [
       'warn',
       {

@@ -1,5 +1,5 @@
-import { Application, Graphics } from "pixi.js"
-import { PointLike } from "../types"
+import { Application, Graphics } from 'pixi.js'
+import { PointLike } from '../types'
 
 export function calculateZoomToExtents(app: Application, padding: number) {
   let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity
@@ -23,11 +23,15 @@ export function calculateZoomToExtents(app: Application, padding: number) {
   return { centerX, scale, centerY }
 }
 
-export const drawOutline = (graphics: Graphics, points: PointLike[]) => {
+export const drawOutline = (graphics: Graphics, points: PointLike[], fillStyle?: { color: number }) => {
   graphics.clear()
+  graphics.lineStyle({ color: 0x0, width: 1 })
+  if (fillStyle) graphics.beginFill(fillStyle.color)
   graphics.moveTo(points[0].x, points[0].y)
   for (let i = 1; i < points.length; i++) {
     graphics.lineTo(points[i].x, points[i].y)
   }
   graphics.lineTo(points[0].x, points[0].y)
+  graphics.closePath()
+  graphics.endFill()
 }

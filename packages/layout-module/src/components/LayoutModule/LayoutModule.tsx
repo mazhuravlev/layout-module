@@ -8,7 +8,7 @@ import { selectionStore } from '../events'
 import { EditorComponent } from '../EditorComponent/EditorComponent'
 
 export const LayoutModule: React.FC<LayoutModuleProps> = (props) => {
-  const selectedIds = useUnit(selectionStore)
+  const _selectedIds = useUnit(selectionStore)
 
   return (
     <AppContext value={props}>
@@ -17,7 +17,7 @@ export const LayoutModule: React.FC<LayoutModuleProps> = (props) => {
           <ToolSidebar />
         </aside>
         <div className={styles.main}>
-          <header className={styles.header}>Header</header>
+          <header className={styles.header}>Первый этаж</header>
           <div className={styles.content}>
             <div className={styles.editor}>
               <EditorComponent

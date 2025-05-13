@@ -5,7 +5,6 @@
 
 .leftSidebar {
   width: 200px;
-  background: #eee;
 }
 
 .main {
@@ -16,8 +15,11 @@
 
 .header {
   height: 60px;
-  background: #ccc;
+  background: white;
   flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .content {
@@ -34,5 +36,6 @@
 
 .rightSidebar {
   width: 200px;
-  background: #ddd;
+  background: white;
+  border-top: 2px solid #ededed;
 }

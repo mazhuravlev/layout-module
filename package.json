@@ -5,6 +5,7 @@
     "dev:demo": "pnpm --filter demo start",
     "dev:lib": "pnpm --filter layout-module start",
     "build": "pnpm --filter layout-module run build",
+    "pack": "pnpm --filter layout-module pack",
     "lint": "pnpm --parallel run lint",
     "lint:lib": "pnpm --filter layout-module run lint",
     "lint:fix:lib": "pnpm --filter layout-module run lint:fix"

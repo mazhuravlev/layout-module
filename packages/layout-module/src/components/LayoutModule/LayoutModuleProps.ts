@@ -1,4 +1,4 @@
-import { ApartmentTemplate, PointLike } from "../../types"
+import { ApartmentTemplate, PointLike } from '../../types'
 
 export interface LayoutModuleProps {
   section: {

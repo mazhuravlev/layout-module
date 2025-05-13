@@ -18,7 +18,7 @@ export default [
       },
     ],
     plugins: [
-      resolve(),
+      resolve({ preferBuiltins: true }),
       commonjs(),
       typescript({ tsconfig: './tsconfig.json', sourceMap: true }),
       postcss({

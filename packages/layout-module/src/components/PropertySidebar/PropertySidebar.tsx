@@ -1,3 +1,5 @@
+import styles from './PropertySidebar.module.scss'
+
 export const PropertySidebar: React.FC = () => {
-    return <div>properties</div>
+    return <div className={styles.container}>Свойства</div>
 }

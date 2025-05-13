@@ -1,8 +1,8 @@
-import { Container, FederatedPointerEvent, Graphics } from "pixi.js"
-import { assertUnreachable, makeUuid } from "../func"
-import { drawOutline } from "./func"
-import { IDisposable, PointLike } from "../types"
-import { EventService } from "../EventService/EventService"
+import { Container, FederatedPointerEvent, Graphics } from 'pixi.js'
+import { assertUnreachable, makeUuid } from '../func'
+import { drawOutline } from './func'
+import { IDisposable, PointLike } from '../types'
+import { EventService } from '../EventService/EventService'
 
 const defaultConfig = {
     color: 0xffffff,
@@ -14,7 +14,7 @@ const defaultConfig = {
 export class Apartment implements IDisposable {
     private _id = makeUuid()
     private _container = new Container()
-    private _areaGraphics = new Graphics({ eventMode: 'static' })
+    private _areaGraphics = new Graphics()
     private _state: 'normal' | 'hover' | 'selected' = 'normal'
     private _config: typeof defaultConfig
 
@@ -35,11 +35,13 @@ export class Apartment implements IDisposable {
         const { _areaGraphics, _container } = this
         this.render()
         _container.addChild(_areaGraphics)
+        _areaGraphics.eventMode = 'static'
+        _areaGraphics.cursor = 'pointer'
         _areaGraphics.on('mouseenter', e => this.mouseEnter(e))
         _areaGraphics.on('mouseleave', e => this.mouseLeave(e))
         _areaGraphics.on('mousedown', e => this.mouseDown(e))
         _areaGraphics.on('mouseup', e => this.mouseUp(e))
-        _areaGraphics.on('click', e => this.mouseClick(e))
+        _areaGraphics.on('mousemove', e => this.mouseMove(e))
     }
 
     private mouseEnter(_event: FederatedPointerEvent) {
@@ -58,19 +60,12 @@ export class Apartment implements IDisposable {
         }
     }
 
-    private mouseClick(_event: FederatedPointerEvent) {
-        _event.stopPropagation()
-        this._eventService.emit({
-            type: 'click',
-            target: this,
-        })
-    }
-
-    private mouseDown(_event: FederatedPointerEvent) {
-        _event.stopPropagation()
+    private mouseDown(event: FederatedPointerEvent) {
+        event.stopPropagation()
         this._eventService.emit({
             type: 'mousedown',
             target: this,
+            event
         })
     }
 
@@ -82,12 +77,19 @@ export class Apartment implements IDisposable {
         })
     }
 
+    private mouseMove(event: FederatedPointerEvent) {
+        event.stopPropagation()
+        this._eventService.emit({
+            type: 'mousemove',
+            target: this,
+            event,
+        })
+    }
+
     private render() {
         const { _areaGraphics, _config } = this
         _areaGraphics.clear()
-        drawOutline(_areaGraphics, this._points)
-        _areaGraphics.fill({ color: this.getFillColor() })
-        _areaGraphics.stroke({ color: _config.strokeColor, pixelLine: true, width: 1 })
+        drawOutline(_areaGraphics, this._points, { color: this.getFillColor() })
     }
 
     private getFillColor() {
