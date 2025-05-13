@@ -39,3 +39,5 @@ export const isSamePoint = (a: PointLike, b: PointLike, e = 0.001) => {
 }
 
 export const makeUuid = () => uuid()
+
+export const returnSecondArg = <T>(_: unknown, x: T): T => x

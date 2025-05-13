@@ -4,7 +4,7 @@ import { Logger } from '../logger'
 import { PointLike } from '../types'
 import { Apartment } from './Apartment'
 import { EventService } from '../EventService/EventService'
-import { addApartmentEvent, deleteSelectedEvent } from '../components/events'
+import { addApartmentEvent, deleteSelectedEvent, selectionEvent } from '../components/events'
 
 export class Editor {
   private _app = new Application()
@@ -50,9 +50,11 @@ export class Editor {
   private setupObjectEvents() {
     const clickSubscription = this._eventService.events$.subscribe(e => {
       if (e.type === 'click' && e.target instanceof Apartment) {
+        const { target } = e
         this.deselectAll()
-        e.target.select()
-        this._selectedApartment = e.target
+        target.select()
+        this._selectedApartment = target
+        selectionEvent([target.id])
       }
     })
     this.cleanupFns.push(() => {
@@ -65,6 +67,7 @@ export class Editor {
     stage.on('click', (e: PointerEvent) => {
       if (e.target === this._app.stage) {
         this.deselectAll()
+        selectionEvent([])
       }
     })
 

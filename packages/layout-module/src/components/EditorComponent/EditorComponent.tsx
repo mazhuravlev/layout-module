@@ -10,16 +10,18 @@ export const EditorComponent: React.FC<EditorProps> = (props) => {
   const initPromiseRef = useRef<Promise<void> | null>(null)
 
   const initEditor = async (container: HTMLDivElement) => {
+    console.log('initEditor')
     const editor = new Editor(container)
     editorRef.current = editor
     initPromiseRef.current = editor.init()
       .then(() => editor.setSectionOutline(props.sectionOutline))
       .then(() => editor.zoomToExtents())
+      .then(() => props.setEditor(editor))
       .catch((error) => props.onError(error))
   }
 
   useEffect(() => {
-    if (containerRef.current) {
+    if (containerRef.current && editorRef.current === null) {
       initEditor(containerRef.current)
     }
     return () => {
@@ -30,6 +32,7 @@ export const EditorComponent: React.FC<EditorProps> = (props) => {
       initPromiseRef.current = null
       assertDefined(initPromise).then(() => {
         editor.dispose()
+        props.setEditor(null)
       })
     }
   }, [containerRef.current])
