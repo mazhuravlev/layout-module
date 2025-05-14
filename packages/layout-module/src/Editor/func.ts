@@ -1,5 +1,6 @@
 import { Application, DisplayObject, Graphics } from 'pixi.js'
 import { APoint } from '../types'
+import { fromEventPattern } from 'rxjs'
 
 export function calculateZoomToExtents(app: Application, padding: number, objects: DisplayObject[]) {
   let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity
@@ -108,4 +109,14 @@ export function getPolygonArea(points: APoint[]): number {
 
 export const formatArea = (area: number) => {
   return `${Math.round(area / 100)} м²`
+}
+
+export function fromPixiEvent(
+  target: DisplayObject,
+  eventName: string
+) {
+  return fromEventPattern(
+    (handler) => target.on(eventName, handler),
+    (handler) => target.off(eventName, handler)
+  )
 }

@@ -41,15 +41,13 @@ export class Apartment implements IDisposable {
     ) {
         this._config = { ...defaultConfig, ...config }
         const { _areaGraphics, _container } = this
-        this.render()
-        _container.addChild(_areaGraphics)
         _areaGraphics.eventMode = 'static'
         _areaGraphics.cursor = 'pointer'
         _areaGraphics.on('mouseenter', e => this.mouseEnter(e))
         _areaGraphics.on('mouseleave', e => this.mouseLeave(e))
         _areaGraphics.on('mousedown', e => this.mouseDown(e))
         _areaGraphics.on('mouseup', e => this.mouseUp(e))
-        _areaGraphics.on('mousemove', e => this.mouseMove(e))
+        _container.addChild(_areaGraphics)
 
         const center = getPolygonCenter(_points)
         const areaText = new Text(formatArea(getPolygonArea(_points)), { fontSize: 12 })
@@ -58,6 +56,8 @@ export class Apartment implements IDisposable {
         areaText.scale.set(0.5, 0.5)
         areaText.position.set(center.x, center.y)
         _container.addChild(areaText)
+
+        this.render()
     }
 
     private mouseEnter(_event: FederatedPointerEvent) {
@@ -85,20 +85,12 @@ export class Apartment implements IDisposable {
         })
     }
 
-    private mouseUp(_event: FederatedPointerEvent) {
-        _event.stopPropagation()
-        this._eventService.emit({
-            type: 'mouseup',
-            target: this,
-        })
-    }
-
-    private mouseMove(event: FederatedPointerEvent) {
+    private mouseUp(event: FederatedPointerEvent) {
         event.stopPropagation()
         this._eventService.emit({
-            type: 'mousemove',
-            target: this,
+            type: 'mouseup',
             event,
+            target: this,
         })
     }
 

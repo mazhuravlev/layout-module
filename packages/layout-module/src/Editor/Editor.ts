@@ -1,13 +1,13 @@
-import { Application, Graphics } from 'pixi.js'
-import { calculateZoomToExtents, drawOutline } from './func'
+import { Application, FederatedPointerEvent, Graphics } from 'pixi.js'
+import { calculateZoomToExtents, drawOutline, fromPixiEvent } from './func'
 import { Logger } from '../logger'
 import { ALine, APoint } from '../types'
 import { Apartment } from './Apartment'
 import { EventService } from '../EventService/EventService'
 import { addApartmentEvent, deleteSelectedEvent, selectionEvent, zoomToExtentsEvent } from '../components/events'
 import { assertDefined, toError } from '../func'
-import { MouseDownEvent, MouseMoveEvent, MouseUpEvent } from '../EventService/eventTypes'
-import { catchError, EMPTY, filter, fromEvent, map, switchMap, take, timeout } from 'rxjs'
+import { MouseDownEvent, MouseMoveEvent } from '../EventService/eventTypes'
+import { catchError, EMPTY, filter, fromEvent, map, mergeMap, of, switchMap, take, timeout } from 'rxjs'
 import { SnapService } from './SnapService'
 
 export class Editor {
@@ -15,6 +15,7 @@ export class Editor {
   private _logger = new Logger('Editor')
   private _sectionOutline: { graphics: Graphics; points: APoint[] } | null = null
   private _apartments = new Map<string, Apartment>()
+
   private _selectedApartment: Apartment | null = null
   private _dragData:
     | {
@@ -60,6 +61,57 @@ export class Editor {
       .pipe(filter(e => e.key === 'Delete' && this._selectedApartment != null))
       .subscribe(() => this.deleteSelected())
     this.cleanupFns.push(() => deleteSub.unsubscribe())
+  }
+
+  /**
+   * @description Настройка событий редактора
+   */
+  private setupObjectEvents() {
+    const clickSub = this._eventService.mousedown$
+      .pipe(
+        switchMap((down) =>
+          this._eventService.mouseup$.pipe(
+            take(1),
+            timeout(200),
+            filter((up) => up.target === down.target), // 👈 одна и та же квартира
+            map((_up) => down.target),
+            catchError(() => EMPTY) // игнорируем timeout
+          )
+        )
+      ).subscribe(target => {
+        this.deselectAll()
+        target.select()
+        this._selectedApartment = target
+        selectionEvent([target.id])
+      })
+    this.cleanupFns.push(() => clickSub.unsubscribe())
+
+    const dragSub = this._eventService.events$.subscribe(e => {
+      if (e.type === 'mousedown') {
+        this.startDrag(e)
+      } else if (e.type === 'mouseup') {
+        if (this._dragData) this.stopDrag()
+      } else if (e.type === 'mousemove' && this._dragData) {
+        this.drag(e)
+      }
+    })
+    this.cleanupFns.push(() => dragSub.unsubscribe())
+
+    const { stage } = this.app
+    stage.eventMode = 'static'
+    stage.hitArea = this.app.screen
+    stage.on('click', (e: PointerEvent) => {
+      if (e.target === stage) {
+        this.deselectAll()
+        selectionEvent([])
+      }
+    })
+
+    this.cleanupFns.push(() => {
+      if (stage) {
+        stage.removeAllListeners()
+      }
+    })
 
     const wheelSub = fromEvent<WheelEvent>(this._container, 'wheel', { passive: true })
       .subscribe(e => {
@@ -81,59 +133,25 @@ export class Editor {
         stage.position.x += (mouseGlobalAfterZoom.x - mouseGlobalBeforeZoom.x) * newScale
         stage.position.y += (mouseGlobalAfterZoom.y - mouseGlobalBeforeZoom.y) * newScale
       })
-
     this.cleanupFns.push(() => wheelSub.unsubscribe())
-  }
 
-  /**
-   * @description Настройка событий редактора
-   */
-  private setupObjectEvents() {
-    const clickSub = this._eventService.mousedown$
-      .pipe(
-        switchMap((down) =>
-          this._eventService.mouseup$.pipe(
-            take(1),
-            timeout(200),
-            filter((up) => up.target === down.target), // 👈 одна и та же квартира
-            map((up) => up.target),
-            catchError(() => EMPTY) // игнорируем timeout
-          )
-        )
-      ).subscribe(target => {
-        this.deselectAll()
-        target.select()
-        this._selectedApartment = target
-        selectionEvent([target.id])
+    const stageMouseMoveSub = fromPixiEvent(this.app.stage, 'mousemove')
+      .pipe(filter(e => e instanceof FederatedPointerEvent))
+      .subscribe(event => this._eventService.emit({ type: 'mousemove', event }))
+    this.addCleanupFn(() => stageMouseMoveSub.unsubscribe())
+
+    const stageMouseUpSub = fromPixiEvent(this.app.stage, 'mouseup')
+      .pipe(mergeMap(e => {
+        if (e instanceof FederatedPointerEvent && e.target === this.app.stage) {
+          return of(e)
+        } else {
+          return EMPTY
+        }
+      }))
+      .subscribe(event => {
+        this._eventService.emit({ type: 'mouseup', event })
       })
-    this.cleanupFns.push(() => clickSub.unsubscribe())
-
-    const mouseDownSub = this._eventService.events$.subscribe(e => {
-      if (e.type === 'mousedown') {
-        this.startDrag(e)
-      } else if (e.type === 'mouseup') {
-        this.stopDrag(e)
-      } else if (e.type === 'mousemove' && this._dragData) {
-        this.drag(e)
-      }
-    })
-    this.cleanupFns.push(() => mouseDownSub.unsubscribe())
-
-    const { stage } = this.app
-    stage.eventMode = 'static'
-    stage.hitArea = this.app.screen
-    stage.on('click', (e: PointerEvent) => {
-      if (e.target === stage) {
-        this.deselectAll()
-        selectionEvent([])
-      }
-    })
-
-    this.cleanupFns.push(() => {
-      if (stage) {
-        stage.removeAllListeners()
-      }
-    })
+    this.addCleanupFn(() => stageMouseUpSub.unsubscribe())
   }
 
   private drag({ event }: MouseMoveEvent) {
@@ -183,7 +201,7 @@ export class Editor {
     ]
   }
 
-  private stopDrag(_e: MouseUpEvent) {
+  private stopDrag() {
     assertDefined(this._dragData).snapService.destroy()
     this._dragData = null
   }
@@ -239,7 +257,7 @@ export class Editor {
   }
 
   public deleteSelected() {
-    const { _app, _selectedApartment, _apartments } = this
+    const { _selectedApartment, _apartments } = this
     if (!_selectedApartment) return
     this.app.stage.removeChild(_selectedApartment.container)
     _apartments.delete(_selectedApartment.id)

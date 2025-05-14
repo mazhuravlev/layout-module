@@ -1,18 +1,26 @@
 import { FederatedPointerEvent } from 'pixi.js'
 import { Apartment } from '../Editor/Apartment'
 
-export interface BaseEvent {
+interface BaseEvent {
     type: string
+}
+
+interface TargetEvent {
     target: Apartment
 }
 
-export interface MouseDownEvent extends BaseEvent {
+interface OptionalTargetEvent {
+    target?: Apartment
+}
+
+export interface MouseDownEvent extends BaseEvent, TargetEvent {
     type: 'mousedown'
     event: FederatedPointerEvent
 }
 
-export interface MouseUpEvent extends BaseEvent {
+export interface MouseUpEvent extends BaseEvent, OptionalTargetEvent {
     type: 'mouseup'
+    event: FederatedPointerEvent
 }
 
 export interface MouseMoveEvent extends BaseEvent {
@@ -20,10 +28,10 @@ export interface MouseMoveEvent extends BaseEvent {
     event: FederatedPointerEvent
 }
 
-export interface MouseEnterEvent extends BaseEvent {
+export interface MouseEnterEvent extends BaseEvent, TargetEvent {
     type: 'mouseenter'
 }
-export interface MouseLeaveEvent extends BaseEvent {
+export interface MouseLeaveEvent extends BaseEvent, TargetEvent {
     type: 'mouseleave'
 }
 
