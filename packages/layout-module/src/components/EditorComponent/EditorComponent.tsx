@@ -10,9 +10,10 @@ export const EditorComponent: React.FC<EditorProps> = (props) => {
   const initEditor = async (container: HTMLDivElement) => {
     const editor = new Editor(container)
     editorRef.current = editor
-    editor.init()
-    setTimeout(() => editor.setSectionOutline(props.sectionOutline))
-    setTimeout(() => editor.zoomToExtents())
+    await Promise.resolve()
+      .then(() => editor.init())
+      .then(() => editor.setSectionOutline(props.sectionOutline))
+      .then(() => editor.zoomToExtents())
   }
 
   useEffect(() => {
