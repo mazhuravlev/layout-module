@@ -1,11 +1,11 @@
-import { Application, Graphics } from 'pixi.js'
+import { Application, DisplayObject, Graphics } from 'pixi.js'
 import { APoint } from '../types'
 
-export function calculateZoomToExtents(app: Application, padding: number) {
+export function calculateZoomToExtents(app: Application, padding: number, objects: DisplayObject[]) {
   let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity
 
-  app.stage.children.forEach((child) => {
-    const bounds = child.getBounds()
+  objects.forEach((child) => {
+    const bounds = child.getBounds(false)
     minX = Math.min(minX, bounds.x)
     minY = Math.min(minY, bounds.y)
     maxX = Math.max(maxX, bounds.x + bounds.width)

@@ -4,10 +4,10 @@ import { Logger } from '../logger'
 import { ALine, APoint } from '../types'
 import { Apartment } from './Apartment'
 import { EventService } from '../EventService/EventService'
-import { addApartmentEvent, deleteSelectedEvent, selectionEvent } from '../components/events'
-import { assertDefined } from '../func'
+import { addApartmentEvent, deleteSelectedEvent, selectionEvent, zoomToExtentsEvent } from '../components/events'
+import { assertDefined, toError } from '../func'
 import { MouseDownEvent, MouseMoveEvent, MouseUpEvent } from '../EventService/eventTypes'
-import { catchError, EMPTY, filter, map, switchMap, take, timeout } from 'rxjs'
+import { catchError, EMPTY, filter, fromEvent, map, switchMap, take, timeout } from 'rxjs'
 import { SnapService } from './SnapService'
 
 export class Editor {
@@ -52,12 +52,37 @@ export class Editor {
    * @description Настройка входящих событий от компонентов
    */
   private setupEvents() {
-    this.addCleanupFn(addApartmentEvent.watch((shape) => {
-      this.addApartment(shape.points)
-    }))
-    this.addCleanupFn(deleteSelectedEvent.watch(() => {
-      this.deleteSelected()
-    }))
+    this.addCleanupFn(addApartmentEvent.watch((shape) => this.addApartment(shape.points)))
+    this.addCleanupFn(deleteSelectedEvent.watch(() => this.deleteSelected()))
+    this.addCleanupFn(zoomToExtentsEvent.watch(() => this.zoomToExtents()))
+
+    const deleteSub = fromEvent<KeyboardEvent>(document, 'keydown', { passive: true })
+      .pipe(filter(e => e.key === 'Delete' && this._selectedApartment != null))
+      .subscribe(() => this.deleteSelected())
+    this.cleanupFns.push(() => deleteSub.unsubscribe())
+
+    const wheelSub = fromEvent<WheelEvent>(this._container, 'wheel', { passive: true })
+      .subscribe(e => {
+        const { stage } = this.app
+        const clientPoint = { x: e.clientX, y: e.clientY }
+        const mouseGlobalBeforeZoom = stage.toLocal(clientPoint)
+
+        // Определяем направление и скорость зума
+        const zoomFactor = e.deltaY > 0 ? 0.9 : 1.1 // Уменьшаем или увеличиваем масштаб
+        const newScale = Math.max(
+          0.1,
+          Math.min(10, stage.scale.x * zoomFactor) // Ограничиваем масштаб
+        )
+
+        stage.scale.set(newScale)
+
+        // Корректируем позицию stage для зума относительно курсора
+        const mouseGlobalAfterZoom = stage.toLocal(clientPoint)
+        stage.position.x += (mouseGlobalAfterZoom.x - mouseGlobalBeforeZoom.x) * newScale
+        stage.position.y += (mouseGlobalAfterZoom.y - mouseGlobalBeforeZoom.y) * newScale
+      })
+
+    this.cleanupFns.push(() => wheelSub.unsubscribe())
   }
 
   /**
@@ -118,6 +143,8 @@ export class Editor {
     const snapResult = snapService.checkOutlineSnap(target.globalPoints)
     if (snapResult.snapped) {
       snapService.showSnapIndicator(snapResult.snapPoint)
+    } else {
+      snapService.hideSnapIndicator()
     }
     target.container.position.set(
       localEventPos.x - offset.x,
@@ -178,9 +205,20 @@ export class Editor {
   }
 
   public async dispose(): Promise<void> {
-    // TODO: выгрузить все текстуры
-    this.app.destroy(true, { children: true })
-    this.cleanupFns.forEach((fn) => fn())
+    try {
+      this.app.destroy(true, { children: true })
+    } catch (error) {
+      this._logger.error('Error destroying app:', toError(error))
+    }
+
+    for (const fn of this.cleanupFns) {
+      try {
+        fn()
+      } catch (error) {
+        this._logger.error('Error in cleanup function:', toError(error))
+      }
+    }
+
     this.cleanupFns = []
     this._apartments.clear()
     this._eventService.dispose()
@@ -212,12 +250,20 @@ export class Editor {
   public zoomToExtents() {
     const { app } = this
     if (!app.stage.children.length) return
-    const { centerX, scale, centerY } = calculateZoomToExtents(app, 20)
-    app.stage.position.set(
+
+    app.stage.setTransform(0, 0, 1, 1, 0, 0, 0, 0, 0)
+    app.render()
+
+    const { centerX, centerY, scale } = calculateZoomToExtents(app, 30, [
+      assertDefined(this._sectionOutline).graphics
+    ])
+    app.stage.setTransform(
       app.screen.width / 2 - centerX * scale,
-      app.screen.height / 2 - centerY * scale
+      app.screen.height / 2 - centerY * scale,
+      scale,
+      scale,
+      0, 0, 0, 0, 0
     )
-    app.stage.scale.set(scale)
   }
 }
 

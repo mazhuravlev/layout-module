@@ -142,7 +142,7 @@ export class SnapService {
     /**
      * Визуализация точки привязки (для отладки)
      */
-    showSnapIndicator(point: APoint) {
+    public showSnapIndicator(point: APoint) {
         if (!this.config.showVisualHelpers) return
 
         if (!this.snapIndicator) {
@@ -156,7 +156,13 @@ export class SnapService {
         this.snapIndicator.endFill()
     }
 
-    destroy() {
+    public hideSnapIndicator() {
+        if (this.snapIndicator) {
+            this.snapIndicator.clear()
+        }
+    }
+
+    public destroy() {
         if (this.snapIndicator) {
             this.snapIndicator.destroy()
             this.snapIndicator = null

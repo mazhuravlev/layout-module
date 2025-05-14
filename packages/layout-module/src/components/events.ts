@@ -6,6 +6,7 @@ const returnPayload = returnSecondArg
 
 export const addApartmentEvent = createEvent<ApartmentTemplate>()
 export const deleteSelectedEvent = createEvent<void>()
+export const zoomToExtentsEvent = createEvent<void>()
 
 export const selectionEvent = createEvent<string[]>()
 export const selectionStore = createStore<string[]>([])

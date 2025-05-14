@@ -11,8 +11,8 @@ export const EditorComponent: React.FC<EditorProps> = (props) => {
     const editor = new Editor(container)
     editorRef.current = editor
     editor.init()
-    editor.setSectionOutline(props.sectionOutline)
-    editor.zoomToExtents()
+    setTimeout(() => editor.setSectionOutline(props.sectionOutline))
+    setTimeout(() => editor.zoomToExtents())
   }
 
   useEffect(() => {

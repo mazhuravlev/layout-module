@@ -1,0 +1,13 @@
+.button {
+    border: none;
+    padding: 8px;
+}
+
+.button:hover {
+    background-color: #ddd;
+}
+
+.button:disabled {
+    background-color: #ccc;
+    cursor: not-allowed;
+}
