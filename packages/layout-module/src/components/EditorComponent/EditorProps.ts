@@ -1,5 +1,5 @@
-import { PointLike } from '../../types'
+import { APoint } from '../../types'
 
 export interface EditorProps {
-  sectionOutline: PointLike[]
+  sectionOutline: APoint[]
 }

@@ -1,8 +1,8 @@
-import { ApartmentTemplate, PointLike } from '../../types'
+import { ApartmentTemplate, APoint } from '../../types'
 
 export interface LayoutModuleProps {
   section: {
-    outline: PointLike[]
+    outline: APoint[]
   }
   apartmentTemplates: ApartmentTemplate[]
 }

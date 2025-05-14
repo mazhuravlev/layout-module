@@ -1,5 +1,5 @@
 import { Application, Graphics } from 'pixi.js'
-import { PointLike } from '../types'
+import { APoint } from '../types'
 
 export function calculateZoomToExtents(app: Application, padding: number) {
   let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity
@@ -23,7 +23,7 @@ export function calculateZoomToExtents(app: Application, padding: number) {
   return { centerX, scale, centerY }
 }
 
-export const drawOutline = (graphics: Graphics, points: PointLike[], fillStyle?: { color: number }) => {
+export const drawOutline = (graphics: Graphics, points: APoint[], fillStyle?: { color: number }) => {
   graphics.clear()
   graphics.lineStyle({ color: 0x0, width: 1 })
   if (fillStyle) graphics.beginFill(fillStyle.color)
@@ -41,7 +41,7 @@ export const drawOutline = (graphics: Graphics, points: PointLike[], fillStyle?:
  * @param points Массив точек многоугольника в порядке обхода (по или против часовой стрелки)
  * @returns Точка центра {x, y}
  */
-export function getPolygonCenter(points: PointLike[]): PointLike {
+export function getPolygonCenter(points: APoint[]): APoint {
   if (points.length === 0) {
     throw new Error('Polygon must have at least one point')
   }
@@ -89,7 +89,7 @@ export function getPolygonCenter(points: PointLike[]): PointLike {
  * @param points Массив точек многоугольника в порядке обхода (по или против часовой стрелки)
  * @returns Площадь в квадратных единицах (может быть отрицательной для обратного порядка)
  */
-export function getPolygonArea(points: PointLike[]): number {
+export function getPolygonArea(points: APoint[]): number {
   if (points.length < 3) {
     return 0 // Площадь для линии или точки равна 0
   }

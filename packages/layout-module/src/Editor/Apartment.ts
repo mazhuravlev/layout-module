@@ -1,7 +1,7 @@
 import { Container, FederatedPointerEvent, Graphics, Text } from 'pixi.js'
 import { assertUnreachable, makeUuid } from '../func'
 import { drawOutline, getPolygonCenter, getPolygonArea, formatArea } from './func'
-import { IDisposable, PointLike } from '../types'
+import { IDisposable, APoint } from '../types'
 import { EventService } from '../EventService/EventService'
 
 const defaultConfig = {
@@ -26,8 +26,16 @@ export class Apartment implements IDisposable {
         return this._container
     }
 
+    get points() {
+        return this._points
+    }
+
+    get globalPoints() {
+        return this._points.map((point) => this._container.toGlobal(point))
+    }
+
     constructor(
-        private _points: PointLike[],
+        private _points: APoint[],
         private _eventService: EventService,
         config: Partial<typeof defaultConfig> = {}
     ) {

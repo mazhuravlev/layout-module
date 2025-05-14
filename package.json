@@ -8,7 +8,8 @@
     "pack": "pnpm --filter layout-module pack",
     "lint": "pnpm --parallel run lint",
     "lint:lib": "pnpm --filter layout-module run lint",
-    "lint:fix:lib": "pnpm --filter layout-module run lint:fix"
+    "lint:fix:lib": "pnpm --filter layout-module run lint:fix",
+    "prepare": "husky"
   },
   "devDependencies": {
     "@eslint/js": "9.26.0",
@@ -19,6 +20,7 @@
     "@typescript-eslint/parser": "8.32.0",
     "eslint": "9.26.0",
     "globals": "16.1.0",
+    "husky": "9.1.7",
     "typescript": "5.8.3",
     "typescript-eslint": "8.32.0"
   }

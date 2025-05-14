@@ -1,5 +1,4 @@
 import { v4 as uuid } from 'uuid'
-import { PointLike } from './types'
 
 export const assertDefined = <T>(value: T | null | undefined): T => {
   if (value === null || value === undefined) {
@@ -38,10 +37,6 @@ export const first = <T>(array: T[]): T => {
 export const last = <T>(array: T[]): T => {
   if (array.length === 0) throw new Error('Array is empty')
   return array[array.length - 1]
-}
-
-export const isSamePoint = (a: PointLike, b: PointLike, e = 0.001) => {
-  return Math.abs(a.x - b.x) < e && Math.abs(a.y - b.y) < e
 }
 
 export const makeUuid = () => uuid()

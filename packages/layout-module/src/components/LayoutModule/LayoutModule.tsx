@@ -1,3 +1,9 @@
+/**
+ * TODO: Убрать в модуль, а то поломает все кнопки
+ * Использовать внешний компонент или стиль, или сделать конпоненты внутри модуля
+ */
+import './index.scss'
+
 import styles from './LayoutModule.module.scss'
 import { LayoutModuleProps } from './LayoutModuleProps'
 import { ToolSidebar } from '../ToolSidebar/ToolSidebar'
