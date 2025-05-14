@@ -1,6 +1,6 @@
-import { Container, FederatedPointerEvent, Graphics } from 'pixi.js'
+import { Container, FederatedPointerEvent, Graphics, Text } from 'pixi.js'
 import { assertUnreachable, makeUuid } from '../func'
-import { drawOutline } from './func'
+import { drawOutline, getPolygonCenter, getPolygonArea, formatArea } from './func'
 import { IDisposable, PointLike } from '../types'
 import { EventService } from '../EventService/EventService'
 
@@ -42,6 +42,14 @@ export class Apartment implements IDisposable {
         _areaGraphics.on('mousedown', e => this.mouseDown(e))
         _areaGraphics.on('mouseup', e => this.mouseUp(e))
         _areaGraphics.on('mousemove', e => this.mouseMove(e))
+
+        const center = getPolygonCenter(_points)
+        const areaText = new Text(formatArea(getPolygonArea(_points)), { fontSize: 12 })
+        areaText.resolution = 2
+        areaText.anchor.set(0.5)
+        areaText.scale.set(0.5, 0.5)
+        areaText.position.set(center.x, center.y)
+        _container.addChild(areaText)
     }
 
     private mouseEnter(_event: FederatedPointerEvent) {
