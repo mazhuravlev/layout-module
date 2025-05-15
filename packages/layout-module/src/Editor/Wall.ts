@@ -4,11 +4,11 @@ import { APoint, CoordType, EditorObject, IDisposable, TPoints } from './types'
 import { Apartment } from './Apartment'
 import { defaultConfig } from './defaultConfig'
 import { fromPixiEvent, makeLineHitbox } from './func'
-import { debugStore } from '../components/events'
+import { $debugConfig } from '../components/events'
 
 
 export class Wall extends EditorObject implements IDisposable {
-    private _drawDebug = debugStore.getState().drawDebug
+    private _drawDebug = $debugConfig.getState().drawDebug
     private _graphics = new Graphics()
     private _config = defaultConfig
 
@@ -48,7 +48,7 @@ export class Wall extends EditorObject implements IDisposable {
             .subscribe(event => _eventService.emit({ type: 'mousedown', pixiEvent: event, target: this }))
         fromPixiEvent(_graphics, 'mouseup')
             .subscribe(event => _eventService.emit({ type: 'mouseup', pixiEvent: event, target: this }))
-        debugStore
+        $debugConfig
             .map(x => x.drawDebug)
             .watch(x => {
                 this._drawDebug = x
@@ -59,7 +59,8 @@ export class Wall extends EditorObject implements IDisposable {
     public render(color: number) {
         const [p1, p2] = this._points
         const { _graphics } = this
-        const hitbox = makeLineHitbox(p1, p2, 10, 50)
+        const HITBOX_WIDTH = 10
+        const hitbox = makeLineHitbox(p1, p2, HITBOX_WIDTH, HITBOX_WIDTH / 2)
         _graphics.clear()
         if (this._drawDebug) {
             _graphics.beginFill(0xaaffaa, 0.5)

@@ -75,6 +75,9 @@ importers:
       effector:
         specifier: 23.3.0
         version: 23.3.0
+      effector-localstorage:
+        specifier: 1.0.0
+        version: 1.0.0(effector@23.3.0)
       effector-react:
         specifier: 23.3.0
         version: 23.3.0(effector@23.3.0)(react@19.1.0)
@@ -1345,6 +1348,11 @@ packages:
 
   ee-first@1.1.1:
     resolution: {integrity: sha512-WMwm9LhRUo+WUaRN+vRuETqG89IgZphVSNkdFgeb6sS/E4OrDIN7t48CAewSHXc6C8lefD8KKfr5vY61brQlow==}
+
+  effector-localstorage@1.0.0:
+    resolution: {integrity: sha512-SyJiKCHv05GPcWAC/lupQJWvp2EwY2QRfMuiy/JmuXxw++WUi5ozvxKrPT9ntRndn3AgD3S+LOPPwl7GWi/rzw==}
+    peerDependencies:
+      effector: '>=22.0.0'
 
   effector-react@23.3.0:
     resolution: {integrity: sha512-QR0+x1EnbiWhO80Yc0GVF+I9xCYoxBm3t+QLB5Wg+1uY1Q1BrSWDmKvJaJJZ/+9BU4RAr25yS5J2EkdWnicu8g==}
@@ -4104,6 +4112,10 @@ snapshots:
   earcut@2.2.4: {}
 
   ee-first@1.1.1: {}
+
+  effector-localstorage@1.0.0(effector@23.3.0):
+    dependencies:
+      effector: 23.3.0
 
   effector-react@23.3.0(effector@23.3.0)(react@19.1.0):
     dependencies:

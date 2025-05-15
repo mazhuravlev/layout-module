@@ -5,7 +5,7 @@ import { IDisposable, APoint, EditorObject, TPoints, CoordType } from './types'
 import { EventService } from '../EventService/EventService'
 import { defaultConfig } from './defaultConfig'
 import { Wall } from './Wall'
-import { debugStore } from '../components/events'
+import { $debugConfig } from '../components/events'
 
 export class Apartment extends EditorObject implements IDisposable {
     private _id = makeUuid()
@@ -15,7 +15,7 @@ export class Apartment extends EditorObject implements IDisposable {
     private _walls: Wall[] = []
     private _state: 'normal' | 'hover' | 'selected' = 'normal'
     private _config: typeof defaultConfig
-    private _drawDebug = debugStore.getState().drawDebug
+    private _drawDebug = $debugConfig.getState().drawDebug
 
     public get id() {
         return this._id

@@ -10,7 +10,10 @@ interface DragConfigType {
 
 export interface ApartmentDragConfig extends DragConfigType {
     target: Apartment
-    start: APoint
+
+    /**
+     * Смещение указателя мыши от нуля квартиры в локальных координатах
+     */
     offset: APoint
 }
 export const isApartmentDragConfig = (config: DragConfigType | null): config is ApartmentDragConfig => {
@@ -20,7 +23,6 @@ export const isApartmentDragConfig = (config: DragConfigType | null): config is 
 export interface WallDragConfig extends DragConfigType {
     target: Wall
     startGlobalPoints: TPoints
-    offset: number
 }
 
 export const isWallDragConfig = (config: DragConfigType | null): config is WallDragConfig => {

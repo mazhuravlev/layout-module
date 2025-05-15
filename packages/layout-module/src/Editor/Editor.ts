@@ -1,11 +1,11 @@
 import { Application, FederatedPointerEvent, Graphics } from 'pixi.js'
 import { calculateZoomToExtents, distanceFromPointToLine, drawOutline, fromPixiEvent, shiftLine } from './func'
 import { Logger } from '../logger'
-import { ALine, APoint } from './types'
+import { ALine, APoint, EditorObject } from './types'
 import { ApartmentDragConfig, DragConfig, isApartmentDragConfig, isWallDragConfig } from './dragConfig'
 import { Apartment } from './Apartment'
 import { EventService } from '../EventService/EventService'
-import { addApartmentEvent, deleteSelectedEvent, selectionEvent, zoomToExtentsEvent } from '../components/events'
+import { addApartmentEvent, deleteSelectedEvent, selectionEvent, toggleDrawDebug, toggleSnap, zoomToExtentsEvent } from '../components/events'
 import { assertDefined, toError } from '../func'
 import { MouseDownEvent, MouseMoveEvent } from '../EventService/eventTypes'
 import { catchError, EMPTY, filter, fromEvent, map, mergeMap, of, switchMap, take, timeout } from 'rxjs'
@@ -42,6 +42,7 @@ export class Editor {
     this._container.appendChild((this._app.view as unknown) as Node)
     this.setupObjectEvents()
     this.setupEvents()
+    this.setupKeyboardEvents()
   }
 
   /**
@@ -51,11 +52,22 @@ export class Editor {
     this.addCleanupFn(addApartmentEvent.watch((shape) => this.addApartment(shape.points)))
     this.addCleanupFn(deleteSelectedEvent.watch(() => this.deleteSelected()))
     this.addCleanupFn(zoomToExtentsEvent.watch(() => this.zoomToExtents()))
+  }
 
+  private setupKeyboardEvents() {
     const deleteSub = fromEvent<KeyboardEvent>(document, 'keydown', { passive: true })
       .pipe(filter(e => e.key === 'Delete' && this._selectedApartment != null))
       .subscribe(() => this.deleteSelected())
     this.cleanupFns.push(() => deleteSub.unsubscribe())
+
+    const snapSub = fromEvent<KeyboardEvent>(document, 'keydown', { passive: true })
+      .pipe(filter(e => e.code === 'KeyS'))
+      .subscribe(() => toggleSnap())
+    this.cleanupFns.push(() => snapSub.unsubscribe())
+    const debugSub = fromEvent<KeyboardEvent>(document, 'keydown', { passive: true })
+      .pipe(filter(e => e.code === 'KeyD'))
+      .subscribe(() => toggleDrawDebug())
+    this.cleanupFns.push(() => debugSub.unsubscribe())
   }
 
   /**
@@ -140,7 +152,7 @@ export class Editor {
 
     const stageMouseUpSub = fromPixiEvent(this.app.stage, 'mouseup')
       .pipe(mergeMap(e => {
-        if (e instanceof FederatedPointerEvent && e.target === this.app.stage) {
+        if (e instanceof FederatedPointerEvent && e.target instanceof EditorObject) {
           return of(e)
         } else {
           return EMPTY
@@ -155,33 +167,41 @@ export class Editor {
   private drag({ pixiEvent }: MouseMoveEvent) {
     const { _dragConfig } = this
     if (isWallDragConfig(_dragConfig)) {
+      // Перемещение стены
       const { target: wall } = _dragConfig
       const distance = distanceFromPointToLine(_dragConfig.startGlobalPoints, pixiEvent.global)
       const newLine = shiftLine(_dragConfig.startGlobalPoints, -distance)
       wall.apartment.updateWall(wall, newLine, 'global')
     } else if (isApartmentDragConfig(_dragConfig)) {
+      // Перемещение квартиры
       const { target, offset, snapService } = _dragConfig
-      const localEventPos = this.app.stage.toLocal(pixiEvent.global)
-
+      const localMousePos = this.app.stage.toLocal(pixiEvent.global)
       const snapResult = snapService.checkOutlineSnap(target.globalPoints)
       if (snapResult.snapped) {
-        snapService.showSnapIndicator(snapResult.snapPoint)
+        setTimeout(() => snapService.showSnapIndicator(snapResult.snapPoint))
+        const { originalPoint, snapPoint } = snapResult
+        const localSnapPoint = target.container.parent.toLocal(snapPoint)
+        const localOriginalPoint = target.container.toLocal(originalPoint)
+        target.container.position.set(
+          localSnapPoint.x - localOriginalPoint.x,
+          localSnapPoint.y - localOriginalPoint.y
+        )
       } else {
-        snapService.hideSnapIndicator()
+        setTimeout(() => snapService.hideSnapIndicator())
+        target.container.position.set(
+          localMousePos.x - offset.x,
+          localMousePos.y - offset.y
+        )
       }
-      target.container.position.set(
-        localEventPos.x - offset.x,
-        localEventPos.y - offset.y
-      )
     }
   }
 
   private startDrag({ pixiEvent, target }: MouseDownEvent) {
-    const start = this.app.stage.toLocal(pixiEvent.global)
+    const globalMousePos = this.app.stage.toLocal(pixiEvent.global)
     if (target instanceof Apartment) {
       const offset = {
-        x: start.x - target.container.position.x,
-        y: start.y - target.container.position.y
+        x: globalMousePos.x - target.container.position.x,
+        y: globalMousePos.y - target.container.position.y
       }
       this._dragConfig = {
         snapService: new SnapService(
@@ -190,20 +210,18 @@ export class Editor {
           this.getSnapLines()),
         target,
         offset,
-        start,
       } as ApartmentDragConfig
     } else if (target instanceof Wall) {
       this._dragConfig = {
         snapService: new SnapService(this.app.stage, [], []),
         target,
         startGlobalPoints: target.globalPoints,
-        offset: 0,
       }
     }
   }
 
   private stopDrag() {
-    assertDefined(this._dragConfig).snapService.destroy()
+    assertDefined(this._dragConfig).snapService.dispose()
     this._dragConfig = null
   }
 

@@ -42,6 +42,7 @@
   "dependencies": {
     "classnames": "2.5.1",
     "effector": "23.3.0",
+    "effector-localstorage": "1.0.0",
     "effector-react": "23.3.0",
     "pixi.js": "7.4.3",
     "rxjs": "7.8.2",

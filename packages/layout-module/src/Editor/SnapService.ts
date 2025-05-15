@@ -1,6 +1,7 @@
 import { Container, Graphics } from 'pixi.js'
-import { APoint, ALine } from './types'
-import { debugStore } from '../components/events'
+import { APoint, ALine, IDisposable } from './types'
+import { $debugConfig, $snapConfig, fromEffectorStore } from '../components/events'
+import { Subscription } from 'rxjs'
 
 type SnapResult =
     | { snapped: false }
@@ -9,31 +10,32 @@ type SnapResult =
         dx: number
         dy: number
         snapPoint: APoint
+        originalPoint: APoint
     }
 
-export class SnapService {
-    private staticPoints: APoint[] = []
-    private staticWalls: ALine[] = []
-    private _drawDebug = debugStore.getState().drawDebug
-    private config = {
-        pointThreshold: 10,
-        lineThreshold: 8,
+export class SnapService implements IDisposable {
+    private _drawDebug = $debugConfig.getState().drawDebug
+    private _enable = $snapConfig.getState().snap
+    private _subscriptions: Subscription[] = []
+    private _config = {
+        pointThreshold: 20,
+        lineThreshold: 10,
         angleSnap: 90,
     }
-    private snapIndicator: Graphics | null = null
+    private _snapIndicator: Graphics | null = null
 
     constructor(
-        private stage: Container,
-        staticPoints: APoint[],
-        staticWalls: ALine[],
-        config: Partial<typeof this.config> = {}
+        private _stage: Container,
+        private _staticPoints: APoint[],
+        private _staticWalls: ALine[],
+        config: Partial<typeof this._config> = {}
     ) {
-        this.staticPoints = staticPoints
-        this.staticWalls = staticWalls
-        this.config = {
-            ...this.config,
+        this._config = {
+            ...this._config,
             ...config,
         }
+        this._subscriptions.push(fromEffectorStore($debugConfig, x => x.drawDebug).subscribe(x => this._drawDebug = x))
+        this._subscriptions.push(fromEffectorStore($snapConfig, x => x.snap).subscribe(x => this._enable = x))
     }
 
     /**
@@ -54,7 +56,8 @@ export class SnapService {
     /**
      * Проверяет привязку линии к статическим элементам
      */
-    checkWallSnap(wall: ALine): SnapResult {
+    public checkWallSnap(wall: ALine): SnapResult {
+        if (!this._enable) return { snapped: false }
         // Проверяем оба конца линии
         const startSnap = this.checkPointSnap(wall.start)
         const endSnap = this.checkPointSnap(wall.end)
@@ -73,7 +76,8 @@ export class SnapService {
     /**
      * Проверяет привязку всей квартиры (всех точек)
      */
-    checkOutlineSnap(points: APoint[]): SnapResult {
+    public checkOutlineSnap(points: APoint[]): SnapResult {
+        if (!this._enable) return { snapped: false }
         for (const point of points) {
             const result = this.checkPointSnap(point)
             if (result.snapped) {
@@ -87,18 +91,19 @@ export class SnapService {
         let minDistance = Infinity
         let result: SnapResult = { snapped: false }
 
-        for (const staticPoint of this.staticPoints) {
+        for (const staticPoint of this._staticPoints) {
             const dx = staticPoint.x - point.x
             const dy = staticPoint.y - point.y
             const distance = Math.hypot(dx, dy)
 
-            if (distance < this.config.pointThreshold! && distance < minDistance) {
+            if (distance < this._config.pointThreshold! && distance < minDistance) {
                 minDistance = distance
                 result = {
                     snapped: true,
                     dx,
                     dy,
-                    snapPoint: staticPoint
+                    snapPoint: staticPoint,
+                    originalPoint: point,
                 }
             }
         }
@@ -110,19 +115,20 @@ export class SnapService {
         let minDistance = Infinity
         let result: SnapResult = { snapped: false }
 
-        for (const wall of this.staticWalls) {
+        for (const wall of this._staticWalls) {
             const projected = this.projectPointToLine(point, wall)
             const dx = projected.x - point.x
             const dy = projected.y - point.y
             const distance = Math.hypot(dx, dy)
 
-            if (distance < this.config.lineThreshold! && distance < minDistance) {
+            if (distance < this._config.lineThreshold! && distance < minDistance) {
                 minDistance = distance
                 result = {
                     snapped: true,
                     dx,
                     dy,
-                    snapPoint: projected
+                    snapPoint: projected,
+                    originalPoint: point,
                 }
             }
         }
@@ -149,27 +155,28 @@ export class SnapService {
     public showSnapIndicator(point: APoint) {
         if (!this._drawDebug) return
 
-        if (!this.snapIndicator) {
-            this.snapIndicator = new Graphics()
-            this.stage.addChild(this.snapIndicator)
+        if (!this._snapIndicator) {
+            this._snapIndicator = new Graphics()
+            this._stage.addChild(this._snapIndicator)
         }
-        const { x, y } = this.stage.toLocal(point)
-        this.snapIndicator.clear()
-        this.snapIndicator.beginFill(0xFF0000, 0.5)
-        this.snapIndicator.drawCircle(x, y, 5)
-        this.snapIndicator.endFill()
+        const { x, y } = this._stage.toLocal(point)
+        this._snapIndicator.clear()
+        this._snapIndicator.beginFill(0xFF0000, 0.5)
+        this._snapIndicator.drawCircle(x, y, 5)
+        this._snapIndicator.endFill()
     }
 
     public hideSnapIndicator() {
-        if (this.snapIndicator) {
-            this.snapIndicator.clear()
+        if (this._snapIndicator) {
+            this._snapIndicator.clear()
         }
     }
 
-    public destroy() {
-        if (this.snapIndicator) {
-            this.snapIndicator.destroy()
-            this.snapIndicator = null
+    public dispose() {
+        if (this._snapIndicator) {
+            this._snapIndicator.destroy()
+            this._snapIndicator = null
         }
+        this._subscriptions.forEach(x => x.unsubscribe())
     }
 }

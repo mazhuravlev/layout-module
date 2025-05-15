@@ -1,6 +1,6 @@
 import { use } from 'react'
 import { ToolSidebarProps } from './ToolSidebarProps'
-import { addApartmentEvent, debugStore, deleteSelectedEvent, toggleDrawDebugEvent, zoomToExtentsEvent } from '../events'
+import { addApartmentEvent, $debugConfig, deleteSelectedEvent, $snapConfig, toggleDrawDebug, toggleSnap, zoomToExtentsEvent } from '../events'
 import { AppContext } from '../../AppContext'
 import styles from './ToolSidebar.module.scss'
 import { Button } from '../Button/Button'
@@ -8,7 +8,8 @@ import { useStoreMap } from 'effector-react'
 
 export const ToolSidebar: React.FC<ToolSidebarProps> = () => {
   const context = use(AppContext)
-  const debugEnabled = useStoreMap({ store: debugStore, keys: ['drawDebug'], fn: x => x.drawDebug })
+  const debugEnabled = useStoreMap({ store: $debugConfig, keys: ['drawDebug'], fn: x => x.drawDebug })
+  const snapEnabled = useStoreMap({ store: $snapConfig, keys: ['snap'], fn: x => x.snap })
 
   return (
     <div className={styles.container}>
@@ -24,9 +25,14 @@ export const ToolSidebar: React.FC<ToolSidebarProps> = () => {
           🗑️
         </Button>
         <Button
+          active={snapEnabled}
+          title='Вкл/выкл привязку'
+          onClick={() => toggleSnap()}
+        >🧲</Button>
+        <Button
           active={debugEnabled}
           title='Toggle visual debug'
-          onClick={() => toggleDrawDebugEvent()}
+          onClick={() => toggleDrawDebug()}
         >Debug</Button>
       </div>
       <ul>
