@@ -1,63 +1,78 @@
 import { Container, FederatedPointerEvent, Graphics, Text } from 'pixi.js'
-import { assertUnreachable, makeUuid } from '../func'
-import { drawOutline, getPolygonCenter, getPolygonArea, formatArea } from './func'
-import { IDisposable, APoint } from '../types'
+import { assert, assertUnreachable, makeUuid, pairwise } from '../func'
+import { getPolygonCenter, getPolygonArea, formatArea, findCircularAdjacentElements } from './func'
+import { IDisposable, APoint, EditorObject, TPoints, CoordType } from './types'
 import { EventService } from '../EventService/EventService'
+import { defaultConfig } from './defaultConfig'
+import { Wall } from './Wall'
+import { debugStore } from '../components/events'
 
-const defaultConfig = {
-    color: 0xffffff,
-    strokeColor: 0x0,
-    hoverColor: 0xaaaaff,
-    selectedColor: 0x4444ff,
-}
-
-export class Apartment implements IDisposable {
+export class Apartment extends EditorObject implements IDisposable {
     private _id = makeUuid()
     private _container = new Container()
+    private _areaText = new Text(undefined, { fontSize: 12 })
     private _areaGraphics = new Graphics()
+    private _walls: Wall[] = []
     private _state: 'normal' | 'hover' | 'selected' = 'normal'
     private _config: typeof defaultConfig
+    private _drawDebug = debugStore.getState().drawDebug
 
-    get id() {
+    public get id() {
         return this._id
     }
 
-    get container() {
+    public get container() {
         return this._container
     }
 
-    get points() {
-        return this._points
+    public get points() {
+        return this._walls.map(x => x.points[0])
     }
 
-    get globalPoints() {
-        return this._points.map((point) => this._container.toGlobal(point))
+    public get globalPoints() {
+        return this.points.map((point) => this._container.toGlobal(point))
     }
 
     constructor(
-        private _points: APoint[],
+        points: APoint[],
         private _eventService: EventService,
         config: Partial<typeof defaultConfig> = {}
     ) {
+        super()
         this._config = { ...defaultConfig, ...config }
+        this.setupAreaGraphics()
+        this.setupAreaText()
+        this.setupWalls(points)
+        this.render()
+    }
+
+    private setupWalls(points: APoint[]) {
+        assert(this._walls.length === 0)
+        const { _container, _eventService } = this
+        this._walls = pairwise(points)
+            .map(points => new Wall(_eventService, this, points))
+        this._walls.forEach(wall => _container.addChild(wall.graphics))
+    }
+
+    private setupAreaGraphics() {
         const { _areaGraphics, _container } = this
         _areaGraphics.eventMode = 'static'
         _areaGraphics.cursor = 'pointer'
+        // TODO: unsubscribe on dispose
         _areaGraphics.on('mouseenter', e => this.mouseEnter(e))
         _areaGraphics.on('mouseleave', e => this.mouseLeave(e))
         _areaGraphics.on('mousedown', e => this.mouseDown(e))
         _areaGraphics.on('mouseup', e => this.mouseUp(e))
         _container.addChild(_areaGraphics)
+    }
 
-        const center = getPolygonCenter(_points)
-        const areaText = new Text(formatArea(getPolygonArea(_points)), { fontSize: 12 })
-        areaText.resolution = 2
-        areaText.anchor.set(0.5)
-        areaText.scale.set(0.5, 0.5)
-        areaText.position.set(center.x, center.y)
-        _container.addChild(areaText)
-
-        this.render()
+    private setupAreaText() {
+        const { _container } = this
+        const { _areaText } = this
+        _areaText.resolution = 2
+        _areaText.anchor.set(0.5)
+        _areaText.scale.set(0.5, 0.5)
+        _container.addChild(_areaText)
     }
 
     private mouseEnter(_event: FederatedPointerEvent) {
@@ -81,7 +96,7 @@ export class Apartment implements IDisposable {
         this._eventService.emit({
             type: 'mousedown',
             target: this,
-            event
+            pixiEvent: event
         })
     }
 
@@ -89,22 +104,36 @@ export class Apartment implements IDisposable {
         event.stopPropagation()
         this._eventService.emit({
             type: 'mouseup',
-            event,
             target: this,
+            pixiEvent: event
         })
     }
 
-    private render() {
-        const { _areaGraphics, _config } = this
+    public updateWall(wall: Wall, newLine: TPoints, coordType: CoordType) {
+        wall.update(newLine, coordType)
+        const { left, right } = findCircularAdjacentElements(this._walls, wall)
+        left.updateEnd(newLine[0], coordType)
+        right.updateStart(newLine[1], coordType)
+        this.render()
+    }
+
+    public render() {
+        const { _areaGraphics, _areaText, points } = this
         _areaGraphics.clear()
-        drawOutline(_areaGraphics, this._points, { color: this.getFillColor() })
+        _areaGraphics.beginFill(this.getFillColor())
+        _areaGraphics.drawPolygon(this.points)
+        _areaGraphics.endFill()
+
+        const center = getPolygonCenter(points)
+        _areaText.text = formatArea(getPolygonArea(points))
+        _areaText.position.set(center.x, center.y)
     }
 
     private getFillColor() {
         switch (this._state) {
-            case 'normal': return this._config.color
-            case 'hover': return this._config.hoverColor
-            case 'selected': return this._config.selectedColor
+            case 'normal': return this._config.fillColor
+            case 'hover': return this._config.hoverFillColor
+            case 'selected': return this._config.selectedFillColor
             default: return assertUnreachable(this._state)
         }
     }
@@ -120,9 +149,10 @@ export class Apartment implements IDisposable {
     }
 
     public dispose() {
-        const { _areaGraphics, _container } = this
+        const { _areaGraphics, _container, _walls } = this
         _areaGraphics.removeAllListeners()
         _container.removeChildren()
         _areaGraphics.destroy()
+        _walls.forEach(wall => wall.dispose())
     }
 }

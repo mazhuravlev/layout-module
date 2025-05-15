@@ -1,4 +1,4 @@
-import { ApartmentTemplate, APoint } from '../../types'
+import { ApartmentTemplate, APoint } from '../../Editor/types'
 
 export interface LayoutModuleProps {
   section: {

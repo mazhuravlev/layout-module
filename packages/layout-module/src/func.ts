@@ -17,11 +17,11 @@ export const assertUnreachable = (_x: never): never => {
   throw new Error('Didn\'t expect to get here')
 }
 
-export const pairwise = <T>(array: T[]): T[][] => {
+export const pairwise = <T>(array: T[]): [T, T][] => {
   if (array.length < 2)
     throw new Error('Array must have at least 2 elements to create pairs')
 
-  const result: T[][] = []
+  const result: [T, T][] = []
   for (let i = 0; i < array.length - 1; i++) {
     result.push([array[i], array[i + 1]])
   }

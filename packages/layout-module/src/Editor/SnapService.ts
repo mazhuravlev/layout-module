@@ -1,5 +1,6 @@
 import { Container, Graphics } from 'pixi.js'
-import { APoint, ALine } from '../types'
+import { APoint, ALine } from './types'
+import { debugStore } from '../components/events'
 
 type SnapResult =
     | { snapped: false }
@@ -13,11 +14,11 @@ type SnapResult =
 export class SnapService {
     private staticPoints: APoint[] = []
     private staticWalls: ALine[] = []
+    private _drawDebug = debugStore.getState().drawDebug
     private config = {
         pointThreshold: 10,
         lineThreshold: 8,
         angleSnap: 90,
-        showVisualHelpers: true
     }
     private snapIndicator: Graphics | null = null
 
@@ -29,7 +30,10 @@ export class SnapService {
     ) {
         this.staticPoints = staticPoints
         this.staticWalls = staticWalls
-        this.config = { ...this.config, ...config }
+        this.config = {
+            ...this.config,
+            ...config,
+        }
     }
 
     /**
@@ -143,7 +147,7 @@ export class SnapService {
      * Визуализация точки привязки (для отладки)
      */
     public showSnapIndicator(point: APoint) {
-        if (!this.config.showVisualHelpers) return
+        if (!this._drawDebug) return
 
         if (!this.snapIndicator) {
             this.snapIndicator = new Graphics()

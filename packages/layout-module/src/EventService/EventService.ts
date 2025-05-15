@@ -1,7 +1,7 @@
 // EventService.ts
 import { Subject, Observable, filter } from 'rxjs'
 import { AppEvent, MouseDownEvent, MouseUpEvent } from './eventTypes'
-import { IDisposable } from '../types'
+import { IDisposable } from '../Editor/types'
 
 export class EventService implements IDisposable {
     private eventSubject = new Subject<AppEvent>()

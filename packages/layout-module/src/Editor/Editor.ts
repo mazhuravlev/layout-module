@@ -1,7 +1,8 @@
 import { Application, FederatedPointerEvent, Graphics } from 'pixi.js'
-import { calculateZoomToExtents, drawOutline, fromPixiEvent } from './func'
+import { calculateZoomToExtents, distanceFromPointToLine, drawOutline, fromPixiEvent, shiftLine } from './func'
 import { Logger } from '../logger'
-import { ALine, APoint } from '../types'
+import { ALine, APoint } from './types'
+import { ApartmentDragConfig, DragConfig, isApartmentDragConfig, isWallDragConfig } from './dragConfig'
 import { Apartment } from './Apartment'
 import { EventService } from '../EventService/EventService'
 import { addApartmentEvent, deleteSelectedEvent, selectionEvent, zoomToExtentsEvent } from '../components/events'
@@ -9,6 +10,7 @@ import { assertDefined, toError } from '../func'
 import { MouseDownEvent, MouseMoveEvent } from '../EventService/eventTypes'
 import { catchError, EMPTY, filter, fromEvent, map, mergeMap, of, switchMap, take, timeout } from 'rxjs'
 import { SnapService } from './SnapService'
+import { Wall } from './Wall'
 
 export class Editor {
   private _app: Application | null = null
@@ -17,14 +19,7 @@ export class Editor {
   private _apartments = new Map<string, Apartment>()
 
   private _selectedApartment: Apartment | null = null
-  private _dragData:
-    | {
-      snapService: SnapService
-      target: Apartment
-      start: APoint
-      offset: APoint
-    }
-    | null = null
+  private _dragConfig: | DragConfig | null = null
   private _eventService = new EventService()
 
   /**
@@ -77,7 +72,8 @@ export class Editor {
             map((_up) => down.target),
             catchError(() => EMPTY) // игнорируем timeout
           )
-        )
+        ),
+        filter(x => x instanceof Apartment)
       ).subscribe(target => {
         this.deselectAll()
         target.select()
@@ -90,8 +86,8 @@ export class Editor {
       if (e.type === 'mousedown') {
         this.startDrag(e)
       } else if (e.type === 'mouseup') {
-        if (this._dragData) this.stopDrag()
-      } else if (e.type === 'mousemove' && this._dragData) {
+        if (this._dragConfig) this.stopDrag()
+      } else if (e.type === 'mousemove' && this._dragConfig) {
         this.drag(e)
       }
     })
@@ -121,9 +117,11 @@ export class Editor {
 
         // Определяем направление и скорость зума
         const zoomFactor = e.deltaY > 0 ? 0.9 : 1.1 // Уменьшаем или увеличиваем масштаб
+        const MIN_ZOOM = 1
+        const MAX_ZOOM = 6
         const newScale = Math.max(
-          0.1,
-          Math.min(10, stage.scale.x * zoomFactor) // Ограничиваем масштаб
+          MIN_ZOOM,
+          Math.min(MAX_ZOOM, stage.scale.x * zoomFactor) // Ограничиваем масштаб
         )
 
         stage.scale.set(newScale)
@@ -137,7 +135,7 @@ export class Editor {
 
     const stageMouseMoveSub = fromPixiEvent(this.app.stage, 'mousemove')
       .pipe(filter(e => e instanceof FederatedPointerEvent))
-      .subscribe(event => this._eventService.emit({ type: 'mousemove', event }))
+      .subscribe(event => this._eventService.emit({ type: 'mousemove', pixiEvent: event }))
     this.addCleanupFn(() => stageMouseMoveSub.unsubscribe())
 
     const stageMouseUpSub = fromPixiEvent(this.app.stage, 'mouseup')
@@ -149,42 +147,64 @@ export class Editor {
         }
       }))
       .subscribe(event => {
-        this._eventService.emit({ type: 'mouseup', event })
+        this._eventService.emit({ type: 'mouseup', pixiEvent: event })
       })
     this.addCleanupFn(() => stageMouseUpSub.unsubscribe())
   }
 
-  private drag({ event }: MouseMoveEvent) {
-    const { target, offset, snapService } = assertDefined(this._dragData)
-    const localEventPos = this.app.stage.toLocal(event.global)
+  private drag({ pixiEvent }: MouseMoveEvent) {
+    const { _dragConfig } = this
+    if (isWallDragConfig(_dragConfig)) {
+      const { target: wall } = _dragConfig
+      const distance = distanceFromPointToLine(_dragConfig.startGlobalPoints, pixiEvent.global)
+      const newLine = shiftLine(_dragConfig.startGlobalPoints, -distance)
+      wall.apartment.updateWall(wall, newLine, 'global')
+    } else if (isApartmentDragConfig(_dragConfig)) {
+      const { target, offset, snapService } = _dragConfig
+      const localEventPos = this.app.stage.toLocal(pixiEvent.global)
 
-    const snapResult = snapService.checkOutlineSnap(target.globalPoints)
-    if (snapResult.snapped) {
-      snapService.showSnapIndicator(snapResult.snapPoint)
-    } else {
-      snapService.hideSnapIndicator()
+      const snapResult = snapService.checkOutlineSnap(target.globalPoints)
+      if (snapResult.snapped) {
+        snapService.showSnapIndicator(snapResult.snapPoint)
+      } else {
+        snapService.hideSnapIndicator()
+      }
+      target.container.position.set(
+        localEventPos.x - offset.x,
+        localEventPos.y - offset.y
+      )
     }
-    target.container.position.set(
-      localEventPos.x - offset.x,
-      localEventPos.y - offset.y
-    )
   }
 
-  private startDrag({ event, target }: MouseDownEvent) {
-    const start = this.app.stage.toLocal(event.global)
-    const offset = {
-      x: start.x - target.container.position.x,
-      y: start.y - target.container.position.y
+  private startDrag({ pixiEvent, target }: MouseDownEvent) {
+    const start = this.app.stage.toLocal(pixiEvent.global)
+    if (target instanceof Apartment) {
+      const offset = {
+        x: start.x - target.container.position.x,
+        y: start.y - target.container.position.y
+      }
+      this._dragConfig = {
+        snapService: new SnapService(
+          this.app.stage,
+          this.getSnapPoints({ exclude: target }),
+          this.getSnapLines()),
+        target,
+        offset,
+        start,
+      } as ApartmentDragConfig
+    } else if (target instanceof Wall) {
+      this._dragConfig = {
+        snapService: new SnapService(this.app.stage, [], []),
+        target,
+        startGlobalPoints: target.globalPoints,
+        offset: 0,
+      }
     }
-    this._dragData = {
-      snapService: new SnapService(
-        this.app.stage,
-        this.getSnapPoints({ exclude: target }),
-        this.getSnapLines()),
-      target,
-      offset,
-      start,
-    }
+  }
+
+  private stopDrag() {
+    assertDefined(this._dragConfig).snapService.destroy()
+    this._dragConfig = null
   }
 
   private getSnapLines(): ALine[] {
@@ -200,12 +220,6 @@ export class Editor {
         .flatMap(x => x.globalPoints)
     ]
   }
-
-  private stopDrag() {
-    assertDefined(this._dragData).snapService.destroy()
-    this._dragData = null
-  }
-
 
   private deselectAll() {
     if (this._selectedApartment) {

@@ -1,6 +1,6 @@
-import { Application, DisplayObject, Graphics } from 'pixi.js'
-import { APoint } from '../types'
-import { fromEventPattern } from 'rxjs'
+import { Application, DisplayObject, FederatedEventMap, Graphics } from 'pixi.js'
+import { APoint, TPoints } from './types'
+import { fromEventPattern, Observable } from 'rxjs'
 
 export function calculateZoomToExtents(app: Application, padding: number, objects: DisplayObject[]) {
   let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity
@@ -111,12 +111,178 @@ export const formatArea = (area: number) => {
   return `${Math.round(area / 100)} м²`
 }
 
-export function fromPixiEvent(
-  target: DisplayObject,
-  eventName: string
-) {
-  return fromEventPattern(
-    (handler) => target.on(eventName, handler),
-    (handler) => target.off(eventName, handler)
+export function fromPixiEvent<T extends DisplayObject, K extends keyof FederatedEventMap>(
+  target: T,
+  eventName: K
+): Observable<FederatedEventMap[K]> {
+  return fromEventPattern<FederatedEventMap[K]>(
+    (handler: (event: FederatedEventMap[K]) => void) =>
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      target.on(eventName, handler as any),
+    (handler: (event: FederatedEventMap[K]) => void) =>
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      target.off(eventName, handler as any)
   )
+}
+
+/**
+ * Строит прямоугольник вокруг линии, заданной двумя точками, с указанной шириной и отступом
+ * @param p1 Первая точка линии
+ * @param p2 Вторая точка линии
+ * @param width Ширина прямоугольника (перпендикулярно линии)
+ * @param padding Отступ от точек p1 и p2 вдоль линии
+ */
+export function makeLineHitbox(
+  p1: APoint,
+  p2: APoint,
+  width: number,
+  padding: number
+): APoint[] {
+  // Вектор направления линии
+  const dx = p2.x - p1.x
+  const dy = p2.y - p1.y
+
+  // Нормализуем вектор
+  const length = Math.sqrt(dx * dx + dy * dy)
+  if (length === 0) {
+    throw new Error('Points must be distinct')
+  }
+
+  const nx = dx / length
+  const ny = dy / length
+
+  // Перпендикулярный вектор (повернутый на 90 градусов)
+  const perpX = -ny
+  const perpY = nx
+
+  // Половина ширины в каждую сторону
+  const halfWidth = width / 2
+
+  // Вычисляем смещенные точки с учетом отступа
+  const p1Start = {
+    x: p1.x + nx * padding,
+    y: p1.y + ny * padding
+  }
+
+  const p2End = {
+    x: p2.x - nx * padding,
+    y: p2.y - ny * padding
+  }
+
+  // Вычисляем 4 угла прямоугольника
+  const points: APoint[] = [
+    // Первая точка + перпендикуляр в одну сторону
+    {
+      x: p1Start.x + perpX * halfWidth,
+      y: p1Start.y + perpY * halfWidth
+    },
+    // Первая точка + перпендикуляр в другую сторону
+    {
+      x: p1Start.x - perpX * halfWidth,
+      y: p1Start.y - perpY * halfWidth
+    },
+    // Вторая точка + перпендикуляр в другую сторону
+    {
+      x: p2End.x - perpX * halfWidth,
+      y: p2End.y - perpY * halfWidth
+    },
+    // Вторая точка + перпендикуляр в одну сторону
+    {
+      x: p2End.x + perpX * halfWidth,
+      y: p2End.y + perpY * halfWidth
+    }
+  ]
+
+  return points
+}
+
+/**
+ * Вычисляет расстояние от точки до линии, заданной двумя точками
+ * @param linePoint1 Первая точка линии
+ * @param linePoint2 Вторая точка линии
+ * @param point Точка, для которой вычисляется расстояние
+ * @returns Расстояние от точки до линии
+ */
+export function distanceFromPointToLine([linePoint1, linePoint2]: TPoints, point: APoint): number {
+  // Если точки линии совпадают, возвращаем расстояние между точками
+  if (linePoint1.x === linePoint2.x && linePoint1.y === linePoint2.y) {
+    return Math.sqrt((point.x - linePoint1.x) ** 2 + (point.y - linePoint1.y) ** 2)
+  }
+
+  // Числитель формулы расстояния от точки до прямой
+  const numerator = (
+    (linePoint2.y - linePoint1.y) * point.x -
+    (linePoint2.x - linePoint1.x) * point.y +
+    linePoint2.x * linePoint1.y -
+    linePoint2.y * linePoint1.x
+  )
+
+  // Знаменатель формулы
+  const denominator = Math.sqrt(
+    (linePoint2.y - linePoint1.y) ** 2 +
+    (linePoint2.x - linePoint1.x) ** 2
+  )
+
+  return numerator / denominator
+}
+
+/**
+ * Смещает отрезок параллельно на указанное расстояние
+ * @param line Отрезок, заданный двумя точками [p1, p2]
+ * @param distance Расстояние для смещения (может быть отрицательным)
+ * @returns Новый отрезок, смещенный параллельно исходному
+ */
+export function shiftLine(line: TPoints, distance: number): TPoints {
+  const [p1, p2] = line
+
+  // Вычисляем вектор направления отрезка
+  const dx = p2.x - p1.x
+  const dy = p2.y - p1.y
+
+  // Если отрезок вырожден (точки совпадают), возвращаем исходный отрезок
+  if (dx === 0 && dy === 0) {
+    return [p1, p2]
+  }
+
+  // Вычисляем длину отрезка
+  const length = Math.sqrt(dx * dx + dy * dy)
+
+  // Нормализованный перпендикулярный вектор (повернутый на 90 градусов)
+  const perpX = (-dy / length) * distance
+  const perpY = (dx / length) * distance
+
+  // Смещаем обе точки на перпендикулярный вектор
+  const newP1 = {
+    x: p1.x + perpX,
+    y: p1.y + perpY
+  }
+
+  const newP2 = {
+    x: p2.x + perpX,
+    y: p2.y + perpY
+  }
+
+  return [newP1, newP2]
+}
+
+/**
+ * Находит соседние элементы для заданного элемента массива (циклический поиск)
+ * @param array Массив элементов
+ * @param targetElement Элемент, для которого ищем соседей
+ * @returns Объект с left (предыдущий) и right (следующий) элементами
+ * @throws Если элемент не найден в массиве
+ */
+export function findCircularAdjacentElements<T>(array: T[], targetElement: T): { left: T; right: T } {
+  const index = array.indexOf(targetElement)
+
+  if (index === -1) {
+    throw new Error('Элемент не найден в массиве')
+  }
+
+  const length = array.length
+
+  return {
+    left: array[(index - 1 + length) % length],
+    right: array[(index + 1) % length]
+  }
 }

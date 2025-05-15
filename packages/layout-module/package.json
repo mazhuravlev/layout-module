@@ -40,6 +40,7 @@
     "tslib": "2.8.1"
   },
   "dependencies": {
+    "classnames": "2.5.1",
     "effector": "23.3.0",
     "effector-react": "23.3.0",
     "pixi.js": "7.4.3",

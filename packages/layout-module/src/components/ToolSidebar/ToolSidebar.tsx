@@ -1,12 +1,15 @@
 import { use } from 'react'
 import { ToolSidebarProps } from './ToolSidebarProps'
-import { addApartmentEvent, deleteSelectedEvent, zoomToExtentsEvent } from '../events'
+import { addApartmentEvent, debugStore, deleteSelectedEvent, toggleDrawDebugEvent, zoomToExtentsEvent } from '../events'
 import { AppContext } from '../../AppContext'
 import styles from './ToolSidebar.module.scss'
 import { Button } from '../Button/Button'
+import { useStoreMap } from 'effector-react'
 
 export const ToolSidebar: React.FC<ToolSidebarProps> = () => {
   const context = use(AppContext)
+  const debugEnabled = useStoreMap({ store: debugStore, keys: ['drawDebug'], fn: x => x.drawDebug })
+
   return (
     <div className={styles.container}>
       <div>
@@ -20,6 +23,11 @@ export const ToolSidebar: React.FC<ToolSidebarProps> = () => {
           onClick={() => deleteSelectedEvent()}>
           🗑️
         </Button>
+        <Button
+          active={debugEnabled}
+          title='Toggle visual debug'
+          onClick={() => toggleDrawDebugEvent()}
+        >Debug</Button>
       </div>
       <ul>
         {context.apartmentTemplates.map((template) => (
