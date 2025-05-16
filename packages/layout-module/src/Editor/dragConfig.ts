@@ -12,7 +12,18 @@ export interface ApartmentDragConfig extends DragConfigType {
     target: Apartment
 
     /**
-     * Смещение указателя мыши от нуля квартиры в локальных координатах
+     * Начальные собственные координаты квартиры
+     */
+    startPos: APoint
+
+    /**
+     * Координаты точки, с которой начнется перетаскивание.
+     * В глобальных координатах.
+     */
+    startMousePos: APoint
+
+    /**
+     * Смещение указателя мыши от нуля квартиры.
      */
     offset: APoint
 }

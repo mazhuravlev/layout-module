@@ -33,6 +33,10 @@ export class Apartment extends EditorObject implements IDisposable {
         return this.points.map((point) => this._container.toGlobal(point))
     }
 
+    public get globalPosition() {
+        return this.container.parent.toGlobal(this.container.position)
+    }
+
     constructor(
         points: APoint[],
         private _eventService: EventService,
