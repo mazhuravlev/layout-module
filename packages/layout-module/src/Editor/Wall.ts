@@ -58,13 +58,12 @@ export class Wall extends EditorObject implements IDisposable {
         const hitbox = makeLineHitbox(p1, p2, HITBOX_WIDTH, HITBOX_WIDTH / 2)
         _graphics.clear()
         if (this._drawDebug) {
-            _graphics.beginFill(0xaaffaa, 0.5)
-            _graphics.drawPolygon(hitbox)
-            _graphics.endFill()
+            _graphics.poly(hitbox)
+            _graphics.fill({ color: 0xaaffaa, alpha: 0.5 })
         }
-        _graphics.lineStyle({ color, width: 1 })
         _graphics.moveTo(p1.x, p1.y)
         _graphics.lineTo(p2.x, p2.y)
+        _graphics.stroke({ color, width: 1, pixelLine: true })
         _graphics.hitArea = new Polygon(hitbox)
     }
 

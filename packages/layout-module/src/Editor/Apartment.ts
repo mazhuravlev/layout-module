@@ -10,7 +10,7 @@ import { $debugConfig } from '../components/events'
 export class Apartment extends EditorObject implements IDisposable {
     private _id = makeUuid()
     private _container = new Container()
-    private _areaText = new Text(undefined, { fontSize: 12 })
+    private _areaText = new Text({ style: { fontSize: 12 } })
     private _areaGraphics = new Graphics()
     private _walls: Wall[] = []
     private _state: 'normal' | 'hover' | 'selected' = 'normal'
@@ -129,9 +129,8 @@ export class Apartment extends EditorObject implements IDisposable {
     public render() {
         const { _areaGraphics, _areaText, points } = this
         _areaGraphics.clear()
-        _areaGraphics.beginFill(this.getFillColor())
-        _areaGraphics.drawPolygon(this.points)
-        _areaGraphics.endFill()
+        _areaGraphics.poly(this.points)
+        _areaGraphics.fill({ color: this.getFillColor() })
 
         const center = getPolygonCenter(points)
         _areaText.text = formatArea(getPolygonArea(points))

@@ -1,8 +1,9 @@
-import { Application, DisplayObject, FederatedEventMap, Graphics } from 'pixi.js'
-import { APoint, TPoints } from './types'
+import { Application, Container, FederatedEventMap, Graphics, ViewContainer } from 'pixi.js'
+import { ALine, APoint, TPoints } from './types'
 import { fromEventPattern, Observable } from 'rxjs'
+import { pairwise } from '../func'
 
-export function calculateZoomToExtents(app: Application, padding: number, objects: DisplayObject[]) {
+export function calculateZoomToExtents(app: Application, padding: number, objects: ViewContainer[]) {
   let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity
 
   objects.forEach((child) => {
@@ -26,15 +27,13 @@ export function calculateZoomToExtents(app: Application, padding: number, object
 
 export const drawOutline = (graphics: Graphics, points: APoint[], fillStyle?: { color: number }) => {
   graphics.clear()
-  graphics.lineStyle({ color: 0x0, width: 1 })
-  if (fillStyle) graphics.beginFill(fillStyle.color)
   graphics.moveTo(points[0].x, points[0].y)
   for (let i = 1; i < points.length; i++) {
     graphics.lineTo(points[i].x, points[i].y)
   }
   graphics.lineTo(points[0].x, points[0].y)
-  graphics.closePath()
-  graphics.endFill()
+  graphics.stroke({ color: 0, width: 1, pixelLine: true })
+  if (fillStyle) graphics.fill({ color: fillStyle.color })
 }
 
 /**
@@ -111,7 +110,7 @@ export const formatArea = (area: number) => {
   return `${Math.round(area / 100)} м²`
 }
 
-export function fromPixiEvent<T extends DisplayObject, K extends keyof FederatedEventMap>(
+export function fromPixiEvent<T extends Container, K extends keyof FederatedEventMap>(
   target: T,
   eventName: K
 ): Observable<FederatedEventMap[K]> {
@@ -285,4 +284,28 @@ export function findCircularAdjacentElements<T>(array: T[], targetElement: T): {
     left: array[(index - 1 + length) % length],
     right: array[(index + 1) % length]
   }
+}
+
+/**
+ * Проверяет, лежат ли две линии на одной прямой (коллинеарны)
+ */
+export const areLinesCollinear = (line1: ALine, line2: ALine): boolean => {
+  const { start: a1, end: a2 } = line1
+  const { start: b1, end: b2 } = line2
+
+  // Векторы линий
+  const vecA = { x: a2.x - a1.x, y: a2.y - a1.y }
+  const vecB = { x: b2.x - b1.x, y: b2.y - b1.y }
+
+  // Кросс-произведение векторов (проверка коллинеарности)
+  const cross = vecA.x * vecB.y - vecA.y * vecB.x
+
+  // Если кросс-произведение близко к нулю, линии коллинеарны
+  return Math.abs(cross) < 1e-10
+}
+
+export const pointsToLines = (points: APoint[]): ALine[] => {
+  if (points.length < 4) throw new Error('points is not an outline (points.length < 4)')
+  return pairwise([...points, points[0]])
+    .map(([start, end]): ALine => ({ start, end }))
 }

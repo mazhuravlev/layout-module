@@ -1,5 +1,5 @@
 import { Application, FederatedPointerEvent, Graphics } from 'pixi.js'
-import { calculateZoomToExtents, distanceFromPointToLine, drawOutline, fromPixiEvent, shiftLine } from './func'
+import { calculateZoomToExtents, distanceFromPointToLine, drawOutline, fromPixiEvent, pointsToLines, shiftLine } from './func'
 import { Logger } from '../logger'
 import { addVectors, ALine, aPoint, APoint, ASubscription, EditorObject, subtractVectors, unsubscribe } from './types'
 import { ApartmentDragConfig, DragConfig, WallDragConfig } from './dragConfig'
@@ -42,13 +42,14 @@ export class Editor {
 
   public async init(): Promise<void> {
     this._logger.debug('init')
-    this._app = new Application({
+    this._app = new Application()
+    await this.app.init({
       background: '#ededed',
       resizeTo: this._container,
       autoStart: true,
       antialias: false,
     })
-    this._container.appendChild((this._app.view as unknown) as Node)
+    this._container.appendChild(this._app.canvas)
     this.setupObjectEvents()
     this.setupEvents()
     this.setupKeyboardEvents()
@@ -187,7 +188,7 @@ export class Editor {
     const { target: wall, snapService } = _dragConfig
     const distance = distanceFromPointToLine(_dragConfig.originalGlobalPoints, pixiEvent.global)
     const newLine = shiftLine(_dragConfig.originalGlobalPoints, -distance)
-    const snapResult = snapService.checkWallSnap(newLine)
+    const snapResult = snapService.checkLineSnap(newLine)
     if (snapResult.snapped) {
       setTimeout(() => snapService.showSnapIndicator(snapResult.snapPoint))
       const snapDistance = distanceFromPointToLine(_dragConfig.originalGlobalPoints, snapResult.snapPoint)
@@ -219,7 +220,7 @@ export class Editor {
         type: 'dragWall',
         snapService: new SnapService(
           this.app.stage,
-          this.getSnapPoints({}),
+          this.getSnapPoints({ exclude: target.apartment }),
           this.getSnapLines()),
         target,
         originalGlobalPoints: target.globalPoints,
@@ -235,7 +236,12 @@ export class Editor {
   }
 
   private getSnapLines(): ALine[] {
-    return []
+    const floorPoints = assertDefined(this._sectionOutline).points
+      .map(x => aPoint(this.app.stage.toGlobal(x)))
+    return [
+      ...pointsToLines(floorPoints),
+      ...this._apartments.values().flatMap(x => x.wallLines)
+    ]
   }
 
   private getSnapPoints(options: { exclude?: Apartment }): APoint[] {
@@ -305,19 +311,23 @@ export class Editor {
     const { app } = this
     if (!app.stage.children.length) return
 
-    app.stage.setTransform(0, 0, 1, 1, 0, 0, 0, 0, 0)
+    app.stage.updateTransform({
+      scaleX: 1,
+      scaleY: 1,
+      x: 0,
+      y: 0,
+    })
     app.render()
 
     const { centerX, centerY, scale } = calculateZoomToExtents(app, 30, [
       assertDefined(this._sectionOutline).graphics
     ])
-    app.stage.setTransform(
-      app.screen.width / 2 - centerX * scale,
-      app.screen.height / 2 - centerY * scale,
-      scale,
-      scale,
-      0, 0, 0, 0, 0
-    )
+    app.stage.updateTransform({
+      scaleX: scale,
+      scaleY: scale,
+      x: app.screen.width / 2 - centerX * scale,
+      y: app.screen.height / 2 - centerY * scale,
+    })
   }
 }
 

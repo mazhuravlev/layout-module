@@ -3,6 +3,7 @@ import { APoint, ALine, IDisposable, TPoints } from './types'
 import { $debugConfig, $snapConfig, fromEffectorStore } from '../components/events'
 import { Subscription } from 'rxjs'
 import { identity } from '../func'
+import { areLinesCollinear, pointsToLines } from './func'
 
 const emptyResult = { snapped: false } as const
 
@@ -65,29 +66,75 @@ export class SnapService implements IDisposable {
     /**
      * Проверяет привязку линии к статическим элементам
      */
-    public checkWallSnap([start, end]: TPoints): SnapResult {
+    public checkLineSnap([start, end]: TPoints): SnapResult {
         if (this._disposed) return emptyResult
         if (!this._config.enable) return emptyResult
 
         // 1. Проверка привязки к сетке (имеет приоритет)
         if (this._config.enableGrid) {
-            const gridSnap = this.checkWallToGrid([start, end])
+            const gridSnap = this.checkLineToGrid([start, end])
             if (gridSnap.snapped) return gridSnap
         }
 
-        // 2. Проверяем оба конца линии
-        const startSnap = this.checkPointSnap(start)
-        const endSnap = this.checkPointSnap(end)
+        // // 2. Проверяем оба конца линии
+        // const startSnap = this.checkPointSnap(start)
+        // const endSnap = this.checkPointSnap(end)
 
-        if (startSnap.snapped && endSnap.snapped) {
-            // Если оба конца привязаны, выбираем более близкую привязку
-            const startDist = Math.hypot(startSnap.dx!, startSnap.dy!)
-            const endDist = Math.hypot(endSnap.dx!, endSnap.dy!)
+        // if (startSnap.snapped && endSnap.snapped) {
+        //     // Если оба конца привязаны, выбираем более близкую привязку
+        //     const startDist = Math.hypot(startSnap.dx!, startSnap.dy!)
+        //     const endDist = Math.hypot(endSnap.dx!, endSnap.dy!)
 
-            return startDist < endDist ? startSnap : endSnap
+        //     return startDist < endDist ? startSnap : endSnap
+        // } else if (startSnap.snapped || endSnap.snapped) {
+        //     return startSnap.snapped ? startSnap : endSnap
+        // }
+
+        // 3. Проверка привязки к статическим линиям (коллинеарность)
+        if (this._config.enableLine) {
+            for (const staticLine of this._staticLines) {
+                const { start: sStart, end: sEnd } = staticLine
+
+                // Проверяем коллинеарность линий
+                const areCollinear = areLinesCollinear(
+                    { start, end },
+                    { start: sStart, end: sEnd }
+                )
+
+                if (areCollinear) {
+                    // Проецируем оба конца линии на статическую линию
+                    const projectedStart = this.projectPointToLine(start, staticLine)
+                    const projectedEnd = this.projectPointToLine(end, staticLine)
+
+                    // Проверяем расстояние от исходных точек до проекций
+                    const startDist = Math.hypot(projectedStart.x - start.x, projectedStart.y - start.y)
+                    const endDist = Math.hypot(projectedEnd.x - end.x, projectedEnd.y - end.y)
+
+                    if (startDist < this._config.lineThreshold! || endDist < this._config.lineThreshold!) {
+                        // Выбираем точку с минимальным расстоянием
+                        if (startDist <= endDist && startDist < this._config.lineThreshold!) {
+                            return {
+                                snapped: true,
+                                dx: projectedStart.x - start.x,
+                                dy: projectedStart.y - start.y,
+                                snapPoint: projectedStart,
+                                originalPoint: start,
+                            }
+                        } else if (endDist < this._config.lineThreshold!) {
+                            return {
+                                snapped: true,
+                                dx: projectedEnd.x - end.x,
+                                dy: projectedEnd.y - end.y,
+                                snapPoint: projectedEnd,
+                                originalPoint: end,
+                            }
+                        }
+                    }
+                }
+            }
         }
 
-        return startSnap.snapped ? startSnap : endSnap
+        return emptyResult
     }
 
     /**
@@ -96,12 +143,24 @@ export class SnapService implements IDisposable {
     public checkOutlineSnap(points: APoint[]): SnapResult {
         if (this._disposed) return emptyResult
         if (!this._config.enable) return emptyResult
-        for (const point of points) {
-            const result = this.checkPointSnap(point)
-            if (result.snapped) {
-                return result
+
+        if (this._config.enablePoint) {
+            for (const point of points) {
+                const result = this.checkPointSnap(point)
+                if (result.snapped) {
+                    return result
+                }
             }
         }
+
+        if (this._config.enableLine) {
+            const lines = pointsToLines(points)
+            for (const { start, end } of lines) {
+                const result = this.checkLineSnap([start, end])
+                if (result.snapped) return result
+            }
+        }
+
         return emptyResult
     }
 
@@ -135,7 +194,7 @@ export class SnapService implements IDisposable {
     /**
      * Проверяет привязку стены к сетке (только перпендикулярное направление для ортогональных стен)
      */
-    private checkWallToGrid([start, end]: TPoints): SnapResult {
+    private checkLineToGrid([start, end]: TPoints): SnapResult {
         const gridStep = this._config.gridStep
         if (!gridStep || gridStep <= 0) return emptyResult
 
@@ -274,9 +333,8 @@ export class SnapService implements IDisposable {
 
         const { x, y } = this._stage.toLocal(point)
         this._snapIndicator.clear()
-        this._snapIndicator.beginFill(0xFF0000, 0.5)
-        this._snapIndicator.drawCircle(x, y, 5)
-        this._snapIndicator.endFill()
+        this._snapIndicator.circle(x, y, 2)
+        this._snapIndicator.fill({ color: 0xFF0000, alpha: 0.5 })
     }
 
     public hideSnapIndicator() {

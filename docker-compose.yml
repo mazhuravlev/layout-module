@@ -1,0 +1,9 @@
+services:
+  lib:
+    build: .
+    working_dir: /app
+    volumes:
+      - .:/app
+    command: pnpm run dev
+    ports:
+      - "5173:5173"
