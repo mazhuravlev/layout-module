@@ -8,6 +8,10 @@
     color: black;
 }
 
+.button:hover.active {
+    background-color: #0070bb;
+}
+
 .button:disabled {
     background-color: #ccc;
     cursor: not-allowed;

@@ -47,12 +47,13 @@ export const toggleSnap = createEvent<void>()
 export const toggleSnapGrid = createEvent<void>()
 export const toggleSnapPoint = createEvent<void>()
 export const toggleSnapLine = createEvent<void>()
-$snapConfig.on(toggleSnap, (state, _payload) => ({ ...state, snap: !state.enable }))
+export const setGridStep = createEvent<number>()
+$snapConfig.on(toggleSnap, (state, _payload) => ({ ...state, enable: !state.enable }))
 $snapConfig.on(toggleSnapGrid, (state, _payload) => ({ ...state, enableGrid: !state.enableGrid }))
 $snapConfig.on(toggleSnapPoint, (state, _payload) => ({ ...state, enablePoint: !state.enablePoint }))
 $snapConfig.on(toggleSnapLine, (state, _payload) => ({ ...state, enableLine: !state.enableLine }))
-persist({ store: $snapConfig, key: 'snapConfig.v2' })
-
+$snapConfig.on(setGridStep, (state, payload) => ({ ...state, gridStep: payload < 0 ? 1 : payload }))
+persist({ store: $snapConfig, key: 'snapConfig.v3' })
 
 export function fromEffectorStore<T, U>(store: Store<T>, mapFn: (s: T) => U): Observable<U> {
     const mappedStore = store.map(mapFn)

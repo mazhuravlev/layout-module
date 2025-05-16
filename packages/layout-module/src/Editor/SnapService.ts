@@ -20,13 +20,15 @@ export class SnapService implements IDisposable {
     private _drawDebug = $debugConfig.getState().drawDebug
     private _subscriptions: Subscription[] = []
     private _config: ReturnType<typeof $snapConfig.getState>
-    private _snapIndicator: Graphics | null = null
+    private _snapIndicator = new Graphics()
+    private _disposed = false
 
     constructor(
         private _stage: Container,
         private _staticPoints: APoint[],
-        private _staticWalls: ALine[],
+        private _staticLines: ALine[],
     ) {
+        _stage.addChild(this._snapIndicator)
         this._config = $snapConfig.getState()
         this._subscriptions.push(fromEffectorStore($debugConfig, x => x.drawDebug).subscribe(x => this._drawDebug = x))
         this._subscriptions.push(fromEffectorStore($snapConfig, identity).subscribe(x => this._config = x))
@@ -35,16 +37,27 @@ export class SnapService implements IDisposable {
     /**
      * Проверяет привязку точки к статическим элементам
      */
-    checkPointSnap(point: APoint): SnapResult {
-        if (!this._config.enablePoint) return emptyResult
+    public checkPointSnap(point: APoint): SnapResult {
+        if (this._disposed) return emptyResult
+        if (!this._config.enable) return emptyResult
 
-        // 1. Проверка привязки к точкам
-        const pointSnap = this.checkPointToPoint(point)
-        if (pointSnap.snapped) return pointSnap
+        // 1. Проверка привязки к сетке (имеет приоритет)
+        if (this._config.enableGrid) {
+            const gridSnap = this.checkPointToGrid(point)
+            if (gridSnap.snapped) return gridSnap
+        }
 
-        // 2. Проверка привязки к линиям
-        const lineSnap = this.checkPointToLine(point)
-        if (lineSnap.snapped) return lineSnap
+        // 2. Проверка привязки к точкам
+        if (this._config.enablePoint) {
+            const pointSnap = this.checkPointToPoint(point)
+            if (pointSnap.snapped) return pointSnap
+        }
+
+        // 3. Проверка привязки к линиям
+        if (this._config.enableLine) {
+            const lineSnap = this.checkPointToLine(point)
+            if (lineSnap.snapped) return lineSnap
+        }
 
         return emptyResult
     }
@@ -53,8 +66,16 @@ export class SnapService implements IDisposable {
      * Проверяет привязку линии к статическим элементам
      */
     public checkWallSnap([start, end]: TPoints): SnapResult {
+        if (this._disposed) return emptyResult
         if (!this._config.enable) return emptyResult
-        // Проверяем оба конца линии
+
+        // 1. Проверка привязки к сетке (имеет приоритет)
+        if (this._config.enableGrid) {
+            const gridSnap = this.checkWallToGrid([start, end])
+            if (gridSnap.snapped) return gridSnap
+        }
+
+        // 2. Проверяем оба конца линии
         const startSnap = this.checkPointSnap(start)
         const endSnap = this.checkPointSnap(end)
 
@@ -73,6 +94,7 @@ export class SnapService implements IDisposable {
      * Проверяет привязку всей квартиры (всех точек)
      */
     public checkOutlineSnap(points: APoint[]): SnapResult {
+        if (this._disposed) return emptyResult
         if (!this._config.enable) return emptyResult
         for (const point of points) {
             const result = this.checkPointSnap(point)
@@ -80,6 +102,103 @@ export class SnapService implements IDisposable {
                 return result
             }
         }
+        return emptyResult
+    }
+
+    /**
+     * Проверяет привязку точки к ближайшей точке сетки
+     */
+    private checkPointToGrid(point: APoint): SnapResult {
+        const gridStep = this._config.gridStep
+        if (!gridStep || gridStep <= 0) return emptyResult
+
+        // Находим ближайшую точку сетки
+        const snappedX = Math.round(point.x / gridStep) * gridStep
+        const snappedY = Math.round(point.y / gridStep) * gridStep
+        const dx = snappedX - point.x
+        const dy = snappedY - point.y
+        const distance = Math.hypot(dx, dy)
+
+        if (distance < this._config.pointThreshold!) {
+            return {
+                snapped: true,
+                dx,
+                dy,
+                snapPoint: { x: snappedX, y: snappedY },
+                originalPoint: point
+            }
+        }
+
+        return emptyResult
+    }
+
+    /**
+     * Проверяет привязку стены к сетке (только перпендикулярное направление для ортогональных стен)
+     */
+    private checkWallToGrid([start, end]: TPoints): SnapResult {
+        const gridStep = this._config.gridStep
+        if (!gridStep || gridStep <= 0) return emptyResult
+
+        // Проверяем, является ли стена ортогональной (0°, 90°, 180° или 270°)
+        const angle = Math.atan2(end.y - start.y, end.x - start.x) * 180 / Math.PI
+        const isOrthogonal = Math.abs(angle % 90) < this._config.angleSnap! / 2
+
+        if (!isOrthogonal) return emptyResult
+
+        // Определяем направление стены
+        const isHorizontal = Math.abs(angle % 180) < this._config.angleSnap! / 2
+
+        // Для горизонтальных стен привязываем только по Y, для вертикальных - только по X
+        if (isHorizontal) {
+            const snappedY1 = Math.round(start.y / gridStep) * gridStep
+            const snappedY2 = Math.round(end.y / gridStep) * gridStep
+            const dy1 = snappedY1 - start.y
+            const dy2 = snappedY2 - end.y
+
+            // Выбираем более близкую привязку
+            if (Math.abs(dy1) <= Math.abs(dy2) && Math.abs(dy1) < this._config.lineThreshold!) {
+                return {
+                    snapped: true,
+                    dx: 0,
+                    dy: dy1,
+                    snapPoint: { x: start.x, y: snappedY1 },
+                    originalPoint: start
+                }
+            } else if (Math.abs(dy2) < this._config.lineThreshold!) {
+                return {
+                    snapped: true,
+                    dx: 0,
+                    dy: dy2,
+                    snapPoint: { x: end.x, y: snappedY2 },
+                    originalPoint: end
+                }
+            }
+        } else {
+            const snappedX1 = Math.round(start.x / gridStep) * gridStep
+            const snappedX2 = Math.round(end.x / gridStep) * gridStep
+            const dx1 = snappedX1 - start.x
+            const dx2 = snappedX2 - end.x
+
+            // Выбираем более близкую привязку
+            if (Math.abs(dx1) <= Math.abs(dx2) && Math.abs(dx1) < this._config.lineThreshold!) {
+                return {
+                    snapped: true,
+                    dx: dx1,
+                    dy: 0,
+                    snapPoint: { x: snappedX1, y: start.y },
+                    originalPoint: start
+                }
+            } else if (Math.abs(dx2) < this._config.lineThreshold!) {
+                return {
+                    snapped: true,
+                    dx: dx2,
+                    dy: 0,
+                    snapPoint: { x: snappedX2, y: end.y },
+                    originalPoint: end
+                }
+            }
+        }
+
         return emptyResult
     }
 
@@ -112,8 +231,8 @@ export class SnapService implements IDisposable {
         let minDistance = Infinity
         let result: SnapResult = emptyResult
 
-        for (const wall of this._staticWalls) {
-            const projected = this.projectPointToLine(point, wall)
+        for (const line of this._staticLines) {
+            const projected = this.projectPointToLine(point, line)
             const dx = projected.x - point.x
             const dy = projected.y - point.y
             const distance = Math.hypot(dx, dy)
@@ -150,12 +269,9 @@ export class SnapService implements IDisposable {
      * Визуализация точки привязки (для отладки)
      */
     public showSnapIndicator(point: APoint) {
+        if (this._disposed) return
         if (!this._drawDebug) return
 
-        if (!this._snapIndicator) {
-            this._snapIndicator = new Graphics()
-            this._stage.addChild(this._snapIndicator)
-        }
         const { x, y } = this._stage.toLocal(point)
         this._snapIndicator.clear()
         this._snapIndicator.beginFill(0xFF0000, 0.5)
@@ -164,15 +280,17 @@ export class SnapService implements IDisposable {
     }
 
     public hideSnapIndicator() {
-        if (this._snapIndicator) {
-            this._snapIndicator.clear()
-        }
+        if (this._disposed) return
+        this._snapIndicator.clear()
     }
 
     public dispose() {
-        if (this._snapIndicator) {
-            this._snapIndicator.destroy()
-            this._snapIndicator = null
+        if (this._disposed) return
+        this._disposed = true
+        const { _snapIndicator } = this
+        if (_snapIndicator) {
+            _snapIndicator.parent.removeChild(_snapIndicator)
+            _snapIndicator.destroy()
         }
         this._subscriptions.forEach(x => x.unsubscribe())
     }

@@ -1,6 +1,6 @@
 import { use, useEffect } from 'react'
 import { ToolSidebarProps } from './ToolSidebarProps'
-import { addApartmentEvent, $debugConfig, deleteSelectedEvent, $snapConfig, toggleDrawDebug, toggleSnap, zoomToExtentsEvent, toggleSnapGrid, toggleSnapPoint, toggleSnapLine } from '../events'
+import { addApartmentEvent, $debugConfig, deleteSelectedEvent, $snapConfig, toggleDrawDebug, toggleSnap, zoomToExtentsEvent, toggleSnapGrid, toggleSnapPoint, toggleSnapLine, setGridStep } from '../events'
 import { AppContext } from '../../AppContext'
 import styles from './ToolSidebar.module.scss'
 import { Button } from '../Button/Button'
@@ -22,6 +22,30 @@ export const ToolSidebar: React.FC<ToolSidebarProps> = () => {
       })
     return () => s.unsubscribe()
   }, apartmentTemplates)
+
+  useEffect(() => {
+    const s = fromEvent<KeyboardEvent>(document, 'keydown', { passive: true })
+      .subscribe(e => {
+        switch (e.code) {
+          case 'KeyQ':
+            setGridStep(snapConfig.gridStep + 10)
+            break
+          case 'KeyA':
+            setGridStep(snapConfig.gridStep - 10)
+            break
+          case 'KeyW':
+            toggleSnapGrid()
+            break
+          case 'KeyE':
+            toggleSnapPoint()
+            break
+          case 'KeyS':
+            toggleSnap()
+            break
+        }
+      })
+    return () => s.unsubscribe()
+  })
 
   return (
     <div className={styles.container}>
@@ -47,23 +71,32 @@ export const ToolSidebar: React.FC<ToolSidebarProps> = () => {
           onClick={() => toggleDrawDebug()}
         >Debug</Button>
       </div>
-      <div>
-        <div>Привязки</div>
-        <Button
+      <div style={{ marginTop: 8, padding: 4, borderLeft: '1px solid lightgrey' }}>
+        <div><Button
           active={snapConfig.enableGrid}
           title='Сетка'
           onClick={() => toggleSnapGrid()}
         >Сетка</Button>
-        <Button
-          active={snapConfig.enablePoint}
-          title='Точки'
-          onClick={() => toggleSnapPoint()}
-        >Точки</Button>
-        <Button
-          active={snapConfig.enableLine}
-          title='Линии'
-          onClick={() => toggleSnapLine()}
-        >Линии</Button>
+          <Button
+            active={snapConfig.enablePoint}
+            title='Точки'
+            onClick={() => toggleSnapPoint()}
+          >Точки</Button>
+          <Button
+            active={snapConfig.enableLine}
+            title='Линии'
+            onClick={() => toggleSnapLine()}
+          >Линии</Button>
+        </div>
+        <div style={{ marginTop: 8 }}>
+          <label>Шаг сетки
+            <input type='number'
+              style={{ width: 50, marginLeft: 8, border: 'none' }}
+              value={snapConfig.gridStep}
+              size={4}
+              onChange={e => setGridStep(Number(e.target.value))} />
+          </label>
+        </div>
       </div>
       <ul>
         {apartmentTemplates.map((template) => (

@@ -2,10 +2,10 @@ import { Application, FederatedPointerEvent, Graphics } from 'pixi.js'
 import { calculateZoomToExtents, distanceFromPointToLine, drawOutline, fromPixiEvent, shiftLine } from './func'
 import { Logger } from '../logger'
 import { addVectors, ALine, aPoint, APoint, ASubscription, EditorObject, subtractVectors, unsubscribe } from './types'
-import { ApartmentDragConfig, DragConfig, isApartmentDragConfig, isWallDragConfig, WallDragConfig } from './dragConfig'
+import { ApartmentDragConfig, DragConfig, WallDragConfig } from './dragConfig'
 import { Apartment } from './Apartment'
 import { EventService } from '../EventService/EventService'
-import { addApartmentEvent, deleteSelectedEvent, selectionEvent, toggleDrawDebug, toggleSnap, zoomToExtentsEvent } from '../components/events'
+import { addApartmentEvent, deleteSelectedEvent, selectionEvent, toggleDrawDebug, zoomToExtentsEvent } from '../components/events'
 import { assertDefined, assertUnreachable, toError } from '../func'
 import { MouseDownEvent } from '../EventService/eventTypes'
 import { catchError, EMPTY, filter, fromEvent, map, mergeMap, of, switchMap, take, timeout } from 'rxjs'
@@ -67,9 +67,6 @@ export class Editor {
     this._subscriptions.push(fromEvent<KeyboardEvent>(document, 'keydown', { passive: true })
       .pipe(filter(e => e.key === 'Delete' && this._selectedApartment != null))
       .subscribe(() => this.deleteSelected()))
-    this._subscriptions.push(fromEvent<KeyboardEvent>(document, 'keydown', { passive: true })
-      .pipe(filter(e => e.code === 'KeyS'))
-      .subscribe(() => toggleSnap()))
     this._subscriptions.push(fromEvent<KeyboardEvent>(document, 'keydown', { passive: true })
       .pipe(filter(e => e.code === 'KeyD'))
       .subscribe(() => toggleDrawDebug()))
