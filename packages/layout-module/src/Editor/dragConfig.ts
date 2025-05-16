@@ -12,7 +12,8 @@ export interface ApartmentDragConfig extends DragConfigType {
     target: Apartment
 
     /**
-     * Начальные собственные координаты квартиры
+     * Начальные собственные координаты квартиры.
+     * В локальных координатах родительского контейнера.
      */
     startPos: APoint
 
@@ -23,10 +24,11 @@ export interface ApartmentDragConfig extends DragConfigType {
     startMousePos: APoint
 
     /**
-     * Смещение указателя мыши от нуля квартиры.
+     * Точки контура квартиры до начала перемещения
      */
-    offset: APoint
+    originalGlobalPoints: APoint[]
 }
+
 export const isApartmentDragConfig = (config: DragConfigType | null): config is ApartmentDragConfig => {
     return config !== null && config.target instanceof Apartment
 }

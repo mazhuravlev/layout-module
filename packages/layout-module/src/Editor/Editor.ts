@@ -1,8 +1,8 @@
 import { Application, FederatedPointerEvent, Graphics } from 'pixi.js'
 import { calculateZoomToExtents, distanceFromPointToLine, drawOutline, fromPixiEvent, shiftLine } from './func'
 import { Logger } from '../logger'
-import { ALine, APoint, EditorObject } from './types'
-import { ApartmentDragConfig, DragConfig, isApartmentDragConfig, isWallDragConfig } from './dragConfig'
+import { addVectors, ALine, aPoint, APoint, ASubscription, EditorObject, subtractVectors, unsubscribe } from './types'
+import { ApartmentDragConfig, DragConfig, isApartmentDragConfig, isWallDragConfig, WallDragConfig } from './dragConfig'
 import { Apartment } from './Apartment'
 import { EventService } from '../EventService/EventService'
 import { addApartmentEvent, deleteSelectedEvent, selectionEvent, toggleDrawDebug, toggleSnap, zoomToExtentsEvent } from '../components/events'
@@ -27,6 +27,9 @@ export class Editor {
    */
   private cleanupFns: (() => void)[] = []
 
+  private _subscriptions: ASubscription[] = []
+
+
   constructor(private _container: HTMLDivElement) { }
 
   private get app() {
@@ -34,10 +37,12 @@ export class Editor {
   }
 
   public async init(): Promise<void> {
+    this._logger.debug('init')
     this._app = new Application({
       background: '#ededed',
       resizeTo: this._container,
       autoStart: true,
+      antialias: false,
     })
     this._container.appendChild((this._app.view as unknown) as Node)
     this.setupObjectEvents()
@@ -49,32 +54,28 @@ export class Editor {
    * @description Настройка входящих событий от компонентов
    */
   private setupEvents() {
-    this.addCleanupFn(addApartmentEvent.watch((shape) => this.addApartment(shape.points)))
-    this.addCleanupFn(deleteSelectedEvent.watch(() => this.deleteSelected()))
-    this.addCleanupFn(zoomToExtentsEvent.watch(() => this.zoomToExtents()))
+    this._subscriptions.push(addApartmentEvent.watch((shape) => this.addApartment(shape.points)))
+    this._subscriptions.push(deleteSelectedEvent.watch(() => this.deleteSelected()))
+    this._subscriptions.push(zoomToExtentsEvent.watch(() => this.zoomToExtents()))
   }
 
   private setupKeyboardEvents() {
-    const deleteSub = fromEvent<KeyboardEvent>(document, 'keydown', { passive: true })
+    this._subscriptions.push(fromEvent<KeyboardEvent>(document, 'keydown', { passive: true })
       .pipe(filter(e => e.key === 'Delete' && this._selectedApartment != null))
-      .subscribe(() => this.deleteSelected())
-    this.cleanupFns.push(() => deleteSub.unsubscribe())
-
-    const snapSub = fromEvent<KeyboardEvent>(document, 'keydown', { passive: true })
+      .subscribe(() => this.deleteSelected()))
+    this._subscriptions.push(fromEvent<KeyboardEvent>(document, 'keydown', { passive: true })
       .pipe(filter(e => e.code === 'KeyS'))
-      .subscribe(() => toggleSnap())
-    this.cleanupFns.push(() => snapSub.unsubscribe())
-    const debugSub = fromEvent<KeyboardEvent>(document, 'keydown', { passive: true })
+      .subscribe(() => toggleSnap()))
+    this._subscriptions.push(fromEvent<KeyboardEvent>(document, 'keydown', { passive: true })
       .pipe(filter(e => e.code === 'KeyD'))
-      .subscribe(() => toggleDrawDebug())
-    this.cleanupFns.push(() => debugSub.unsubscribe())
+      .subscribe(() => toggleDrawDebug()))
   }
 
   /**
    * @description Настройка событий редактора
    */
   private setupObjectEvents() {
-    const clickSub = this._eventService.mousedown$
+    this._subscriptions.push(this._eventService.mousedown$
       .pipe(
         switchMap((down) =>
           this._eventService.mouseup$.pipe(
@@ -91,10 +92,8 @@ export class Editor {
         target.select()
         this._selectedApartment = target
         selectionEvent([target.id])
-      })
-    this.cleanupFns.push(() => clickSub.unsubscribe())
-
-    const dragSub = this._eventService.events$.subscribe(e => {
+      }))
+    this._subscriptions.push(this._eventService.events$.subscribe(e => {
       if (e.type === 'mousedown') {
         this.startDrag(e)
       } else if (e.type === 'mouseup') {
@@ -102,8 +101,7 @@ export class Editor {
       } else if (e.type === 'mousemove' && this._dragConfig) {
         this.drag(e)
       }
-    })
-    this.cleanupFns.push(() => dragSub.unsubscribe())
+    }))
 
     const { stage } = this.app
     stage.eventMode = 'static'
@@ -115,13 +113,7 @@ export class Editor {
       }
     })
 
-    this.cleanupFns.push(() => {
-      if (stage) {
-        stage.removeAllListeners()
-      }
-    })
-
-    const wheelSub = fromEvent<WheelEvent>(this._container, 'wheel', { passive: true })
+    this._subscriptions.push(fromEvent<WheelEvent>(this._container, 'wheel', { passive: true })
       .subscribe(e => {
         const { stage } = this.app
         const clientPoint = { x: e.clientX, y: e.clientY }
@@ -142,15 +134,11 @@ export class Editor {
         const mouseGlobalAfterZoom = stage.toLocal(clientPoint)
         stage.position.x += (mouseGlobalAfterZoom.x - mouseGlobalBeforeZoom.x) * newScale
         stage.position.y += (mouseGlobalAfterZoom.y - mouseGlobalBeforeZoom.y) * newScale
-      })
-    this.cleanupFns.push(() => wheelSub.unsubscribe())
-
-    const stageMouseMoveSub = fromPixiEvent(this.app.stage, 'mousemove')
+      }))
+    this._subscriptions.push(fromPixiEvent(this.app.stage, 'mousemove')
       .pipe(filter(e => e instanceof FederatedPointerEvent))
-      .subscribe(event => this._eventService.emit({ type: 'mousemove', pixiEvent: event }))
-    this.addCleanupFn(() => stageMouseMoveSub.unsubscribe())
-
-    const stageMouseUpSub = fromPixiEvent(this.app.stage, 'mouseup')
+      .subscribe(event => this._eventService.emit({ type: 'mousemove', pixiEvent: event })))
+    this._subscriptions.push(fromPixiEvent(this.app.stage, 'mouseup')
       .pipe(mergeMap(e => {
         if (e instanceof FederatedPointerEvent && e.target instanceof EditorObject) {
           return of(e)
@@ -160,8 +148,7 @@ export class Editor {
       }))
       .subscribe(event => {
         this._eventService.emit({ type: 'mouseup', pixiEvent: event })
-      })
-    this.addCleanupFn(() => stageMouseUpSub.unsubscribe())
+      }))
   }
 
   private drag({ pixiEvent }: MouseMoveEvent) {
@@ -174,53 +161,54 @@ export class Editor {
       wall.apartment.updateWall(wall, newLine, 'global')
     } else if (isApartmentDragConfig(_dragConfig)) {
       // Перемещение квартиры
-      const { target, offset, snapService } = _dragConfig
-      const localMousePos = this.app.stage.toLocal(pixiEvent.global)
-      const snapResult = snapService.checkOutlineSnap(target.globalPoints)
+      const { target, snapService } = _dragConfig
+      const toParentLocal = (point: APoint) => target.container.parent.toLocal(point)
+      const toGlobal = (point: APoint) => target.container.parent.toGlobal(point)
+      const delta = subtractVectors(pixiEvent.global, _dragConfig.startMousePos)
+      const movedPoints = _dragConfig.originalGlobalPoints.map(p => addVectors(p, delta))
+      const snapResult = snapService.checkOutlineSnap(movedPoints)
       if (snapResult.snapped) {
         setTimeout(() => snapService.showSnapIndicator(snapResult.snapPoint))
-        const { originalPoint, snapPoint } = snapResult
-        const localSnapPoint = target.container.parent.toLocal(snapPoint)
-        const localOriginalPoint = target.container.toLocal(originalPoint)
-        target.container.position.set(
-          localSnapPoint.x - localOriginalPoint.x,
-          localSnapPoint.y - localOriginalPoint.y
+        const globalTargetPos = subtractVectors(
+          addVectors(toGlobal(_dragConfig.startPos), delta),
+          subtractVectors(snapResult.originalPoint, snapResult.snapPoint)
         )
+        const newPos = toParentLocal(globalTargetPos)
+        target.container.position.set(newPos.x, newPos.y)
       } else {
         setTimeout(() => snapService.hideSnapIndicator())
-        target.container.position.set(
-          localMousePos.x - offset.x,
-          localMousePos.y - offset.y
-        )
+        const newPos = toParentLocal(addVectors(toGlobal(_dragConfig.startPos), delta))
+        target.container.position.set(newPos.x, newPos.y)
       }
     }
   }
 
   private startDrag({ pixiEvent, target }: MouseDownEvent) {
-    const globalMousePos = this.app.stage.toLocal(pixiEvent.global)
+    this._logger.debug('startDrag')
     if (target instanceof Apartment) {
-      const offset = {
-        x: globalMousePos.x - target.container.position.x,
-        y: globalMousePos.y - target.container.position.y
-      }
-      this._dragConfig = {
+      const dragConfig: ApartmentDragConfig = {
         snapService: new SnapService(
           this.app.stage,
           this.getSnapPoints({ exclude: target }),
           this.getSnapLines()),
         target,
-        offset,
-      } as ApartmentDragConfig
+        startPos: aPoint(target.container.position),
+        startMousePos: aPoint(pixiEvent.global),
+        originalGlobalPoints: target.globalPoints.map(aPoint)
+      }
+      this._dragConfig = dragConfig
     } else if (target instanceof Wall) {
-      this._dragConfig = {
+      const dragConfig: WallDragConfig = {
         snapService: new SnapService(this.app.stage, [], []),
         target,
         startGlobalPoints: target.globalPoints,
       }
+      this._dragConfig = dragConfig
     }
   }
 
   private stopDrag() {
+    this._logger.debug('stopDrag')
     assertDefined(this._dragConfig).snapService.dispose()
     this._dragConfig = null
   }
@@ -246,15 +234,10 @@ export class Editor {
     }
   }
 
-  /**
-   * @param fn Function to be called on dispose
-   * @description This function is called when the editor is disposed. It can be used to clean up resources, such as event listeners or textures.
-   */
-  private addCleanupFn(fn: () => void) {
-    this.cleanupFns.push(fn)
-  }
-
   public async dispose(): Promise<void> {
+    this._logger.debug('dispose')
+    this._subscriptions.forEach(unsubscribe)
+    this.app.stage.removeAllListeners()
     try {
       this.app.destroy(true, { children: true })
     } catch (error) {

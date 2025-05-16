@@ -62,7 +62,6 @@ export class Apartment extends EditorObject implements IDisposable {
         const { _areaGraphics, _container } = this
         _areaGraphics.eventMode = 'static'
         _areaGraphics.cursor = 'pointer'
-        // TODO: unsubscribe on dispose
         _areaGraphics.on('mouseenter', e => this.mouseEnter(e))
         _areaGraphics.on('mouseleave', e => this.mouseLeave(e))
         _areaGraphics.on('mousedown', e => this.mouseDown(e))

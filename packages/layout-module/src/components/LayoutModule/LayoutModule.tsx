@@ -17,7 +17,7 @@ export const LayoutModule: React.FC<LayoutModuleProps> = (props) => {
           <ToolSidebar />
         </aside>
         <div className={styles.main}>
-          <header className={styles.header}>Первый этаж</header>
+          <header className={styles.header}>Типовой этаж</header>
           <div className={styles.content}>
             <div className={styles.editor}>
               <EditorComponent

@@ -1,16 +1,16 @@
 import { Graphics, Polygon } from 'pixi.js'
 import { EventService } from '../EventService/EventService'
-import { APoint, CoordType, EditorObject, IDisposable, TPoints } from './types'
+import { APoint, ASubscription, CoordType, EditorObject, IDisposable, TPoints, unsubscribe } from './types'
 import { Apartment } from './Apartment'
 import { defaultConfig } from './defaultConfig'
-import { fromPixiEvent, makeLineHitbox } from './func'
+import { makeLineHitbox } from './func'
 import { $debugConfig } from '../components/events'
-
 
 export class Wall extends EditorObject implements IDisposable {
     private _drawDebug = $debugConfig.getState().drawDebug
     private _graphics = new Graphics()
     private _config = defaultConfig
+    private _subscriptions: ASubscription[] = []
 
     public get graphics() { return this._graphics }
 
@@ -39,21 +39,16 @@ export class Wall extends EditorObject implements IDisposable {
 
     private setupEvents() {
         const { _eventService, _graphics } = this
-        // TODO: unsubscribe on dispose
-        fromPixiEvent(_graphics, 'mouseenter')
-            .subscribe(() => this.render(this._config.hoverStrokeColor))
-        fromPixiEvent(_graphics, 'mouseleave')
-            .subscribe(() => this.render(this._config.strokeColor))
-        fromPixiEvent(_graphics, 'mousedown')
-            .subscribe(event => _eventService.emit({ type: 'mousedown', pixiEvent: event, target: this }))
-        fromPixiEvent(_graphics, 'mouseup')
-            .subscribe(event => _eventService.emit({ type: 'mouseup', pixiEvent: event, target: this }))
-        $debugConfig
+        _graphics.on('mouseenter', () => this.render(this._config.hoverStrokeColor))
+        _graphics.on('mouseleave', () => this.render(this._config.strokeColor))
+        _graphics.on('mousedown', event => _eventService.emit({ type: 'mousedown', pixiEvent: event, target: this }))
+        _graphics.on('mouseup', event => _eventService.emit({ type: 'mouseup', pixiEvent: event, target: this }))
+        this._subscriptions.push($debugConfig
             .map(x => x.drawDebug)
             .watch(x => {
                 this._drawDebug = x
                 this.render(this._config.strokeColor)
-            })
+            }))
     }
 
     public render(color: number) {
@@ -74,6 +69,8 @@ export class Wall extends EditorObject implements IDisposable {
     }
 
     public dispose() {
+        this._graphics.removeAllListeners()
+        this._subscriptions.forEach(unsubscribe)
     }
 
     public update(points: TPoints, coordType: CoordType) {
@@ -96,7 +93,7 @@ export class Wall extends EditorObject implements IDisposable {
 
     public updateStart(point: APoint, coordType: CoordType) {
         if (coordType === 'local') {
-            throw new Error('updateEnd is not supported for local coordinates')
+            throw new Error('updateStart is not supported for local coordinates')
         } else {
             this._points = [this._graphics.toLocal(point), this.points[1]]
         }
