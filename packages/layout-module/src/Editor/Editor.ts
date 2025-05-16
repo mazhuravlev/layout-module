@@ -36,6 +36,10 @@ export class Editor {
     return assertDefined(this._app)
   }
 
+  private get apartments(): Apartment[] {
+    return [...this._apartments.values()]
+  }
+
   public async init(): Promise<void> {
     this._logger.debug('init')
     this._app = new Application({
@@ -183,10 +187,19 @@ export class Editor {
   }
 
   private dragWall(_dragConfig: WallDragConfig, pixiEvent: FederatedPointerEvent) {
-    const { target: wall } = _dragConfig
-    const distance = distanceFromPointToLine(_dragConfig.startGlobalPoints, pixiEvent.global)
-    const newLine = shiftLine(_dragConfig.startGlobalPoints, -distance)
-    wall.apartment.updateWall(wall, newLine, 'global')
+    const { target: wall, snapService } = _dragConfig
+    const distance = distanceFromPointToLine(_dragConfig.originalGlobalPoints, pixiEvent.global)
+    const newLine = shiftLine(_dragConfig.originalGlobalPoints, -distance)
+    const snapResult = snapService.checkWallSnap(newLine)
+    if (snapResult.snapped) {
+      setTimeout(() => snapService.showSnapIndicator(snapResult.snapPoint))
+      const snapDistance = distanceFromPointToLine(_dragConfig.originalGlobalPoints, snapResult.snapPoint)
+      const snapLine = shiftLine(_dragConfig.originalGlobalPoints, -snapDistance)
+      wall.apartment.updateWall(wall, snapLine, 'global')
+    } else {
+      setTimeout(() => snapService.hideSnapIndicator())
+      wall.apartment.updateWall(wall, newLine, 'global')
+    }
   }
 
   private startDrag({ pixiEvent, target }: MouseDownEvent) {
@@ -207,9 +220,12 @@ export class Editor {
     } else if (target instanceof Wall) {
       const dragConfig: WallDragConfig = {
         type: 'dragWall',
-        snapService: new SnapService(this.app.stage, [], []),
+        snapService: new SnapService(
+          this.app.stage,
+          this.getSnapPoints({}),
+          this.getSnapLines()),
         target,
-        startGlobalPoints: target.globalPoints,
+        originalGlobalPoints: target.globalPoints,
       }
       this._dragConfig = dragConfig
     }
@@ -225,7 +241,7 @@ export class Editor {
     return []
   }
 
-  private getSnapPoints(options: { exclude: Apartment }): APoint[] {
+  private getSnapPoints(options: { exclude?: Apartment }): APoint[] {
     return [
       ...assertDefined(this._sectionOutline).points.map(x => this.app.stage.toGlobal(x)),
       ...this._apartments

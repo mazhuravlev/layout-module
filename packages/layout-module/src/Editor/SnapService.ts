@@ -1,5 +1,5 @@
 import { Container, Graphics } from 'pixi.js'
-import { APoint, ALine, IDisposable } from './types'
+import { APoint, ALine, IDisposable, TPoints } from './types'
 import { $debugConfig, $snapConfig, fromEffectorStore } from '../components/events'
 import { Subscription } from 'rxjs'
 
@@ -56,11 +56,11 @@ export class SnapService implements IDisposable {
     /**
      * Проверяет привязку линии к статическим элементам
      */
-    public checkWallSnap(wall: ALine): SnapResult {
+    public checkWallSnap([start, end]: TPoints): SnapResult {
         if (!this._enable) return { snapped: false }
         // Проверяем оба конца линии
-        const startSnap = this.checkPointSnap(wall.start)
-        const endSnap = this.checkPointSnap(wall.end)
+        const startSnap = this.checkPointSnap(start)
+        const endSnap = this.checkPointSnap(end)
 
         if (startSnap.snapped && endSnap.snapped) {
             // Если оба конца привязаны, выбираем более близкую привязку

@@ -38,7 +38,7 @@ export const isApartmentDragConfig = (config: DragConfig | null): config is Apar
 export interface WallDragConfig extends DragConfigType {
     type: 'dragWall'
     target: Wall
-    startGlobalPoints: TPoints
+    originalGlobalPoints: TPoints
 }
 
 export const isWallDragConfig = (config: DragConfig | null): config is WallDragConfig => {

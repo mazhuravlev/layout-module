@@ -1,7 +1,7 @@
 import { Container, FederatedPointerEvent, Graphics, Text } from 'pixi.js'
 import { assert, assertUnreachable, makeUuid, pairwise } from '../func'
 import { getPolygonCenter, getPolygonArea, formatArea, findCircularAdjacentElements } from './func'
-import { IDisposable, APoint, EditorObject, TPoints, CoordType } from './types'
+import { IDisposable, APoint, EditorObject, TPoints, CoordType, ALine } from './types'
 import { EventService } from '../EventService/EventService'
 import { defaultConfig } from './defaultConfig'
 import { Wall } from './Wall'
@@ -25,8 +25,14 @@ export class Apartment extends EditorObject implements IDisposable {
         return this._container
     }
 
-    public get points() {
+    public get points(): APoint[] {
         return this._walls.map(x => x.points[0])
+    }
+
+    public get wallLines(): ALine[] {
+        return this._walls
+            .map(x => x.points)
+            .map(([start, end]) => ({ start, end }))
     }
 
     public get globalPoints() {

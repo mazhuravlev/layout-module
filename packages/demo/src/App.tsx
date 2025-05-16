@@ -20,7 +20,7 @@ function App() {
   return (
     <div>
       <button onClick={() => setShowModule(!showModule)}>Toggle module</button>
-      <div style={{ height: '90vh', width: '90vw', border: '2px solid black' }}>
+      <div style={{ height: '95vh', width: '98vw', border: '2px solid black' }}>
         {showModule && <LayoutModule
           apartmentTemplates={apartmentTemplates}
           section={{
