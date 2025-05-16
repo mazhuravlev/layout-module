@@ -9,6 +9,8 @@ interface DragConfigType {
 }
 
 export interface ApartmentDragConfig extends DragConfigType {
+    type: 'dragApartment'
+
     target: Apartment
 
     /**
@@ -29,17 +31,18 @@ export interface ApartmentDragConfig extends DragConfigType {
     originalGlobalPoints: APoint[]
 }
 
-export const isApartmentDragConfig = (config: DragConfigType | null): config is ApartmentDragConfig => {
-    return config !== null && config.target instanceof Apartment
+export const isApartmentDragConfig = (config: DragConfig | null): config is ApartmentDragConfig => {
+    return config !== null && config.type === 'dragWall'
 }
 
 export interface WallDragConfig extends DragConfigType {
+    type: 'dragWall'
     target: Wall
     startGlobalPoints: TPoints
 }
 
-export const isWallDragConfig = (config: DragConfigType | null): config is WallDragConfig => {
-    return config !== null && config.target instanceof Wall
+export const isWallDragConfig = (config: DragConfig | null): config is WallDragConfig => {
+    return config !== null && config.type === 'dragWall'
 }
 
 export type DragConfig = ApartmentDragConfig | WallDragConfig

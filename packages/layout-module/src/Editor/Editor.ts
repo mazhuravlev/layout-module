@@ -6,8 +6,8 @@ import { ApartmentDragConfig, DragConfig, isApartmentDragConfig, isWallDragConfi
 import { Apartment } from './Apartment'
 import { EventService } from '../EventService/EventService'
 import { addApartmentEvent, deleteSelectedEvent, selectionEvent, toggleDrawDebug, toggleSnap, zoomToExtentsEvent } from '../components/events'
-import { assertDefined, toError } from '../func'
-import { MouseDownEvent, MouseMoveEvent } from '../EventService/eventTypes'
+import { assertDefined, assertUnreachable, toError } from '../func'
+import { MouseDownEvent } from '../EventService/eventTypes'
 import { catchError, EMPTY, filter, fromEvent, map, mergeMap, of, switchMap, take, timeout } from 'rxjs'
 import { SnapService } from './SnapService'
 import { Wall } from './Wall'
@@ -99,7 +99,16 @@ export class Editor {
       } else if (e.type === 'mouseup') {
         if (this._dragConfig) this.stopDrag()
       } else if (e.type === 'mousemove' && this._dragConfig) {
-        this.drag(e)
+        switch (this._dragConfig.type) {
+          case 'dragApartment':
+            this.dragApartment(this._dragConfig, e.pixiEvent)
+            break
+          case 'dragWall':
+            this.dragWall(this._dragConfig, e.pixiEvent)
+            break
+          default:
+            assertUnreachable(this._dragConfig)
+        }
       }
     }))
 
@@ -151,42 +160,40 @@ export class Editor {
       }))
   }
 
-  private drag({ pixiEvent }: MouseMoveEvent) {
-    const { _dragConfig } = this
-    if (isWallDragConfig(_dragConfig)) {
-      // Перемещение стены
-      const { target: wall } = _dragConfig
-      const distance = distanceFromPointToLine(_dragConfig.startGlobalPoints, pixiEvent.global)
-      const newLine = shiftLine(_dragConfig.startGlobalPoints, -distance)
-      wall.apartment.updateWall(wall, newLine, 'global')
-    } else if (isApartmentDragConfig(_dragConfig)) {
-      // Перемещение квартиры
-      const { target, snapService } = _dragConfig
-      const toParentLocal = (point: APoint) => target.container.parent.toLocal(point)
-      const toGlobal = (point: APoint) => target.container.parent.toGlobal(point)
-      const delta = subtractVectors(pixiEvent.global, _dragConfig.startMousePos)
-      const movedPoints = _dragConfig.originalGlobalPoints.map(p => addVectors(p, delta))
-      const snapResult = snapService.checkOutlineSnap(movedPoints)
-      if (snapResult.snapped) {
-        setTimeout(() => snapService.showSnapIndicator(snapResult.snapPoint))
-        const globalTargetPos = subtractVectors(
-          addVectors(toGlobal(_dragConfig.startPos), delta),
-          subtractVectors(snapResult.originalPoint, snapResult.snapPoint)
-        )
-        const newPos = toParentLocal(globalTargetPos)
-        target.container.position.set(newPos.x, newPos.y)
-      } else {
-        setTimeout(() => snapService.hideSnapIndicator())
-        const newPos = toParentLocal(addVectors(toGlobal(_dragConfig.startPos), delta))
-        target.container.position.set(newPos.x, newPos.y)
-      }
+  private dragApartment(_dragConfig: ApartmentDragConfig, pixiEvent: FederatedPointerEvent) {
+    const { target, snapService } = _dragConfig
+    const toParentLocal = (point: APoint) => target.container.parent.toLocal(point)
+    const toGlobal = (point: APoint) => target.container.parent.toGlobal(point)
+    const delta = subtractVectors(pixiEvent.global, _dragConfig.startMousePos)
+    const movedPoints = _dragConfig.originalGlobalPoints.map(p => addVectors(p, delta))
+    const snapResult = snapService.checkOutlineSnap(movedPoints)
+    if (snapResult.snapped) {
+      setTimeout(() => snapService.showSnapIndicator(snapResult.snapPoint))
+      const globalTargetPos = subtractVectors(
+        addVectors(toGlobal(_dragConfig.startPos), delta),
+        subtractVectors(snapResult.originalPoint, snapResult.snapPoint)
+      )
+      const newPos = toParentLocal(globalTargetPos)
+      target.container.position.set(newPos.x, newPos.y)
+    } else {
+      setTimeout(() => snapService.hideSnapIndicator())
+      const newPos = toParentLocal(addVectors(toGlobal(_dragConfig.startPos), delta))
+      target.container.position.set(newPos.x, newPos.y)
     }
+  }
+
+  private dragWall(_dragConfig: WallDragConfig, pixiEvent: FederatedPointerEvent) {
+    const { target: wall } = _dragConfig
+    const distance = distanceFromPointToLine(_dragConfig.startGlobalPoints, pixiEvent.global)
+    const newLine = shiftLine(_dragConfig.startGlobalPoints, -distance)
+    wall.apartment.updateWall(wall, newLine, 'global')
   }
 
   private startDrag({ pixiEvent, target }: MouseDownEvent) {
     this._logger.debug('startDrag')
     if (target instanceof Apartment) {
       const dragConfig: ApartmentDragConfig = {
+        type: 'dragApartment',
         snapService: new SnapService(
           this.app.stage,
           this.getSnapPoints({ exclude: target }),
@@ -199,6 +206,7 @@ export class Editor {
       this._dragConfig = dragConfig
     } else if (target instanceof Wall) {
       const dragConfig: WallDragConfig = {
+        type: 'dragWall',
         snapService: new SnapService(this.app.stage, [], []),
         target,
         startGlobalPoints: target.globalPoints,
