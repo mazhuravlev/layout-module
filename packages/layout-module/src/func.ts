@@ -49,3 +49,12 @@ export const toError = (value: unknown): Error => {
   if (value instanceof Object && 'toString' in value && typeof value.toString === 'function') return new Error(value.toString())
   return new Error(JSON.stringify(value))
 }
+
+/**
+ * Identity function that returns the input argument unchanged.
+ * 
+ * @template T - The type of the input and output value.
+ * @param {T} t - The input value.
+ * @returns {T} The same input value.
+ */
+export const identity = <T>(t: T): T => t

@@ -2,6 +2,9 @@ import { Container, Graphics } from 'pixi.js'
 import { APoint, ALine, IDisposable, TPoints } from './types'
 import { $debugConfig, $snapConfig, fromEffectorStore } from '../components/events'
 import { Subscription } from 'rxjs'
+import { identity } from '../func'
+
+const emptyResult = { snapped: false } as const
 
 type SnapResult =
     | { snapped: false }
@@ -15,33 +18,26 @@ type SnapResult =
 
 export class SnapService implements IDisposable {
     private _drawDebug = $debugConfig.getState().drawDebug
-    private _enable = $snapConfig.getState().snap
     private _subscriptions: Subscription[] = []
-    private _config = {
-        pointThreshold: 20,
-        lineThreshold: 10,
-        angleSnap: 90,
-    }
+    private _config: ReturnType<typeof $snapConfig.getState>
     private _snapIndicator: Graphics | null = null
 
     constructor(
         private _stage: Container,
         private _staticPoints: APoint[],
         private _staticWalls: ALine[],
-        config: Partial<typeof this._config> = {}
     ) {
-        this._config = {
-            ...this._config,
-            ...config,
-        }
+        this._config = $snapConfig.getState()
         this._subscriptions.push(fromEffectorStore($debugConfig, x => x.drawDebug).subscribe(x => this._drawDebug = x))
-        this._subscriptions.push(fromEffectorStore($snapConfig, x => x.snap).subscribe(x => this._enable = x))
+        this._subscriptions.push(fromEffectorStore($snapConfig, identity).subscribe(x => this._config = x))
     }
 
     /**
      * Проверяет привязку точки к статическим элементам
      */
     checkPointSnap(point: APoint): SnapResult {
+        if (!this._config.enablePoint) return emptyResult
+
         // 1. Проверка привязки к точкам
         const pointSnap = this.checkPointToPoint(point)
         if (pointSnap.snapped) return pointSnap
@@ -50,14 +46,14 @@ export class SnapService implements IDisposable {
         const lineSnap = this.checkPointToLine(point)
         if (lineSnap.snapped) return lineSnap
 
-        return { snapped: false }
+        return emptyResult
     }
 
     /**
      * Проверяет привязку линии к статическим элементам
      */
     public checkWallSnap([start, end]: TPoints): SnapResult {
-        if (!this._enable) return { snapped: false }
+        if (!this._config.enable) return emptyResult
         // Проверяем оба конца линии
         const startSnap = this.checkPointSnap(start)
         const endSnap = this.checkPointSnap(end)
@@ -77,19 +73,19 @@ export class SnapService implements IDisposable {
      * Проверяет привязку всей квартиры (всех точек)
      */
     public checkOutlineSnap(points: APoint[]): SnapResult {
-        if (!this._enable) return { snapped: false }
+        if (!this._config.enable) return emptyResult
         for (const point of points) {
             const result = this.checkPointSnap(point)
             if (result.snapped) {
                 return result
             }
         }
-        return { snapped: false }
+        return emptyResult
     }
 
     private checkPointToPoint(point: APoint): SnapResult {
         let minDistance = Infinity
-        let result: SnapResult = { snapped: false }
+        let result: SnapResult = emptyResult
 
         for (const staticPoint of this._staticPoints) {
             const dx = staticPoint.x - point.x
@@ -112,8 +108,9 @@ export class SnapService implements IDisposable {
     }
 
     private checkPointToLine(point: APoint): SnapResult {
+        if (!this._config.enableLine) return emptyResult
         let minDistance = Infinity
-        let result: SnapResult = { snapped: false }
+        let result: SnapResult = emptyResult
 
         for (const wall of this._staticWalls) {
             const projected = this.projectPointToLine(point, wall)
