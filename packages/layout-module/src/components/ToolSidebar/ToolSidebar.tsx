@@ -1,11 +1,11 @@
 import { use, useEffect } from 'react'
 import { ToolSidebarProps } from './ToolSidebarProps'
-import { addApartmentEvent, $debugConfig, deleteSelectedEvent, $snapConfig, toggleDrawDebug, toggleSnap, zoomToExtentsEvent, toggleSnapGrid, toggleSnapPoint, toggleSnapLine, setGridStep } from '../events'
+import { addApartmentEvent, $debugConfig, deleteSelectedEvent, $snapConfig, toggleDrawDebug, toggleSnap, zoomToExtentsEvent, toggleSnapGrid, toggleSnapPoint, toggleSnapLine, setGridStep, undoEvent, redoEvent } from '../events'
 import { AppContext } from '../../AppContext'
 import styles from './ToolSidebar.module.scss'
 import { Button } from '../Button/Button'
 import { useStoreMap, useUnit } from 'effector-react'
-import { filter, fromEvent } from 'rxjs'
+import { filter, fromEvent, map } from 'rxjs'
 
 export const ToolSidebar: React.FC<ToolSidebarProps> = () => {
   const context = use(AppContext)
@@ -22,6 +22,23 @@ export const ToolSidebar: React.FC<ToolSidebarProps> = () => {
       })
     return () => s.unsubscribe()
   }, apartmentTemplates)
+
+  useEffect(() => {
+    const s = fromEvent<KeyboardEvent>(document, 'keydown', { passive: false })
+      .pipe(filter(e => e.ctrlKey))
+      .subscribe(e => {
+        switch (e.code) {
+          case 'KeyZ':
+            undoEvent()
+            break
+          case 'KeyR':
+            e.preventDefault()
+            redoEvent()
+            break
+        }
+      })
+    return () => s.unsubscribe()
+  }, [])
 
   useEffect(() => {
     const s = fromEvent<KeyboardEvent>(document, 'keydown', { passive: true })
@@ -45,11 +62,21 @@ export const ToolSidebar: React.FC<ToolSidebarProps> = () => {
         }
       })
     return () => s.unsubscribe()
-  })
+  }, [])
 
   return (
     <div className={styles.container}>
       <div>
+        <Button
+          title='Отменить'
+          onClick={() => undoEvent()}>
+          ↩️
+        </Button>
+        <Button
+          title='Повторить'
+          onClick={() => redoEvent()}>
+          ↪️
+        </Button>
         <Button
           title='Показать всё'
           onClick={() => zoomToExtentsEvent()}>

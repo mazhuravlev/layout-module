@@ -27,4 +27,5 @@ export default defineConfig({
     // Исключаем модуль из пред-сборки Vite
     exclude: ['layout-module'],
   },
+  publicDir: 'public',
 })

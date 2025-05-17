@@ -5,12 +5,14 @@ import { addVectors, ALine, aPoint, APoint, ASubscription, EditorObject, subtrac
 import { ApartmentDragConfig, DragConfig, WallDragConfig } from './dragConfig'
 import { Apartment } from './Apartment'
 import { EventService } from '../EventService/EventService'
-import { addApartmentEvent, deleteSelectedEvent, selectionEvent, toggleDrawDebug, zoomToExtentsEvent } from '../components/events'
+import { addApartmentEvent, deleteSelectedEvent, redoEvent, selectionEvent, toggleDrawDebug, undoEvent, zoomToExtentsEvent } from '../components/events'
 import { assertDefined, assertUnreachable, toError } from '../func'
 import { MouseDownEvent } from '../EventService/eventTypes'
 import { catchError, EMPTY, filter, fromEvent, map, mergeMap, of, switchMap, take, timeout } from 'rxjs'
 import { SnapService } from './SnapService'
 import { Wall } from './Wall'
+import { EditorCommand } from '../commands/EditorCommand'
+import { AddApartmentCommand } from '../commands/AddAppartmentCommand'
 
 export class Editor {
   private _app: Application | null = null
@@ -22,6 +24,9 @@ export class Editor {
   private _dragConfig: | DragConfig | null = null
   private _eventService = new EventService()
 
+  private _undoStack: EditorCommand[] = []
+  private _redoStack: EditorCommand[] = []
+
   /**
    * @description Cleanup functions to be called on dispose
    */
@@ -32,8 +37,12 @@ export class Editor {
 
   constructor(private _container: HTMLDivElement) { }
 
-  private get app() {
+  public get app() {
     return assertDefined(this._app)
+  }
+
+  public get eventService() {
+    return this._eventService
   }
 
   private get apartments(): Apartment[] {
@@ -59,9 +68,37 @@ export class Editor {
    * @description Настройка входящих событий от компонентов
    */
   private setupEvents() {
-    this._subscriptions.push(addApartmentEvent.watch((shape) => this.addApartment(shape.points)))
+    this._subscriptions.push(addApartmentEvent.watch((shape) => this.executeCommand(new AddApartmentCommand(this, shape.points))))
     this._subscriptions.push(deleteSelectedEvent.watch(() => this.deleteSelected()))
     this._subscriptions.push(zoomToExtentsEvent.watch(() => this.zoomToExtents()))
+    this._subscriptions.push(undoEvent.watch(() => this.undo()))
+    this._subscriptions.push(redoEvent.watch(() => this.redo()))
+  }
+
+  private executeCommand(command: EditorCommand) {
+    this._undoStack.push(command)
+    this._redoStack = []
+    command.execute()
+  }
+
+  public undo() {
+    if (this._undoStack.length > 0) {
+      const command = this._undoStack.pop()
+      if (command) {
+        command.undo()
+        this._redoStack.push(command)
+      }
+    }
+  }
+
+  public redo() {
+    if (this._redoStack.length > 0) {
+      const command = this._redoStack.pop()
+      if (command) {
+        command.execute()
+        this._undoStack.push(command)
+      }
+    }
   }
 
   private setupKeyboardEvents() {
@@ -291,19 +328,23 @@ export class Editor {
     this._sectionOutline = { graphics, points }
   }
 
-  private addApartment(points: APoint[]) {
-    const { _app: _pixi, _eventService } = this
-    const apartment = new Apartment(points, _eventService)
+  public addApartment(apartment: Apartment) {
     this._apartments.set(apartment.id, apartment)
     this.app.stage.addChild(apartment.container)
+  }
+
+  public deleteApartment(id: string) {
+    const { _apartments } = this
+    const apartment = assertDefined(_apartments.get(id))
+    this.app.stage.removeChild(apartment.container)
+    _apartments.delete(id)
+    apartment.dispose()
   }
 
   public deleteSelected() {
     const { _selectedApartment, _apartments } = this
     if (!_selectedApartment) return
-    this.app.stage.removeChild(_selectedApartment.container)
-    _apartments.delete(_selectedApartment.id)
-    _selectedApartment.dispose()
+    this.deleteApartment(_selectedApartment.id)
     this._selectedApartment = null
   }
 

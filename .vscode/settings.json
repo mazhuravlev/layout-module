@@ -29,5 +29,7 @@
   "[typescriptreact]": {
     "editor.defaultFormatter": "vscode.typescript-language-features"
   },
-  "Codegeex.RepoIndex": true,
+  "[html]": {
+    "editor.defaultFormatter": "vscode.html-language-features"
+  },
 }
