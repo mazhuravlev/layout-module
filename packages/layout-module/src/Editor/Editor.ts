@@ -13,6 +13,9 @@ import { SnapService } from './SnapService'
 import { Wall } from './Wall'
 import { EditorCommand } from '../commands/EditorCommand'
 import { AddApartmentCommand } from '../commands/AddAppartmentCommand'
+import { DeleteApartmentCommand } from '../commands/DeleteApartmentCommand'
+import { MoveAppartmentCommand } from '../commands/MoveAppartmentCommand'
+import { UpdateAppartmentPointsCommand } from '../commands/UpdateAppartmentPointsCommand'
 
 export class Editor {
   private _app: Application | null = null
@@ -68,7 +71,9 @@ export class Editor {
    * @description Настройка входящих событий от компонентов
    */
   private setupEvents() {
-    this._subscriptions.push(addApartmentEvent.watch((shape) => this.executeCommand(new AddApartmentCommand(this, shape.points))))
+    this._subscriptions.push(addApartmentEvent.watch((shape) => {
+      this.executeCommand(new AddApartmentCommand(this, new Apartment(shape.points, this._eventService)))
+    }))
     this._subscriptions.push(deleteSelectedEvent.watch(() => this.deleteSelected()))
     this._subscriptions.push(zoomToExtentsEvent.watch(() => this.zoomToExtents()))
     this._subscriptions.push(undoEvent.watch(() => this.undo()))
@@ -77,6 +82,7 @@ export class Editor {
 
   private executeCommand(command: EditorCommand) {
     this._undoStack.push(command)
+    this._redoStack.forEach(x => x.dispose())
     this._redoStack = []
     command.execute()
   }
@@ -223,13 +229,13 @@ export class Editor {
 
   private dragWall(_dragConfig: WallDragConfig, pixiEvent: FederatedPointerEvent) {
     const { target: wall, snapService } = _dragConfig
-    const distance = distanceFromPointToLine(_dragConfig.originalGlobalPoints, pixiEvent.global)
-    const newLine = shiftLine(_dragConfig.originalGlobalPoints, -distance)
+    const distance = distanceFromPointToLine(_dragConfig.originalWallGlobalPoints, pixiEvent.global)
+    const newLine = shiftLine(_dragConfig.originalWallGlobalPoints, -distance)
     const snapResult = snapService.checkLineSnap(newLine)
     if (snapResult.snapped) {
       setTimeout(() => snapService.showSnapIndicator(snapResult.snapPoint))
-      const snapDistance = distanceFromPointToLine(_dragConfig.originalGlobalPoints, snapResult.snapPoint)
-      const snapLine = shiftLine(_dragConfig.originalGlobalPoints, -snapDistance)
+      const snapDistance = distanceFromPointToLine(_dragConfig.originalWallGlobalPoints, snapResult.snapPoint)
+      const snapLine = shiftLine(_dragConfig.originalWallGlobalPoints, -snapDistance)
       wall.apartment.updateWall(wall, snapLine, 'global')
     } else {
       setTimeout(() => snapService.hideSnapIndicator())
@@ -238,7 +244,6 @@ export class Editor {
   }
 
   private startDrag({ pixiEvent, target }: MouseDownEvent) {
-    this._logger.debug('startDrag')
     if (target instanceof Apartment) {
       const dragConfig: ApartmentDragConfig = {
         type: 'dragApartment',
@@ -260,16 +265,41 @@ export class Editor {
           this.getSnapPoints({ exclude: target.apartment }),
           this.getSnapLines()),
         target,
-        originalGlobalPoints: target.globalPoints,
+        originalWallGlobalPoints: target.globalPoints,
+        originalApartmentPoints: target.apartment.points
       }
       this._dragConfig = dragConfig
     }
   }
 
   private stopDrag() {
-    this._logger.debug('stopDrag')
-    assertDefined(this._dragConfig).snapService.dispose()
+    const dragConfig = assertDefined(this._dragConfig)
     this._dragConfig = null
+    dragConfig.snapService.dispose()
+    const { type, target } = dragConfig
+    switch (type) {
+      case 'dragApartment':
+        this.executeCommand(new MoveAppartmentCommand(
+          this,
+          dragConfig.target,
+          {
+            startPos: dragConfig.startPos,
+            endPos: aPoint(target.container.position)
+          }))
+        break
+      case 'dragWall':
+        this.executeCommand(new UpdateAppartmentPointsCommand(
+          this,
+          dragConfig.target.apartment,
+          {
+            originalPoints: dragConfig.originalApartmentPoints,
+            newPoints: dragConfig.target.apartment.points
+          }))
+
+        break
+      default:
+        assertUnreachable(type)
+    }
   }
 
   private getSnapLines(): ALine[] {
@@ -333,18 +363,19 @@ export class Editor {
     this.app.stage.addChild(apartment.container)
   }
 
-  public deleteApartment(id: string) {
-    const { _apartments } = this
-    const apartment = assertDefined(_apartments.get(id))
+  public deleteApartment(apartment: Apartment) {
     this.app.stage.removeChild(apartment.container)
-    _apartments.delete(id)
-    apartment.dispose()
+    this._apartments.delete(apartment.id)
+  }
+
+  public getApartment(id: string) {
+    return this._apartments.get(id)
   }
 
   public deleteSelected() {
-    const { _selectedApartment, _apartments } = this
+    const { _selectedApartment } = this
     if (!_selectedApartment) return
-    this.deleteApartment(_selectedApartment.id)
+    this.executeCommand(new DeleteApartmentCommand(this, _selectedApartment))
     this._selectedApartment = null
   }
 

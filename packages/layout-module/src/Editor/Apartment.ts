@@ -1,11 +1,10 @@
 import { Container, FederatedPointerEvent, Graphics, Text } from 'pixi.js'
 import { assert, assertUnreachable, makeUuid, pairwise } from '../func'
-import { getPolygonCenter, getPolygonArea, formatArea, findCircularAdjacentElements } from './func'
+import { getPolygonCenter, getPolygonArea, formatArea, findCircularAdjacentElements, closePolygon } from './func'
 import { IDisposable, APoint, EditorObject, TPoints, CoordType, ALine } from './types'
 import { EventService } from '../EventService/EventService'
 import { defaultConfig } from './defaultConfig'
 import { Wall } from './Wall'
-import { $debugConfig } from '../components/events'
 
 export class Apartment extends EditorObject implements IDisposable {
     private _id = makeUuid()
@@ -15,7 +14,6 @@ export class Apartment extends EditorObject implements IDisposable {
     private _walls: Wall[] = []
     private _state: 'normal' | 'hover' | 'selected' = 'normal'
     private _config: typeof defaultConfig
-    private _drawDebug = $debugConfig.getState().drawDebug
 
     public get id() {
         return this._id
@@ -50,10 +48,24 @@ export class Apartment extends EditorObject implements IDisposable {
     ) {
         super()
         this._config = { ...defaultConfig, ...config }
+        this.init(points)
+    }
+
+    private init(_points: APoint[]) {
+        const points = closePolygon(_points)
+        this._container.addChild(this._areaText)
+        this._container.addChild(this._areaGraphics)
         this.setupAreaGraphics()
         this.setupAreaText()
         this.setupWalls(points)
         this.render()
+    }
+
+    public updatePoints(points: APoint[]) {
+        this._walls.forEach(wall => this._container.removeChild(wall.graphics))
+        this._walls.forEach(wall => wall.dispose())
+        this._walls = []
+        this.init(points)
     }
 
     private setupWalls(points: APoint[]) {
@@ -160,7 +172,7 @@ export class Apartment extends EditorObject implements IDisposable {
         const { _areaGraphics, _container, _walls } = this
         _areaGraphics.removeAllListeners()
         _container.removeChildren()
-        _areaGraphics.destroy()
         _walls.forEach(wall => wall.dispose())
+        this._walls = []
     }
 }

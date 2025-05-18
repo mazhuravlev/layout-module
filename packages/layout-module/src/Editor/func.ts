@@ -309,3 +309,18 @@ export const pointsToLines = (points: APoint[]): ALine[] => {
   return pairwise([...points, points[0]])
     .map(([start, end]): ALine => ({ start, end }))
 }
+
+export const isSamePoint = (point1: APoint, point2: APoint, e = 0.001): boolean => {
+  return Math.hypot(point1.x - point2.x, point1.y - point2.y) < e
+}
+
+export const isClosedPolyline = (points: APoint[]): boolean => {
+  if (points.length < 4) throw new Error('points is not an outline (points.length < 4)')
+  return isSamePoint(points[0], points[points.length - 1])
+}
+
+export const closePolygon = (points: APoint[]): APoint[] => {
+  if (points.length < 4) throw new Error('points is not an outline (points.length < 4)')
+  if (isClosedPolyline(points)) return points
+  return [...points, points[0]]
+}
