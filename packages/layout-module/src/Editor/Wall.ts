@@ -1,6 +1,6 @@
 import { Graphics, Polygon } from 'pixi.js'
 import { EventService } from '../EventService/EventService'
-import { APoint, ASubscription, CoordType, EditorObject, IDisposable, TPoints, unsubscribe } from './types'
+import { APoint, ASubscription, CoordType, EditorObject, IDisposable, TPoints } from './types'
 import { Apartment } from './Apartment'
 import { defaultConfig } from './defaultConfig'
 import { makeLineHitbox } from './func'
@@ -69,7 +69,7 @@ export class Wall extends EditorObject implements IDisposable {
 
     public dispose() {
         this._graphics.removeAllListeners()
-        this._subscriptions.forEach(unsubscribe)
+        this._subscriptions.forEach(x => x.unsubscribe())
     }
 
     public update(points: TPoints, coordType: CoordType) {

@@ -5,7 +5,7 @@ import { AppContext } from '../../AppContext'
 import styles from './ToolSidebar.module.scss'
 import { Button } from '../Button/Button'
 import { useStoreMap, useUnit } from 'effector-react'
-import { filter, fromEvent, map } from 'rxjs'
+import { filter, fromEvent } from 'rxjs'
 
 export const ToolSidebar: React.FC<ToolSidebarProps> = () => {
   const context = use(AppContext)
@@ -55,6 +55,9 @@ export const ToolSidebar: React.FC<ToolSidebarProps> = () => {
             break
           case 'KeyE':
             toggleSnapPoint()
+            break
+          case 'KeyR':
+            toggleSnapLine()
             break
           case 'KeyS':
             toggleSnap()

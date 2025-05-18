@@ -16,6 +16,9 @@ export interface ALine {
     end: APoint;
 }
 
+export const mapLine = (mapFn: (x: APoint) => APoint) => (a: ALine): ALine =>
+    ({ start: mapFn(a.start), end: mapFn(a.end) })
+
 export interface ApartmentTemplate {
     name: string
     points: APoint[]
@@ -32,4 +35,3 @@ export class EditorObject {
 export type CoordType = 'local' | 'global'
 
 export type ASubscription = RxSubscription | EffectorSubscription
-export const unsubscribe = (s: ASubscription) => s.unsubscribe()

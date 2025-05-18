@@ -91,6 +91,9 @@ export class Apartment extends EditorObject implements IDisposable {
         const { _container } = this
         const { _areaText } = this
         _areaText.resolution = 2
+        _areaText.interactive = false
+        _areaText.interactiveChildren = false
+        _areaText.hitArea = null
         _areaText.anchor.set(0.5)
         _areaText.scale.set(0.5, 0.5)
         _container.addChild(_areaText)

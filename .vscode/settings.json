@@ -32,4 +32,7 @@
   "[html]": {
     "editor.defaultFormatter": "vscode.html-language-features"
   },
+  "[csharp]": {
+    "editor.defaultFormatter": "ms-dotnettools.csharp"
+  },
 }

@@ -1,7 +1,7 @@
 import { Application, FederatedPointerEvent, Graphics } from 'pixi.js'
 import { calculateZoomToExtents, distanceFromPointToLine, drawOutline, fromPixiEvent, pointsToLines, shiftLine } from './func'
 import { Logger } from '../logger'
-import { addVectors, ALine, aPoint, APoint, ASubscription, EditorObject, subtractVectors, unsubscribe } from './types'
+import { addVectors, ALine, aPoint, APoint, ASubscription, EditorObject, mapLine, subtractVectors } from './types'
 import { ApartmentDragConfig, DragConfig, WallDragConfig } from './dragConfig'
 import { Apartment } from './Apartment'
 import { EventService } from '../EventService/EventService'
@@ -19,7 +19,7 @@ import { UpdateAppartmentPointsCommand } from '../commands/UpdateAppartmentPoint
 import { initDevtools } from '@pixi/devtools'
 
 export class Editor {
-  private _app: Application | null = null
+  private _app = new Application()
   private _logger = new Logger('Editor')
   private _sectionOutline: { graphics: Graphics; points: APoint[] } | null = null
   private _apartments = new Map<string, Apartment>()
@@ -42,20 +42,15 @@ export class Editor {
   constructor(private _container: HTMLDivElement) { }
 
   public get app() {
-    return assertDefined(this._app)
+    return this._app
   }
 
   public get eventService() {
     return this._eventService
   }
 
-  private get apartments(): Apartment[] {
-    return [...this._apartments.values()]
-  }
-
   public async init(): Promise<void> {
     this._logger.debug('init')
-    this._app = new Application()
     if (process.env.NODE_ENV === 'development') {
       initDevtools({ app: this._app })
     }
@@ -198,7 +193,7 @@ export class Editor {
       .subscribe(event => this._eventService.emit({ type: 'mousemove', pixiEvent: event })))
     this._subscriptions.push(fromPixiEvent(this.app.stage, 'mouseup')
       .pipe(mergeMap(e => {
-        if (e instanceof FederatedPointerEvent && e.target instanceof EditorObject) {
+        if (e.target instanceof EditorObject) {
           return of(e)
         } else {
           return EMPTY
@@ -217,7 +212,7 @@ export class Editor {
     const movedPoints = _dragConfig.originalGlobalPoints.map(p => addVectors(p, delta))
     const snapResult = snapService.checkOutlineSnap(movedPoints)
     if (snapResult.snapped) {
-      setTimeout(() => snapService.showSnapIndicator(snapResult.snapPoint))
+      snapService.showSnapIndicator(snapResult.snapPoint)
       const globalTargetPos = subtractVectors(
         addVectors(toGlobal(_dragConfig.startPos), delta),
         subtractVectors(snapResult.originalPoint, snapResult.snapPoint)
@@ -225,7 +220,7 @@ export class Editor {
       const newPos = toParentLocal(globalTargetPos)
       target.container.position.set(newPos.x, newPos.y)
     } else {
-      setTimeout(() => snapService.hideSnapIndicator())
+      snapService.hideSnapIndicator()
       const newPos = toParentLocal(addVectors(toGlobal(_dragConfig.startPos), delta))
       target.container.position.set(newPos.x, newPos.y)
     }
@@ -237,12 +232,12 @@ export class Editor {
     const newLine = shiftLine(_dragConfig.originalWallGlobalPoints, -distance)
     const snapResult = snapService.checkLineSnap(newLine)
     if (snapResult.snapped) {
-      setTimeout(() => snapService.showSnapIndicator(snapResult.snapPoint))
+      snapService.showSnapIndicator(snapResult.snapPoint)
       const snapDistance = distanceFromPointToLine(_dragConfig.originalWallGlobalPoints, snapResult.snapPoint)
       const snapLine = shiftLine(_dragConfig.originalWallGlobalPoints, -snapDistance)
       wall.apartment.updateWall(wall, snapLine, 'global')
     } else {
-      setTimeout(() => snapService.hideSnapIndicator())
+      snapService.hideSnapIndicator()
       wall.apartment.updateWall(wall, newLine, 'global')
     }
   }
@@ -299,7 +294,6 @@ export class Editor {
             originalPoints: dragConfig.originalApartmentPoints,
             newPoints: dragConfig.target.apartment.points
           }))
-
         break
       default:
         assertUnreachable(type)
@@ -311,7 +305,9 @@ export class Editor {
       .map(x => aPoint(this.app.stage.toGlobal(x)))
     return [
       ...pointsToLines(floorPoints),
-      ...this._apartments.values().flatMap(x => x.wallLines)
+      ...this._apartments.values().flatMap(apartment =>
+        apartment.wallLines.map(mapLine(x => apartment.container.toGlobal(x)))
+      )
     ]
   }
 
@@ -334,7 +330,7 @@ export class Editor {
 
   public async dispose(): Promise<void> {
     this._logger.debug('dispose')
-    this._subscriptions.forEach(unsubscribe)
+    this._subscriptions.forEach(x => x.unsubscribe())
     this.app.stage.removeAllListeners()
     try {
       this.app.destroy(true, { children: true })
