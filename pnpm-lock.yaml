@@ -100,6 +100,9 @@ importers:
       '@eslint-react/eslint-plugin':
         specifier: 1.49.0
         version: 1.49.0(eslint@9.26.0)(ts-api-utils@2.1.0(typescript@5.8.3))(typescript@5.8.3)
+      '@pixi/devtools':
+        specifier: 2.0.1
+        version: 2.0.1(pixi.js@8.9.2)
       '@rollup/plugin-commonjs':
         specifier: 28.0.3
         version: 28.0.3(rollup@3.29.5)
@@ -585,6 +588,11 @@ packages:
 
   '@pixi/colord@2.9.6':
     resolution: {integrity: sha512-nezytU2pw587fQstUu1AsJZDVEynjskwOL+kibwcdxsMBFqPsFFNA7xl0ii/gXuDi6M0xj3mfRJj8pBSc2jCfA==}
+
+  '@pixi/devtools@2.0.1':
+    resolution: {integrity: sha512-TFCqNkJoLNYHDELgQ3bKWvA33twWpoUhQB8Y+hneBdDBunRsqZ5ZzwH7+6E5eVaVn7eeLAXHs9QGRGsxM0fRlw==}
+    peerDependencies:
+      pixi.js: ^7 || ^8
 
   '@rollup/plugin-commonjs@28.0.3':
     resolution: {integrity: sha512-pyltgilam1QPdn+Zd9gaCfOLcnjMEJ9gV+bTw6/r73INdvzf1ah9zLIJBm+kW7R6IUFIQ1YO+VqZtYxZNWFPEQ==}
@@ -3108,6 +3116,10 @@ snapshots:
     optional: true
 
   '@pixi/colord@2.9.6': {}
+
+  '@pixi/devtools@2.0.1(pixi.js@8.9.2)':
+    dependencies:
+      pixi.js: 8.9.2
 
   '@rollup/plugin-commonjs@28.0.3(rollup@3.29.5)':
     dependencies:

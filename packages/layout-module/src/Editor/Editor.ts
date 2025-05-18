@@ -16,6 +16,7 @@ import { AddApartmentCommand } from '../commands/AddAppartmentCommand'
 import { DeleteApartmentCommand } from '../commands/DeleteApartmentCommand'
 import { MoveAppartmentCommand } from '../commands/MoveAppartmentCommand'
 import { UpdateAppartmentPointsCommand } from '../commands/UpdateAppartmentPointsCommand'
+import { initDevtools } from '@pixi/devtools'
 
 export class Editor {
   private _app: Application | null = null
@@ -55,6 +56,9 @@ export class Editor {
   public async init(): Promise<void> {
     this._logger.debug('init')
     this._app = new Application()
+    if (process.env.NODE_ENV === 'development') {
+      initDevtools({ app: this._app })
+    }
     await this.app.init({
       background: '#ededed',
       resizeTo: this._container,
