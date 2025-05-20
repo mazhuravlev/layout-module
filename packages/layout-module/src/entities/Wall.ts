@@ -33,6 +33,7 @@ export class Wall extends EditorObject implements IDisposable {
         super()
         const { _graphics } = this
         _graphics.eventMode = 'static'
+        _graphics.cursor = 'pointer'
         this.setupEvents()
         this.render(this._config.strokeColor)
     }

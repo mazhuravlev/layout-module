@@ -151,15 +151,15 @@ export class Editor {
             // Обычный клик (без модификаторов) → сброс предыдущего выбора
             this.deselectAll()
             this._selectedApartments.add(target)
-            target.select()
+            target.setSelected(true)
           } else if (ctrlKey || shiftKey) {
             // Мультиселект: добавляем/удаляем квартиру из выбора
             if (this._selectedApartments.has(target)) {
               this._selectedApartments.delete(target)
-              target.deselect()
+              target.setSelected(false)
             } else {
               this._selectedApartments.add(target)
-              target.select()
+              target.setSelected(true)
             }
           }
           this.onApartmentSelected()
@@ -355,7 +355,7 @@ export class Editor {
 
   private deselectAll() {
     if (this._selectedApartments.size) {
-      this._selectedApartments.forEach(x => x.deselect())
+      this._selectedApartments.forEach(x => x.setSelected(false))
       this._selectedApartments.clear()
     }
   }

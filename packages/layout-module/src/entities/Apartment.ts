@@ -1,5 +1,5 @@
 import { Container, FederatedPointerEvent, Graphics, Text } from 'pixi.js'
-import { assert, assertUnreachable, makeUuid, pairwise } from '../func'
+import { assert, makeUuid, pairwise } from '../func'
 import { getPolygonCenter, getPolygonArea, formatArea, findCircularAdjacentElements, closePolygon } from '../geometryFunc'
 import { IDisposable, APoint, EditorObject, TPoints, CoordType, ALine } from '../types'
 import { EventService } from '../EventService/EventService'
@@ -14,7 +14,8 @@ export class Apartment extends EditorObject implements IDisposable {
     private _areaText = new Text({ style: { fontSize: 12 } })
     private _areaGraphics = new Graphics()
     private _walls: Wall[] = []
-    private _state: 'normal' | 'hover' | 'selected' = 'normal'
+    private isHovered = false
+    private isSelected = false
     private _config: typeof defaultConfig
     private _properties: ApartmentProperties = defaultApartmentProperties
 
@@ -103,7 +104,7 @@ export class Apartment extends EditorObject implements IDisposable {
     private setupAreaGraphics() {
         const { _areaGraphics, _container } = this
         _areaGraphics.eventMode = 'static'
-        _areaGraphics.cursor = 'pointer'
+        _areaGraphics.cursor = 'move'
         _areaGraphics.on('mouseenter', e => this.mouseEnter(e))
         _areaGraphics.on('mouseleave', e => this.mouseLeave(e))
         _areaGraphics.on('mousedown', e => this.mouseDown(e))
@@ -123,37 +124,39 @@ export class Apartment extends EditorObject implements IDisposable {
         _container.addChild(_areaText)
     }
 
-    private mouseEnter(_event: FederatedPointerEvent) {
-        _event.stopPropagation()
-        if (this._state !== 'selected') {
-            this._state = 'hover'
-            this.render()
-        }
-    }
-
-    private mouseLeave(_event: FederatedPointerEvent) {
-        _event.stopPropagation()
-        if (this._state !== 'selected') {
-            this._state = 'normal'
-            this.render()
-        }
-    }
-
-    private mouseDown(event: FederatedPointerEvent) {
-        event.stopPropagation()
+    private mouseEnter(pixiEvent: FederatedPointerEvent) {
+        pixiEvent.stopPropagation()
         this._eventService.emit({
-            type: 'mousedown',
+            type: 'mouseenter',
             target: this,
-            pixiEvent: event
+            pixiEvent,
         })
     }
 
-    private mouseUp(event: FederatedPointerEvent) {
-        event.stopPropagation()
+    private mouseLeave(pixiEvent: FederatedPointerEvent) {
+        pixiEvent.stopPropagation()
+        this._eventService.emit({
+            type: 'mouseleave',
+            target: this,
+            pixiEvent,
+        })
+    }
+
+    private mouseDown(pixiEvent: FederatedPointerEvent) {
+        pixiEvent.stopPropagation()
+        this._eventService.emit({
+            type: 'mousedown',
+            target: this,
+            pixiEvent,
+        })
+    }
+
+    private mouseUp(pixiEvent: FederatedPointerEvent) {
+        pixiEvent.stopPropagation()
         this._eventService.emit({
             type: 'mouseup',
             target: this,
-            pixiEvent: event
+            pixiEvent,
         })
     }
 
@@ -177,21 +180,18 @@ export class Apartment extends EditorObject implements IDisposable {
     }
 
     private getFillColor() {
-        switch (this._state) {
-            case 'normal': return this._config.fillColor
-            case 'hover': return this._config.hoverFillColor
-            case 'selected': return this._config.selectedFillColor
-            default: return assertUnreachable(this._state)
-        }
+        if (this.isHovered) return this._config.hoverFillColor
+        if (this.isSelected) return this._config.selectedFillColor
+        return this._config.fillColor
     }
 
-    public select() {
-        this._state = 'selected'
+    public setSelected(selected: boolean) {
+        this.isSelected = selected
         this.render()
     }
 
-    public deselect() {
-        this._state = 'normal'
+    public setHovered(hovered: boolean) {
+        this.isHovered = hovered
         this.render()
     }
 

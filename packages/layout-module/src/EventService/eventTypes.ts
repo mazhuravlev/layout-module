@@ -23,6 +23,16 @@ export interface MouseUpEvent extends BaseEvent, OptionalTargetEvent {
     pixiEvent: FederatedPointerEvent
 }
 
+export interface MouseEnterEvent extends BaseEvent, TargetEvent {
+    type: 'mouseenter'
+    pixiEvent: FederatedPointerEvent
+}
+
+export interface MouseLeaveEvent extends BaseEvent, TargetEvent {
+    type: 'mouseleave'
+    pixiEvent: FederatedPointerEvent
+}
+
 export interface MouseMoveEvent extends BaseEvent {
     type: 'mousemove'
     pixiEvent: FederatedPointerEvent
@@ -32,3 +42,5 @@ export type AppEvent =
     | MouseDownEvent
     | MouseUpEvent
     | MouseMoveEvent
+    | MouseEnterEvent
+    | MouseLeaveEvent
