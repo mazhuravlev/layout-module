@@ -1,4 +1,4 @@
-import { Apartment } from '../Editor/Apartment'
+import { Apartment } from '../entities/Apartment'
 import { Editor } from '../Editor/Editor'
 import { EditorCommand } from './EditorCommand'
 

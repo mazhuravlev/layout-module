@@ -1,9 +1,9 @@
 import { Container, Graphics } from 'pixi.js'
-import { APoint, ALine, IDisposable, TPoints } from './types'
+import { APoint, ALine, IDisposable, TPoints } from '../types'
 import { $debugConfig, $snapConfig, fromEffectorStore } from '../components/events'
 import { Subscription } from 'rxjs'
 import { identity } from '../func'
-import { areLinesCollinear, pointsToLines } from './func'
+import { areLinesCollinear, pointsToLines } from '../geometryFunc'
 
 const emptyResult = { snapped: false } as const
 

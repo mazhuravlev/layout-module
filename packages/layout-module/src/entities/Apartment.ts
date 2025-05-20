@@ -1,10 +1,12 @@
 import { Container, FederatedPointerEvent, Graphics, Text } from 'pixi.js'
 import { assert, assertUnreachable, makeUuid, pairwise } from '../func'
-import { getPolygonCenter, getPolygonArea, formatArea, findCircularAdjacentElements, closePolygon } from './func'
-import { IDisposable, APoint, EditorObject, TPoints, CoordType, ALine } from './types'
+import { getPolygonCenter, getPolygonArea, formatArea, findCircularAdjacentElements, closePolygon } from '../geometryFunc'
+import { IDisposable, APoint, EditorObject, TPoints, CoordType, ALine } from '../types'
 import { EventService } from '../EventService/EventService'
-import { defaultConfig } from './defaultConfig'
+import { defaultConfig } from '../Editor/defaultConfig'
 import { Wall } from './Wall'
+import { ApartmentProperties, defaultApartmentProperties } from './ApartmentProperties'
+import { ApartmentDto } from './ApartmentDto'
 
 export class Apartment extends EditorObject implements IDisposable {
     private _id = makeUuid()
@@ -14,6 +16,7 @@ export class Apartment extends EditorObject implements IDisposable {
     private _walls: Wall[] = []
     private _state: 'normal' | 'hover' | 'selected' = 'normal'
     private _config: typeof defaultConfig
+    private _properties: ApartmentProperties = defaultApartmentProperties
 
     public get id() {
         return this._id
@@ -25,6 +28,10 @@ export class Apartment extends EditorObject implements IDisposable {
 
     public get points(): APoint[] {
         return this._walls.map(x => x.points[0])
+    }
+
+    public get position() {
+        return this.container.position
     }
 
     public get wallLines(): ALine[] {
@@ -39,6 +46,23 @@ export class Apartment extends EditorObject implements IDisposable {
 
     public get globalPosition() {
         return this.container.parent.toGlobal(this.container.position)
+    }
+
+    public get properties() {
+        return this._properties
+    }
+
+    public set properties(properties: ApartmentProperties) {
+        this._properties = properties
+    }
+
+    public get dto(): ApartmentDto {
+        return {
+            id: this._id,
+            points: this.points,
+            position: this.position,
+            properties: this._properties
+        }
     }
 
     constructor(

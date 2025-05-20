@@ -1,4 +1,4 @@
-import { IDisposable } from '../Editor/types'
+import { IDisposable } from '../types'
 
 export interface EditorCommand extends IDisposable {
     execute(): void;

@@ -1,6 +1,6 @@
-import { Apartment } from '../Editor/Apartment'
+import { Apartment } from '../entities/Apartment'
 import { Editor } from '../Editor/Editor'
-import { APoint } from '../Editor/types'
+import { APoint } from '../types'
 import { EditorCommand } from './EditorCommand'
 
 export class MoveAppartmentCommand implements EditorCommand {

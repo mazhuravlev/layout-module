@@ -1,10 +1,10 @@
 import { Graphics, Polygon } from 'pixi.js'
 import { EventService } from '../EventService/EventService'
-import { APoint, ASubscription, CoordType, EditorObject, IDisposable, TPoints } from './types'
-import { Apartment } from './Apartment'
-import { defaultConfig } from './defaultConfig'
-import { makeLineHitbox } from './func'
+import { APoint, ASubscription, CoordType, EditorObject, IDisposable, TPoints } from '../types'
+import { Apartment } from '../entities/Apartment'
 import { $debugConfig } from '../components/events'
+import { defaultConfig } from '../Editor/defaultConfig'
+import { makeLineHitbox } from '../geometryFunc'
 
 export class Wall extends EditorObject implements IDisposable {
     private _drawDebug = $debugConfig.getState().drawDebug

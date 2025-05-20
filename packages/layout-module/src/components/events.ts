@@ -1,8 +1,10 @@
 import { createEvent, createStore, Store } from 'effector'
-import { ApartmentTemplate } from '../Editor/types'
+import { ApartmentTemplate } from '../types'
 import { returnSecondArg } from '../func'
 import persist from 'effector-localstorage'
 import { Observable } from 'rxjs'
+import { ApartmentDto } from '../entities/ApartmentDto'
+import { ApartmentProperties } from '../entities/ApartmentProperties'
 
 const returnPayload = returnSecondArg
 
@@ -12,9 +14,10 @@ export const addApartmentEvent = createEvent<ApartmentTemplate>()
 export const deleteSelectedEvent = createEvent<void>()
 export const zoomToExtentsEvent = createEvent<void>()
 
-export const selectionEvent = createEvent<string[]>()
-export const $selection = createStore<string[]>([])
-$selection.on(selectionEvent, returnPayload)
+export const apartmentSelected = createEvent<ApartmentDto[]>()
+export const $selectedApartments = createStore<ApartmentDto[]>([])
+$selectedApartments.on(apartmentSelected, returnPayload)
+export const setApartmentProperties = createEvent<Partial<ApartmentProperties>>()
 
 interface DebugConfig {
     drawDebug: boolean

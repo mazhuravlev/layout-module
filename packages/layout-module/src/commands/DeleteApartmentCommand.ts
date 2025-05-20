@@ -1,23 +1,23 @@
 import { EditorCommand } from './EditorCommand'
 import { Editor } from '../Editor/Editor'
-import { Apartment } from '../Editor/Apartment'
+import { Apartment } from '../entities/Apartment'
 
-export class DeleteApartmentCommand implements EditorCommand {
+export class DeleteApartmentsCommand implements EditorCommand {
 
     constructor(
         private _editor: Editor,
-        private _apartment: Apartment) {
+        private _apartments: Apartment[]) {
     }
 
     execute(): void {
-        this._editor.deleteApartment(this._apartment)
+        this._apartments.forEach(apartment => this._editor.deleteApartment(apartment))
     }
 
     undo(): void {
-        this._editor.addApartment(this._apartment)
+        this._apartments.forEach(apartment => this._editor.addApartment(apartment))
     }
 
     dispose(): void {
-        this._apartment.dispose()
+        this._apartments.forEach(apartment => apartment.dispose())
     }
 }

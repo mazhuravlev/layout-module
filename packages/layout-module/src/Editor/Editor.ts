@@ -1,22 +1,23 @@
 import { Application, FederatedPointerEvent, Graphics } from 'pixi.js'
-import { calculateZoomToExtents, distanceFromPointToLine, drawOutline, fromPixiEvent, pointsToLines, shiftLine } from './func'
+import { calculateZoomToExtents, distanceFromPointToLine, drawOutline, fromPixiEvent, pointsToLines, shiftLine } from '../geometryFunc'
 import { Logger } from '../logger'
-import { addVectors, ALine, aPoint, APoint, ASubscription, EditorObject, mapLine, subtractVectors } from './types'
+import { addVectors, ALine, aPoint, APoint, ASubscription, EditorObject, mapLine, subtractVectors } from '../types'
 import { ApartmentDragConfig, DragConfig, WallDragConfig } from './dragConfig'
-import { Apartment } from './Apartment'
+import { Apartment } from '../entities/Apartment'
 import { EventService } from '../EventService/EventService'
-import { addApartmentEvent, deleteSelectedEvent, redoEvent, selectionEvent, toggleDrawDebug, undoEvent, zoomToExtentsEvent } from '../components/events'
+import { addApartmentEvent, deleteSelectedEvent, redoEvent, apartmentSelected, toggleDrawDebug, undoEvent, zoomToExtentsEvent, setApartmentProperties } from '../components/events'
 import { assertDefined, assertUnreachable, toError } from '../func'
 import { MouseDownEvent } from '../EventService/eventTypes'
 import { catchError, EMPTY, filter, fromEvent, map, mergeMap, of, switchMap, take, timeout } from 'rxjs'
 import { SnapService } from './SnapService'
-import { Wall } from './Wall'
 import { EditorCommand } from '../commands/EditorCommand'
 import { AddApartmentCommand } from '../commands/AddAppartmentCommand'
-import { DeleteApartmentCommand } from '../commands/DeleteApartmentCommand'
+import { DeleteApartmentsCommand } from '../commands/DeleteApartmentCommand'
 import { MoveAppartmentCommand } from '../commands/MoveAppartmentCommand'
 import { UpdateAppartmentPointsCommand } from '../commands/UpdateAppartmentPointsCommand'
 import { initDevtools } from '@pixi/devtools'
+import { Wall } from '../entities/Wall'
+import { UpdateAppartmentPropertiesCommand } from '../commands/UpdateAppartmentPropertiesCommand'
 
 export class Editor {
   private _app = new Application()
@@ -24,7 +25,7 @@ export class Editor {
   private _sectionOutline: { graphics: Graphics; points: APoint[] } | null = null
   private _apartments = new Map<string, Apartment>()
 
-  private _selectedApartment: Apartment | null = null
+  private _selectedApartments = new Set<Apartment>()
   private _dragConfig: | DragConfig | null = null
   private _eventService = new EventService()
 
@@ -77,6 +78,9 @@ export class Editor {
     this._subscriptions.push(zoomToExtentsEvent.watch(() => this.zoomToExtents()))
     this._subscriptions.push(undoEvent.watch(() => this.undo()))
     this._subscriptions.push(redoEvent.watch(() => this.redo()))
+    this._subscriptions.push(setApartmentProperties.watch((properties) => {
+      this.executeCommand(new UpdateAppartmentPropertiesCommand(this, [...this._selectedApartments], properties))
+    }))
   }
 
   private executeCommand(command: EditorCommand) {
@@ -108,7 +112,7 @@ export class Editor {
 
   private setupKeyboardEvents() {
     this._subscriptions.push(fromEvent<KeyboardEvent>(document, 'keydown', { passive: true })
-      .pipe(filter(e => e.key === 'Delete' && this._selectedApartment != null))
+      .pipe(filter(e => e.key === 'Delete'))
       .subscribe(() => this.deleteSelected()))
     this._subscriptions.push(fromEvent<KeyboardEvent>(document, 'keydown', { passive: true })
       .pipe(filter(e => e.code === 'KeyD'))
@@ -119,24 +123,48 @@ export class Editor {
    * @description Настройка событий редактора
    */
   private setupObjectEvents() {
-    this._subscriptions.push(this._eventService.mousedown$
-      .pipe(
-        switchMap((down) =>
-          this._eventService.mouseup$.pipe(
-            take(1),
-            timeout(200),
-            filter((up) => up.target === down.target), // 👈 одна и та же квартира
-            map((_up) => down.target),
-            catchError(() => EMPTY) // игнорируем timeout
-          )
-        ),
-        filter(x => x instanceof Apartment)
-      ).subscribe(target => {
-        this.deselectAll()
-        target.select()
-        this._selectedApartment = target
-        selectionEvent([target.id])
-      }))
+    this._subscriptions.push(
+      this._eventService.mousedown$
+        .pipe(
+          switchMap((downEvent) => {
+            const isCtrlPressed = downEvent.pixiEvent.ctrlKey || downEvent.pixiEvent.metaKey
+            const isShiftPressed = downEvent.pixiEvent.shiftKey
+
+            return this._eventService.mouseup$.pipe(
+              take(1),
+              timeout(200),
+              filter((upEvent) => upEvent.target === downEvent.target),
+              map((upEvent) => ({
+                target: upEvent.target,
+                ctrlKey: isCtrlPressed,
+                shiftKey: isShiftPressed,
+              })),
+              catchError(() => EMPTY)
+            )
+          }),
+          filter(({ target }) => target !== undefined)
+        )
+        .subscribe(({ target, ctrlKey, shiftKey }) => {
+          if (target === undefined) return
+          if (!(target instanceof Apartment)) return
+          if (!ctrlKey && !shiftKey) {
+            // Обычный клик (без модификаторов) → сброс предыдущего выбора
+            this.deselectAll()
+            this._selectedApartments.add(target)
+            target.select()
+          } else if (ctrlKey || shiftKey) {
+            // Мультиселект: добавляем/удаляем квартиру из выбора
+            if (this._selectedApartments.has(target)) {
+              this._selectedApartments.delete(target)
+              target.deselect()
+            } else {
+              this._selectedApartments.add(target)
+              target.select()
+            }
+          }
+          this.onApartmentSelected()
+        })
+    )
     this._subscriptions.push(this._eventService.events$.subscribe(e => {
       if (e.type === 'mousedown') {
         this.startDrag(e)
@@ -162,7 +190,7 @@ export class Editor {
     stage.on('click', (e: PointerEvent) => {
       if (e.target === stage) {
         this.deselectAll()
-        selectionEvent([])
+        apartmentSelected([])
       }
     })
 
@@ -202,6 +230,10 @@ export class Editor {
       .subscribe(event => {
         this._eventService.emit({ type: 'mouseup', pixiEvent: event })
       }))
+  }
+
+  public onApartmentSelected() {
+    apartmentSelected([...this._selectedApartments.values().map(x => x.dto)])
   }
 
   private dragApartment(_dragConfig: ApartmentDragConfig, pixiEvent: FederatedPointerEvent) {
@@ -322,9 +354,9 @@ export class Editor {
   }
 
   private deselectAll() {
-    if (this._selectedApartment) {
-      this._selectedApartment.deselect()
-      this._selectedApartment = null
+    if (this._selectedApartments.size) {
+      this._selectedApartments.forEach(x => x.deselect())
+      this._selectedApartments.clear()
     }
   }
 
@@ -373,10 +405,9 @@ export class Editor {
   }
 
   public deleteSelected() {
-    const { _selectedApartment } = this
-    if (!_selectedApartment) return
-    this.executeCommand(new DeleteApartmentCommand(this, _selectedApartment))
-    this._selectedApartment = null
+    const selectedApartments = [...this._selectedApartments.values()]
+    this.executeCommand(new DeleteApartmentsCommand(this, selectedApartments))
+    this._selectedApartments.clear()
   }
 
   public zoomToExtents() {

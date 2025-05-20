@@ -4,11 +4,11 @@ import { ToolSidebar } from '../ToolSidebar/ToolSidebar'
 import { AppContext } from '../../AppContext'
 import { PropertySidebar } from '../PropertySidebar/PropertySidebar'
 import { useUnit } from 'effector-react'
-import { $selection } from '../events'
+import { $selectedApartments } from '../events'
 import { EditorComponent } from '../EditorComponent/EditorComponent'
 
 export const LayoutModule: React.FC<LayoutModuleProps> = (props) => {
-  const _selectedIds = useUnit($selection)
+  const _selectedIds = useUnit($selectedApartments)
 
   return (
     <AppContext value={props}>

@@ -1,5 +1,5 @@
 import { createContext } from 'react'
-import { ApartmentTemplate, APoint } from './Editor/types'
+import { ApartmentTemplate, APoint } from './types'
 
 export const AppContext = createContext<AppContextType>({
   section: {
