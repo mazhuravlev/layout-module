@@ -6,6 +6,7 @@ import styles from './ToolSidebar.module.scss'
 import { Button } from '../Button/Button'
 import { useStoreMap, useUnit } from 'effector-react'
 import { filter, fromEvent } from 'rxjs'
+import { ApartmentTemplateComponent } from './ApartmentTemplateComponent'
 
 export const ToolSidebar: React.FC<ToolSidebarProps> = () => {
   const context = use(AppContext)
@@ -145,12 +146,12 @@ export const ToolSidebar: React.FC<ToolSidebarProps> = () => {
           </label>
         </div>
       </div>
-      <ul>
+      <ul className={styles.apartmentTemplates}>
         {apartmentTemplates.map((template) => (
           <li
             key={template.name}
             onClick={() => addApartmentEvent(template)}>
-            {template.name}
+            <ApartmentTemplateComponent template={template} />
           </li>
         ))}
       </ul>

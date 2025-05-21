@@ -4,3 +4,13 @@
     box-sizing: border-box;
     padding: 8px;
 }
+
+.apartmentTemplates {
+    list-style: none;
+    padding-inline-start: 0;
+    cursor: pointer;
+}
+
+.apartmentTemplates li:hover {
+    background-color: aliceblue;
+}
