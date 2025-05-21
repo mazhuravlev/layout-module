@@ -1,11 +1,11 @@
 import { Application, FederatedPointerEvent, Graphics } from 'pixi.js'
 import { calculateZoomToExtents, distanceFromPointToLine, drawOutline, fromPixiEvent, pointsToLines, shiftLine } from '../geometryFunc'
 import { Logger } from '../logger'
-import { addVectors, ALine, aPoint, APoint, ASubscription, EditorObject, mapLine, subtractVectors } from '../types'
+import { addVectors, ALine, aPoint, APoint, ASubscription, mapLine, subtractVectors } from '../types'
 import { ApartmentDragConfig, DragConfig, WallDragConfig } from './dragConfig'
 import { Apartment } from '../entities/Apartment'
 import { EventService } from '../EventService/EventService'
-import { addApartmentEvent, deleteSelectedEvent, redoEvent, apartmentSelected, toggleDrawDebug, undoEvent, zoomToExtentsEvent, setApartmentProperties } from '../components/events'
+import { addApartmentEvent, deleteSelectedEvent, redoEvent, apartmentSelected, undoEvent, zoomToExtentsEvent, setApartmentProperties, addLLU } from '../components/events'
 import { assertDefined, assertUnreachable, toError } from '../func'
 import { MouseDownEvent } from '../EventService/eventTypes'
 import { catchError, EMPTY, filter, fromEvent, map, mergeMap, of, switchMap, take, timeout } from 'rxjs'
@@ -18,6 +18,8 @@ import { UpdateAppartmentPointsCommand } from '../commands/UpdateAppartmentPoint
 import { initDevtools } from '@pixi/devtools'
 import { Wall } from '../entities/Wall'
 import { UpdateAppartmentPropertiesCommand } from '../commands/UpdateAppartmentPropertiesCommand'
+import { GeometryBlock } from '../entities/GeometryBlock'
+import { EditorObject } from '../entities/EditorObject'
 
 export class Editor {
   private _app = new Application()
@@ -64,23 +66,6 @@ export class Editor {
     this._container.appendChild(this._app.canvas)
     this.setupObjectEvents()
     this.setupEvents()
-    this.setupKeyboardEvents()
-  }
-
-  /**
-   * @description Настройка входящих событий от компонентов
-   */
-  private setupEvents() {
-    this._subscriptions.push(addApartmentEvent.watch((shape) => {
-      this.executeCommand(new AddApartmentCommand(this, new Apartment(shape.points, this._eventService)))
-    }))
-    this._subscriptions.push(deleteSelectedEvent.watch(() => this.deleteSelected()))
-    this._subscriptions.push(zoomToExtentsEvent.watch(() => this.zoomToExtents()))
-    this._subscriptions.push(undoEvent.watch(() => this.undo()))
-    this._subscriptions.push(redoEvent.watch(() => this.redo()))
-    this._subscriptions.push(setApartmentProperties.watch((properties) => {
-      this.executeCommand(new UpdateAppartmentPropertiesCommand(this, [...this._selectedApartments], properties))
-    }))
   }
 
   private executeCommand(command: EditorCommand) {
@@ -110,13 +95,26 @@ export class Editor {
     }
   }
 
-  private setupKeyboardEvents() {
-    this._subscriptions.push(fromEvent<KeyboardEvent>(document, 'keydown', { passive: true })
-      .pipe(filter(e => e.key === 'Delete'))
-      .subscribe(() => this.deleteSelected()))
-    this._subscriptions.push(fromEvent<KeyboardEvent>(document, 'keydown', { passive: true })
-      .pipe(filter(e => e.code === 'KeyD'))
-      .subscribe(() => toggleDrawDebug()))
+  /**
+ * @description Настройка входящих событий от компонентов
+ */
+  private setupEvents() {
+    this._subscriptions.push(...[
+      addApartmentEvent.watch((shape) => {
+        this.executeCommand(new AddApartmentCommand(this, new Apartment(shape.points, this._eventService)))
+      }),
+      deleteSelectedEvent.watch(() => this.deleteSelected()),
+      zoomToExtentsEvent.watch(() => this.zoomToExtents()),
+      undoEvent.watch(() => this.undo()),
+      redoEvent.watch(() => this.redo()),
+      setApartmentProperties.watch((properties) => {
+        this.executeCommand(new UpdateAppartmentPropertiesCommand(this, [...this._selectedApartments], properties))
+      }),
+      addLLU.watch(() => {
+        const llu = new GeometryBlock(this._eventService)
+        this.app.stage.addChild(llu.container)
+      })
+    ])
   }
 
   /**
@@ -165,6 +163,12 @@ export class Editor {
           this.onApartmentSelected()
         })
     )
+    this._subscriptions.push(this._eventService.mouseenter$.subscribe(e => {
+      e.target.setHovered(true)
+    }))
+    this._subscriptions.push(this._eventService.mouseleave$.subscribe(e => {
+      e.target.setHovered(false)
+    }))
     this._subscriptions.push(this._eventService.events$.subscribe(e => {
       if (e.type === 'mousedown') {
         this.startDrag(e)

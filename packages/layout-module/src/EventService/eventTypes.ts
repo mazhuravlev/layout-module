@@ -1,5 +1,5 @@
 import { FederatedPointerEvent } from 'pixi.js'
-import { EditorObject } from '../types'
+import { EditorObject } from '../entities/EditorObject'
 
 interface BaseEvent {
     type: string

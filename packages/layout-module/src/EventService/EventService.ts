@@ -1,6 +1,6 @@
 // EventService.ts
 import { Subject, Observable, filter } from 'rxjs'
-import { AppEvent, MouseDownEvent, MouseUpEvent } from './eventTypes'
+import { AppEvent, MouseDownEvent, MouseEnterEvent, MouseLeaveEvent, MouseUpEvent } from './eventTypes'
 import { IDisposable } from '../types'
 
 export class EventService implements IDisposable {
@@ -16,6 +16,14 @@ export class EventService implements IDisposable {
 
     get mouseup$(): Observable<MouseUpEvent> {
         return this.events$.pipe(filter((event) => event.type === 'mouseup'))
+    }
+
+    get mouseenter$(): Observable<MouseEnterEvent> {
+        return this.events$.pipe(filter((event) => event.type === 'mouseenter'))
+    }
+
+    get mouseleave$(): Observable<MouseLeaveEvent> {
+        return this.events$.pipe(filter((event) => event.type === 'mouseleave'))
     }
 
     public emit(event: AppEvent) {

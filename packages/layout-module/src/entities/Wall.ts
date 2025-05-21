@@ -1,12 +1,13 @@
 import { Graphics, Polygon } from 'pixi.js'
 import { EventService } from '../EventService/EventService'
-import { APoint, ASubscription, CoordType, EditorObject, IDisposable, TPoints } from '../types'
+import { APoint, ASubscription, CoordType, TPoints } from '../types'
 import { Apartment } from '../entities/Apartment'
 import { $debugConfig } from '../components/events'
 import { defaultConfig } from '../Editor/defaultConfig'
 import { makeLineHitbox } from '../geometryFunc'
+import { EditorObject } from './EditorObject'
 
-export class Wall extends EditorObject implements IDisposable {
+export class Wall extends EditorObject {
     private _drawDebug = $debugConfig.getState().drawDebug
     private _graphics = new Graphics()
     private _config = defaultConfig
@@ -26,33 +27,33 @@ export class Wall extends EditorObject implements IDisposable {
     }
 
     constructor(
-        private _eventService: EventService,
+        _eventService: EventService,
         private _apartment: Apartment,
         private _points: TPoints
     ) {
-        super()
+        super(_eventService)
         const { _graphics } = this
         _graphics.eventMode = 'static'
         _graphics.cursor = 'pointer'
         this.setupEvents()
-        this.render(this._config.strokeColor)
+        this.render()
     }
 
     private setupEvents() {
-        const { _eventService, _graphics } = this
-        _graphics.on('mouseenter', () => this.render(this._config.hoverStrokeColor))
-        _graphics.on('mouseleave', () => this.render(this._config.strokeColor))
-        _graphics.on('mousedown', event => _eventService.emit({ type: 'mousedown', pixiEvent: event, target: this }))
-        _graphics.on('mouseup', event => _eventService.emit({ type: 'mouseup', pixiEvent: event, target: this }))
+        const { _graphics } = this
+        _graphics.on('mouseenter', e => this.emit(e, 'mouseenter'))
+        _graphics.on('mouseleave', e => this.emit(e, 'mouseleave'))
+        _graphics.on('mousedown', e => this.emit(e, 'mousedown'))
+        _graphics.on('mouseup', e => this.emit(e, 'mouseup'))
         this._subscriptions.push($debugConfig
             .map(x => x.drawDebug)
             .watch(x => {
                 this._drawDebug = x
-                this.render(this._config.strokeColor)
+                this.render()
             }))
     }
 
-    public render(color: number) {
+    render() {
         const [p1, p2] = this._points
         const { _graphics } = this
         const HITBOX_WIDTH = 10
@@ -64,7 +65,11 @@ export class Wall extends EditorObject implements IDisposable {
         }
         _graphics.moveTo(p1.x, p1.y)
         _graphics.lineTo(p2.x, p2.y)
-        _graphics.stroke({ color, width: 1, pixelLine: true })
+        _graphics.stroke({
+            color: this._isHovered ? this._config.hoverStrokeColor : this._config.strokeColor,
+            width: 1,
+            pixelLine: true,
+        })
         _graphics.hitArea = new Polygon(hitbox)
     }
 
@@ -79,7 +84,7 @@ export class Wall extends EditorObject implements IDisposable {
         } else {
             this._points = [this._graphics.toLocal(points[0]), this._graphics.toLocal(points[1])]
         }
-        this.render(this._config.hoverStrokeColor)
+        this.render()
     }
 
     public updateEnd(point: APoint, coordType: CoordType) {
@@ -88,7 +93,7 @@ export class Wall extends EditorObject implements IDisposable {
         } else {
             this._points = [this.points[0], this._graphics.toLocal(point)]
         }
-        this.render(this._config.strokeColor)
+        this.render()
     }
 
     public updateStart(point: APoint, coordType: CoordType) {
@@ -97,6 +102,6 @@ export class Wall extends EditorObject implements IDisposable {
         } else {
             this._points = [this._graphics.toLocal(point), this.points[1]]
         }
-        this.render(this._config.strokeColor)
+        this.render()
     }
 }

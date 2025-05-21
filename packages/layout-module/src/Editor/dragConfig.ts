@@ -1,7 +1,8 @@
 import { Apartment } from '../entities/Apartment'
 import { SnapService } from './SnapService'
-import { APoint, EditorObject, TPoints } from '../types'
+import { APoint, TPoints } from '../types'
 import { Wall } from '../entities/Wall'
+import { EditorObject } from '../entities/EditorObject'
 
 interface DragConfigType {
     target: EditorObject

@@ -1,6 +1,6 @@
 import { use, useEffect } from 'react'
 import { ToolSidebarProps } from './ToolSidebarProps'
-import { addApartmentEvent, $debugConfig, deleteSelectedEvent, $snapConfig, toggleDrawDebug, toggleSnap, zoomToExtentsEvent, toggleSnapGrid, toggleSnapPoint, toggleSnapLine, setGridStep, undoEvent, redoEvent } from '../events'
+import { addApartmentEvent, $debugConfig, deleteSelectedEvent, $snapConfig, toggleDrawDebug, toggleSnap, zoomToExtentsEvent, toggleSnapGrid, toggleSnapPoint, toggleSnapLine, setGridStep, undoEvent, redoEvent, addLLU } from '../events'
 import { AppContext } from '../../AppContext'
 import styles from './ToolSidebar.module.scss'
 import { Button } from '../Button/Button'
@@ -12,6 +12,19 @@ export const ToolSidebar: React.FC<ToolSidebarProps> = () => {
   const debugEnabled = useStoreMap({ store: $debugConfig, keys: ['drawDebug'], fn: x => x.drawDebug })
   const snapConfig = useUnit($snapConfig)
   const { apartmentTemplates } = context
+
+  useEffect(() => {
+    const sDelete = fromEvent<KeyboardEvent>(document, 'keydown', { passive: true })
+      .pipe(filter(e => e.key === 'Delete'))
+      .subscribe(() => deleteSelectedEvent())
+    const sDebug = fromEvent<KeyboardEvent>(document, 'keydown', { passive: true })
+      .pipe(filter(e => e.code === 'KeyD'))
+      .subscribe(() => toggleDrawDebug())
+    return () => {
+      sDelete.unsubscribe()
+      sDebug.unsubscribe()
+    }
+  }, [])
 
   useEffect(() => {
     const s = fromEvent<KeyboardEvent>(document, 'keydown', { passive: true })
@@ -136,6 +149,12 @@ export const ToolSidebar: React.FC<ToolSidebarProps> = () => {
             {template.name}
           </li>
         ))}
+      </ul>
+      <ul>
+        <li
+          onClick={() => addLLU()}>
+          ЛЛУ
+        </li>
       </ul>
     </div>
   )

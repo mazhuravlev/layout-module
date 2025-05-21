@@ -28,10 +28,6 @@ export interface IDisposable {
     dispose(): void
 }
 
-export class EditorObject {
-
-}
-
 export type CoordType = 'local' | 'global'
 
 export type ASubscription = RxSubscription | EffectorSubscription

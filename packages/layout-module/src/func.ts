@@ -1,15 +1,15 @@
 import { v4 as uuid } from 'uuid'
 
-export const assertDefined = <T>(value: T | null | undefined): T => {
+export const assertDefined = <T>(value: T | null | undefined, cause?: string): T => {
   if (value === null || value === undefined) {
-    throw new Error('assertDefined')
+    throw new Error('assertDefined', { cause })
   }
   return value
 }
 
-export const assert = (v: boolean, message?: string): void => {
+export const assert = (v: boolean, cause?: string): void => {
   if (!v) {
-    throw new Error(message || 'assert')
+    throw new Error('assert', { cause })
   }
 }
 

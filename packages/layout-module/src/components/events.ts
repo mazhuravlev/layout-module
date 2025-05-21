@@ -13,6 +13,7 @@ export const redoEvent = createEvent<void>()
 export const addApartmentEvent = createEvent<ApartmentTemplate>()
 export const deleteSelectedEvent = createEvent<void>()
 export const zoomToExtentsEvent = createEvent<void>()
+export const addLLU = createEvent<void>()
 
 export const apartmentSelected = createEvent<ApartmentDto[]>()
 export const $selectedApartments = createStore<ApartmentDto[]>([])

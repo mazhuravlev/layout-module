@@ -107,7 +107,7 @@ export function getPolygonArea(points: APoint[]): number {
 }
 
 export const formatArea = (area: number) => {
-  return `${Math.round(area / 100)} м²`
+  return `${Math.round(area)} м²`
 }
 
 export function fromPixiEvent<T extends Container, K extends keyof FederatedEventMap>(
