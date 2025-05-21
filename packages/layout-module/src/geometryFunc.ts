@@ -324,3 +324,24 @@ export const closePolygon = (points: APoint[]): APoint[] => {
   if (isClosedPolyline(points)) return points
   return [...points, points[0]]
 }
+
+export const lineCenter = (line: TPoints): APoint => {
+  const [p1, p2] = line
+  return {
+    x: (p1.x + p2.x) / 2,
+    y: (p1.y + p2.y) / 2
+  }
+}
+
+export const lineLength = (line: TPoints): number => {
+  const [p1, p2] = line
+  return Math.sqrt((p1.x - p2.x) ** 2 + (p1.y - p2.y) ** 2)
+}
+
+export const isVerticalLine = (line: TPoints): 1 | -1 | false => {
+  const [p1, p2] = line
+  if (Math.abs(p1.x - p2.x) < 1e-10) {
+    return p1.y > p2.y ? 1 : -1
+  }
+  return false
+}

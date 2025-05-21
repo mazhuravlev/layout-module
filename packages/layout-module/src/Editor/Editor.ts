@@ -7,7 +7,7 @@ import { Apartment } from '../entities/Apartment'
 import { EventService } from '../EventService/EventService'
 import { addApartmentEvent, deleteSelectedEvent, redoEvent, apartmentSelected, undoEvent, zoomToExtentsEvent, setApartmentProperties, addLLU, rotateSelected, sectionSettings } from '../components/events'
 import { assertDefined, assertUnreachable, offsetPolygon, toError } from '../func'
-import { MouseDownEvent } from '../EventService/eventTypes'
+import { MouseDownEvent, MouseUpEvent } from '../EventService/eventTypes'
 import { catchError, EMPTY, filter, fromEvent, map, mergeMap, of, switchMap, take, timeout } from 'rxjs'
 import { SnapService } from './SnapService'
 import { EditorCommand } from '../commands/EditorCommand'
@@ -106,6 +106,9 @@ export class Editor {
       addApartmentEvent.watch((shape) => {
         this.executeCommand(new AddObjectCommand(this, new Apartment(shape.points, this._eventService)))
       }),
+      addLLU.watch(() => {
+        this.executeCommand(new AddObjectCommand(this, new GeometryBlock(this._eventService)))
+      }),
       deleteSelectedEvent.watch(() => this.deleteSelected()),
       zoomToExtentsEvent.watch(() => this.zoomToExtents()),
       undoEvent.watch(() => this.undo()),
@@ -115,10 +118,6 @@ export class Editor {
         if (selectedApartments.length > 0) {
           this.executeCommand(new UpdateApartmentPropertiesCommand(this, selectedApartments, properties))
         }
-      }),
-      addLLU.watch(() => {
-        const llu = new GeometryBlock(this._eventService)
-        this.app.stage.addChild(llu.container)
       }),
       rotateSelected.watch(() => {
         this.selectedApartments.forEach(x => x.rotate())
@@ -236,13 +235,13 @@ export class Editor {
     this._subscriptions.push(fromPixiEvent(this.app.stage, 'mouseup')
       .pipe(mergeMap(e => {
         if (e.target instanceof EditorObject) {
-          return of(e)
+          return of<MouseUpEvent>({ type: 'mouseup', pixiEvent: e, target: e.target })
         } else {
-          return EMPTY
+          return of<MouseUpEvent>({ type: 'mouseup', pixiEvent: e })
         }
       }))
       .subscribe(event => {
-        this._eventService.emit({ type: 'mouseup', pixiEvent: event })
+        this._eventService.emit(event)
       }))
   }
 

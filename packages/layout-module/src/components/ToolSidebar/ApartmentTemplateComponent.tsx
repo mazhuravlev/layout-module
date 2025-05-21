@@ -5,12 +5,19 @@ interface ApartmentTemplateProps {
 }
 
 export const ApartmentTemplateComponent: React.FC<ApartmentTemplateProps> = ({ template }) => {
-    const pointsString = template.points.map(point => `${point.x},${point.y}`).join(' ')
+    const pointsString = template.points.map(p => `${p.x},${p.y}`).join(' ')
+    const viewBox = [
+        0,
+        0,
+        Math.max(...template.points.map(p => p.x)),
+        Math.max(...template.points.map(p => p.y))
+    ].join(' ')
 
     return (
         <div>
             <div>{template.name}</div>
-            <svg width='100%' height='80px' viewBox={`0 0 ${Math.max(...template.points.map(p => p.x))} ${Math.max(...template.points.map(p => p.y))}`}>
+            <svg width='100%' height='80px'
+                viewBox={viewBox}>
                 <polygon
                     points={pointsString}
                     fill='lightblue'

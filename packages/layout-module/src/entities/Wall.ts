@@ -1,19 +1,22 @@
-import { Graphics, Polygon } from 'pixi.js'
+import { Container, Graphics, Polygon, Text } from 'pixi.js'
 import { EventService } from '../EventService/EventService'
 import { APoint, ASubscription, CoordType, TPoints } from '../types'
 import { Apartment } from '../entities/Apartment'
-import { $debugConfig } from '../components/events'
+import { $debugConfig, $sizeConfig } from '../components/events'
 import { defaultConfig } from '../Editor/defaultConfig'
-import { makeLineHitbox } from '../geometryFunc'
+import { isVerticalLine, lineCenter, lineLength, makeLineHitbox, shiftLine } from '../geometryFunc'
 import { EditorObject } from './EditorObject'
 
 export class Wall extends EditorObject {
     private _drawDebug = $debugConfig.getState().drawDebug
+    private _container = new Container()
     private _graphics = new Graphics()
+    private _sizeText = new Text({ resolution: 2, style: { fontSize: 10, fill: 0x660000 } })
     private _config = defaultConfig
     private _subscriptions: ASubscription[] = []
+    private _showSize: boolean = true
 
-    public get container() { return this._graphics }
+    public get container() { return this._container }
 
     public get apartment() { return this._apartment }
 
@@ -32,7 +35,17 @@ export class Wall extends EditorObject {
         private _points: TPoints
     ) {
         super(_eventService)
-        const { _graphics } = this
+        this._subscriptions.push($sizeConfig
+            .map(x => x.showWallSize)
+            .watch(x => {
+                this._showSize = x
+                this.render()
+            }))
+        const { _graphics, _container, _sizeText } = this
+        _sizeText.anchor.set(0.5)
+        _sizeText.scale.set(0.5)
+        _container.addChild(_sizeText)
+        _container.addChild(_graphics)
         _graphics.eventMode = 'static'
         _graphics.cursor = 'pointer'
         this.setupEvents()
@@ -71,6 +84,21 @@ export class Wall extends EditorObject {
             pixelLine: true,
         })
         _graphics.hitArea = new Polygon(hitbox)
+        const { _sizeText } = this
+        if (this._showSize) {
+            this._container.addChild(_sizeText)
+            const sizePos = lineCenter(shiftLine(this._points, 4))
+            _sizeText.position.set(sizePos.x, sizePos.y)
+            _sizeText.text = (lineLength(this._points) * 100).toFixed(0)
+            const vertical = isVerticalLine(this._points)
+            if (vertical === 1) {
+                _sizeText.angle = 90
+            } else if (vertical === -1) {
+                _sizeText.angle = -90
+            }
+        } else {
+            this._container.removeChild(_sizeText)
+        }
     }
 
     public dispose() {

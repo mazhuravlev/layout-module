@@ -1,6 +1,6 @@
 import { use, useEffect } from 'react'
 import { ToolSidebarProps } from './ToolSidebarProps'
-import { addApartmentEvent, $debugConfig, deleteSelectedEvent, $snapConfig, toggleDrawDebug, toggleSnap, zoomToExtentsEvent, toggleSnapGrid, toggleSnapPoint, toggleSnapLine, setGridStep, undoEvent, redoEvent, addLLU, rotateSelected } from '../events'
+import { addApartmentEvent, $debugConfig, deleteSelectedEvent, $snapConfig, toggleDrawDebug, toggleSnap, zoomToExtentsEvent, toggleSnapGrid, toggleSnapPoint, toggleSnapLine, setGridStep, undoEvent, redoEvent, addLLU, rotateSelected, toggleShowWallSize, $sizeConfig } from '../events'
 import { AppContext } from '../../AppContext'
 import styles from './ToolSidebar.module.scss'
 import { Button } from '../Button/Button'
@@ -12,6 +12,7 @@ export const ToolSidebar: React.FC<ToolSidebarProps> = () => {
   const context = use(AppContext)
   const debugEnabled = useStoreMap({ store: $debugConfig, keys: ['drawDebug'], fn: x => x.drawDebug })
   const snapConfig = useUnit($snapConfig)
+  const sizeConfig = useUnit($sizeConfig)
   const { apartmentTemplates } = context
 
   useEffect(() => {
@@ -109,6 +110,11 @@ export const ToolSidebar: React.FC<ToolSidebarProps> = () => {
           title='Вкл/выкл привязку'
           onClick={() => toggleSnap()}
         >🧲</Button>
+        <Button
+          active={sizeConfig.showWallSize}
+          title='Вкл/выкл размеры'
+          onClick={() => toggleShowWallSize()}
+        >📏</Button>
         <Button
           title='Повернуть выбранные'
           onClick={() => rotateSelected()}

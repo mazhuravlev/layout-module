@@ -64,3 +64,8 @@ persist({ store: $snapConfig, key: 'snapConfig.v3' })
 export const sectionSettings = createStore({ offset: -10 })
 export const setSectionOffset = createEvent<number>()
 sectionSettings.on(setSectionOffset, (state, payload) => ({ ...state, offset: payload }))
+
+export const $sizeConfig = createStore({ showWallSize: true })
+export const toggleShowWallSize = createEvent<void>()
+$sizeConfig.on(toggleShowWallSize, (state, _payload) => ({ ...state, showWallSize: !state.showWallSize }))
+persist({ store: $sizeConfig, key: 'sizeConfig.v1' })
