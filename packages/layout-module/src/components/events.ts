@@ -1,8 +1,7 @@
-import { createEvent, createStore, Store } from 'effector'
+import { createEvent, createStore } from 'effector'
 import { ApartmentTemplate } from '../types'
 import { returnSecondArg } from '../func'
 import persist from 'effector-localstorage'
-import { Observable } from 'rxjs'
 import { ApartmentDto } from '../entities/ApartmentDto'
 import { ApartmentProperties } from '../entities/ApartmentProperties'
 
@@ -19,6 +18,7 @@ export const apartmentSelected = createEvent<ApartmentDto[]>()
 export const $selectedApartments = createStore<ApartmentDto[]>([])
 $selectedApartments.on(apartmentSelected, returnPayload)
 export const setApartmentProperties = createEvent<Partial<ApartmentProperties>>()
+export const rotateSelected = createEvent<void>()
 
 interface DebugConfig {
     drawDebug: boolean
@@ -61,13 +61,6 @@ $snapConfig.on(toggleSnapLine, (state, _payload) => ({ ...state, enableLine: !st
 $snapConfig.on(setGridStep, (state, payload) => ({ ...state, gridStep: payload < 0 ? 1 : payload }))
 persist({ store: $snapConfig, key: 'snapConfig.v3' })
 
-export function fromEffectorStore<T, U>(store: Store<T>, mapFn: (s: T) => U): Observable<U> {
-    const mappedStore = store.map(mapFn)
-    return new Observable((subscriber) => {
-        subscriber.next(mappedStore.getState())
-        const unsubscribe = mappedStore.watch((state) => {
-            subscriber.next(state)
-        })
-        return () => unsubscribe()
-    })
-}
+export const sectionSettings = createStore({ offset: -10 })
+export const setSectionOffset = createEvent<number>()
+sectionSettings.on(setSectionOffset, (state, payload) => ({ ...state, offset: payload }))

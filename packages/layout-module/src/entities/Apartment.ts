@@ -1,5 +1,5 @@
 import { Container, Graphics, Text } from 'pixi.js'
-import { assert, makeUuid, pairwise } from '../func'
+import { assert, pairwise } from '../func'
 import { getPolygonCenter, getPolygonArea, formatArea, findCircularAdjacentElements, closePolygon } from '../geometryFunc'
 import { APoint, TPoints, CoordType, ALine } from '../types'
 import { EventService } from '../EventService/EventService'
@@ -11,16 +11,14 @@ import { calculateApartmentType, exampleFlatmix } from '../Editor/flatMix'
 import { EditorObject } from './EditorObject'
 
 export class Apartment extends EditorObject {
-    private _id = makeUuid()
     private _container = new Container()
     private _typeLabel = new Text({ style: { fontSize: 14 } })
     private _areaLabel = new Text({ style: { fontSize: 12 } })
+    private _euroLabel = new Text({ style: { fontSize: 12 } })
     private _areaGraphics = new Graphics()
     private _walls: Wall[] = []
     private _config: typeof defaultConfig
     private _properties: ApartmentProperties = defaultApartmentProperties
-
-    public get id() { return this._id }
 
     public get container() { return this._container }
 
@@ -69,6 +67,10 @@ export class Apartment extends EditorObject {
         this.init(points)
     }
 
+    public rotate() {
+        this.container.angle += 90
+    }
+
     private init(_points: APoint[]) {
         const points = closePolygon(_points)
         this._container.addChild(this._areaLabel)
@@ -80,9 +82,11 @@ export class Apartment extends EditorObject {
     }
 
     public updatePoints(points: APoint[]) {
-        this._walls.forEach(wall => this._container.removeChild(wall.graphics))
+        this._walls.forEach(wall => this._container.removeChild(wall.container))
         this._walls.forEach(wall => wall.dispose())
         this._walls = []
+        this._areaGraphics.clear()
+        this._areaGraphics.removeAllListeners()
         this.init(points)
     }
 
@@ -91,13 +95,13 @@ export class Apartment extends EditorObject {
         const { _container, _eventService } = this
         this._walls = pairwise(points)
             .map(points => new Wall(_eventService, this, points))
-        this._walls.forEach(wall => _container.addChild(wall.graphics))
+        this._walls.forEach(wall => _container.addChild(wall.container))
     }
 
     private setupAreaGraphics() {
         const { _areaGraphics, _container } = this
         _areaGraphics.eventMode = 'static'
-        _areaGraphics.cursor = 'move'
+        _areaGraphics.cursor = 'pointer'
         _areaGraphics.on('mouseenter', e => this.emit(e, 'mouseenter'))
         _areaGraphics.on('mouseleave', e => this.emit(e, 'mouseleave'))
         _areaGraphics.on('mousedown', e => this.emit(e, 'mousedown'))
@@ -106,7 +110,7 @@ export class Apartment extends EditorObject {
     }
 
     private setupLabels() {
-        const { _container, _areaLabel, _typeLabel } = this
+        const { _container, _areaLabel, _typeLabel, _euroLabel } = this
 
         _areaLabel.resolution = 2
         _areaLabel.interactive = false
@@ -123,6 +127,15 @@ export class Apartment extends EditorObject {
         _typeLabel.anchor.set(0.5)
         _typeLabel.scale.set(0.5, 0.5)
         _container.addChild(_typeLabel)
+
+
+        _euroLabel.resolution = 2
+        _euroLabel.interactive = false
+        _euroLabel.interactiveChildren = false
+        _euroLabel.hitArea = null
+        _euroLabel.anchor.set(0.5)
+        _euroLabel.scale.set(0.5, 0.5)
+        _container.addChild(_euroLabel)
     }
 
     public updateWall(wall: Wall, newLine: TPoints, coordType: CoordType) {
@@ -139,7 +152,7 @@ export class Apartment extends EditorObject {
     }
 
     render() {
-        const { _areaGraphics, _areaLabel, _typeLabel, points } = this
+        const { _areaGraphics, _areaLabel, _typeLabel, _euroLabel, points } = this
         _areaGraphics.clear()
         _areaGraphics.poly(this.points)
         _areaGraphics.fill({ color: this.getFillColor() })
@@ -154,7 +167,9 @@ export class Apartment extends EditorObject {
             isEuro: this._properties.isEuro
         })
         _typeLabel.text = `${this.properties.bedroomCount}${flatmixType}`
-        _typeLabel.position.set(center.x, center.y - 10)
+        _typeLabel.position.set(center.x, center.y - 8)
+        _euroLabel.text = `${this.properties.isEuro ? 'Евро' : 'Стандарт'}`
+        _euroLabel.position.set(center.x, center.y + 8)
     }
 
     private getFillColor() {

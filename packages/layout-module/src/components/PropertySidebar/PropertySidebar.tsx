@@ -1,35 +1,14 @@
 import { useUnit } from 'effector-react'
-import { $selectedApartments, setApartmentProperties } from '../events'
+import { $selectedApartments } from '../events'
 import styles from './PropertySidebar.module.scss'
+import { ApartmentProperties } from './ApartmentProperties'
+import { SectionProperties } from './SectionProperties'
 
 export const PropertySidebar: React.FC = () => {
-    const selected = useUnit($selectedApartments)
-    if (selected.length === 0) return null
-
-    const renderTypeButton = () => {
-        const isEuro = selected.map(x => x.properties.isEuro).every(x => x)
-        return <input type='checkbox' checked={isEuro} onChange={() => setApartmentProperties({ isEuro: !isEuro })} />
-    }
-
-    const renderRoomSelect = (roomCount: number[]) => {
-        return <select value={roomCount[0]}
-            onChange={e => setApartmentProperties({ bedroomCount: Number(e.target.value) })}>
-            <option value='-1'>-</option>
-            <option value='0'>Cтудия</option>
-            {[1, 2, 3, 4].map(x => (<option key={x} value={x}>{x}-комн</option>))}
-        </select>
-    }
+    const selectedApartments = useUnit($selectedApartments)
 
     return <div className={styles.container}>
-        <div>Свойства</div>
-        <p>Выбрано квартир: {selected.length}</p>
-        <ol>
-            <li>
-                Евро {renderTypeButton()}
-            </li>
-            <li>
-                {renderRoomSelect(selected.map(x => x.properties.bedroomCount))}
-            </li>
-        </ol>
+        {selectedApartments.length ? <ApartmentProperties apartments={selectedApartments} /> : <SectionProperties />}
     </div>
 }
+

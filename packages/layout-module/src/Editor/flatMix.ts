@@ -9,12 +9,13 @@ export interface FlatTypeConfig {
 }
 
 export const calculateApartmentType = (flatmix: FlatTypeConfig[], apartment: { area: number, bedroomCount: number, isEuro: boolean }) => {
-    const sameBedroomCount = flatmix.filter(flat => flat.bedroomCount === apartment.bedroomCount) // TODO: что делать с isEuro?
+    const sameBedroomCount = flatmix.filter(x => x.bedroomCount === apartment.bedroomCount && x.isEuro === apartment.isEuro)
     if (sameBedroomCount.length > 0) {
         if (apartment.area < Math.min(...sameBedroomCount.map(x => x.minArea))) return 'XS'
         if (apartment.area > Math.max(...sameBedroomCount.map(x => x.maxArea))) return 'XL'
         const matchArea = sameBedroomCount
-            .find(flat => flat.minArea <= apartment.area && flat.maxArea >= apartment.area) // TODO: && flat.isEuro === apartment.isEuro)
+            .find(x => x.minArea <= apartment.area && x.maxArea >= apartment.area && x.isEuro === apartment.isEuro)
+        if (matchArea === undefined) return '_U'
         return assertDefined(matchArea, 'Должен быть хотя бы один подходящий тип квартиры').typeName
     } else {
         return 'M'

@@ -13,7 +13,7 @@ export class Wall extends EditorObject {
     private _config = defaultConfig
     private _subscriptions: ASubscription[] = []
 
-    public get graphics() { return this._graphics }
+    public get container() { return this._graphics }
 
     public get apartment() { return this._apartment }
 

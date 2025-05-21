@@ -3,7 +3,7 @@ import { Editor } from '../Editor/Editor'
 import { APoint } from '../types'
 import { EditorCommand } from './EditorCommand'
 
-export class UpdateAppartmentPointsCommand implements EditorCommand {
+export class UpdateApartmentPointsCommand implements EditorCommand {
 
     constructor(
         private _editor: Editor,

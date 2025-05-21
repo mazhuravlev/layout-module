@@ -2,34 +2,34 @@ import { Application, FederatedPointerEvent, Graphics } from 'pixi.js'
 import { calculateZoomToExtents, distanceFromPointToLine, drawOutline, fromPixiEvent, pointsToLines, shiftLine } from '../geometryFunc'
 import { Logger } from '../logger'
 import { addVectors, ALine, aPoint, APoint, ASubscription, mapLine, subtractVectors } from '../types'
-import { ApartmentDragConfig, DragConfig, WallDragConfig } from './dragConfig'
+import { BlockDragConfig, DragConfig, WallDragConfig } from './dragConfig'
 import { Apartment } from '../entities/Apartment'
 import { EventService } from '../EventService/EventService'
-import { addApartmentEvent, deleteSelectedEvent, redoEvent, apartmentSelected, undoEvent, zoomToExtentsEvent, setApartmentProperties, addLLU } from '../components/events'
-import { assertDefined, assertUnreachable, toError } from '../func'
+import { addApartmentEvent, deleteSelectedEvent, redoEvent, apartmentSelected, undoEvent, zoomToExtentsEvent, setApartmentProperties, addLLU, rotateSelected, sectionSettings } from '../components/events'
+import { assertDefined, assertUnreachable, offsetPolygon, toError } from '../func'
 import { MouseDownEvent } from '../EventService/eventTypes'
 import { catchError, EMPTY, filter, fromEvent, map, mergeMap, of, switchMap, take, timeout } from 'rxjs'
 import { SnapService } from './SnapService'
 import { EditorCommand } from '../commands/EditorCommand'
-import { AddApartmentCommand } from '../commands/AddAppartmentCommand'
-import { DeleteApartmentsCommand } from '../commands/DeleteApartmentCommand'
-import { MoveAppartmentCommand } from '../commands/MoveAppartmentCommand'
-import { UpdateAppartmentPointsCommand } from '../commands/UpdateAppartmentPointsCommand'
+import { AddObjectCommand } from '../commands/AddObjectCommand'
+import { DeleteObjectsCommand } from '../commands/DeleteObjectsCommand'
+import { MoveObjectCommand } from '../commands/MoveObjectCommand'
+import { UpdateApartmentPointsCommand } from '../commands/UpdateApartmentPointsCommand'
 import { initDevtools } from '@pixi/devtools'
 import { Wall } from '../entities/Wall'
-import { UpdateAppartmentPropertiesCommand } from '../commands/UpdateAppartmentPropertiesCommand'
+import { UpdateApartmentPropertiesCommand } from '../commands/UpdateApartmentPropertiesCommand'
 import { GeometryBlock } from '../entities/GeometryBlock'
 import { EditorObject } from '../entities/EditorObject'
 
 export class Editor {
   private _app = new Application()
   private _logger = new Logger('Editor')
-  private _sectionOutline: { graphics: Graphics; points: APoint[] } | null = null
-  private _apartments = new Map<string, Apartment>()
-
-  private _selectedApartments = new Set<Apartment>()
-  private _dragConfig: | DragConfig | null = null
   private _eventService = new EventService()
+
+  private _sectionOutline: { graphics: Graphics; offsetGraphics: Graphics; points: APoint[] } | null = null
+  private _editorObjects = new Map<string, EditorObject>()
+  private _selectedObjects = new Set<EditorObject>()
+  private _dragConfig: | DragConfig | null = null
 
   private _undoStack: EditorCommand[] = []
   private _redoStack: EditorCommand[] = []
@@ -41,11 +41,14 @@ export class Editor {
 
   private _subscriptions: ASubscription[] = []
 
-
   constructor(private _container: HTMLDivElement) { }
 
   public get app() {
     return this._app
+  }
+
+  private get selectedApartments() {
+    return [...this._selectedObjects.values().filter(x => x instanceof Apartment)]
   }
 
   public get eventService() {
@@ -101,19 +104,26 @@ export class Editor {
   private setupEvents() {
     this._subscriptions.push(...[
       addApartmentEvent.watch((shape) => {
-        this.executeCommand(new AddApartmentCommand(this, new Apartment(shape.points, this._eventService)))
+        this.executeCommand(new AddObjectCommand(this, new Apartment(shape.points, this._eventService)))
       }),
       deleteSelectedEvent.watch(() => this.deleteSelected()),
       zoomToExtentsEvent.watch(() => this.zoomToExtents()),
       undoEvent.watch(() => this.undo()),
       redoEvent.watch(() => this.redo()),
       setApartmentProperties.watch((properties) => {
-        this.executeCommand(new UpdateAppartmentPropertiesCommand(this, [...this._selectedApartments], properties))
+        const selectedApartments = this.selectedApartments
+        if (selectedApartments.length > 0) {
+          this.executeCommand(new UpdateApartmentPropertiesCommand(this, selectedApartments, properties))
+        }
       }),
       addLLU.watch(() => {
         const llu = new GeometryBlock(this._eventService)
         this.app.stage.addChild(llu.container)
-      })
+      }),
+      rotateSelected.watch(() => {
+        this.selectedApartments.forEach(x => x.rotate())
+      }),
+      sectionSettings.map(x => x.offset).watch(offset => this.renderSectionOffset(offset))
     ])
   }
 
@@ -148,19 +158,19 @@ export class Editor {
           if (!ctrlKey && !shiftKey) {
             // Обычный клик (без модификаторов) → сброс предыдущего выбора
             this.deselectAll()
-            this._selectedApartments.add(target)
+            this._selectedObjects.add(target)
             target.setSelected(true)
           } else if (ctrlKey || shiftKey) {
             // Мультиселект: добавляем/удаляем квартиру из выбора
-            if (this._selectedApartments.has(target)) {
-              this._selectedApartments.delete(target)
+            if (this._selectedObjects.has(target)) {
+              this._selectedObjects.delete(target)
               target.setSelected(false)
             } else {
-              this._selectedApartments.add(target)
+              this._selectedObjects.add(target)
               target.setSelected(true)
             }
           }
-          this.onApartmentSelected()
+          this.onObjectSelected()
         })
     )
     this._subscriptions.push(this._eventService.mouseenter$.subscribe(e => {
@@ -176,8 +186,8 @@ export class Editor {
         if (this._dragConfig) this.stopDrag()
       } else if (e.type === 'mousemove' && this._dragConfig) {
         switch (this._dragConfig.type) {
-          case 'dragApartment':
-            this.dragApartment(this._dragConfig, e.pixiEvent)
+          case 'dragBlock':
+            this.dragBlock(this._dragConfig, e.pixiEvent)
             break
           case 'dragWall':
             this.dragWall(this._dragConfig, e.pixiEvent)
@@ -236,11 +246,11 @@ export class Editor {
       }))
   }
 
-  public onApartmentSelected() {
-    apartmentSelected([...this._selectedApartments.values().map(x => x.dto)])
+  public onObjectSelected() {
+    apartmentSelected([...this.selectedApartments.values().map(x => x.dto)])
   }
 
-  private dragApartment(_dragConfig: ApartmentDragConfig, pixiEvent: FederatedPointerEvent) {
+  private dragBlock(_dragConfig: BlockDragConfig, pixiEvent: FederatedPointerEvent) {
     const { target, snapService } = _dragConfig
     const toParentLocal = (point: APoint) => target.container.parent.toLocal(point)
     const toGlobal = (point: APoint) => target.container.parent.toGlobal(point)
@@ -279,9 +289,9 @@ export class Editor {
   }
 
   private startDrag({ pixiEvent, target }: MouseDownEvent) {
-    if (target instanceof Apartment) {
-      const dragConfig: ApartmentDragConfig = {
-        type: 'dragApartment',
+    if (target instanceof Apartment || target instanceof GeometryBlock) {
+      const dragConfig: BlockDragConfig = {
+        type: 'dragBlock',
         snapService: new SnapService(
           this.app.stage,
           this.getSnapPoints({ exclude: target }),
@@ -313,8 +323,8 @@ export class Editor {
     dragConfig.snapService.dispose()
     const { type, target } = dragConfig
     switch (type) {
-      case 'dragApartment':
-        this.executeCommand(new MoveAppartmentCommand(
+      case 'dragBlock':
+        this.executeCommand(new MoveObjectCommand(
           this,
           dragConfig.target,
           {
@@ -323,7 +333,7 @@ export class Editor {
           }))
         break
       case 'dragWall':
-        this.executeCommand(new UpdateAppartmentPointsCommand(
+        this.executeCommand(new UpdateApartmentPointsCommand(
           this,
           dragConfig.target.apartment,
           {
@@ -336,31 +346,49 @@ export class Editor {
     }
   }
 
-  private getSnapLines(): ALine[] {
-    const floorPoints = assertDefined(this._sectionOutline).points
+  private getSectionOutlineGlobalPoints() {
+    return offsetPolygon(
+      assertDefined(this._sectionOutline).points,
+      sectionSettings.getState().offset)
       .map(x => aPoint(this.app.stage.toGlobal(x)))
+  }
+
+  private getSnapLines(options?: { exclude?: EditorObject }): ALine[] {
+    const getLines = (o: EditorObject) => {
+      if (o instanceof Apartment) return o.wallLines.map(mapLine(x => o.container.toGlobal(x)))
+      if (o instanceof GeometryBlock) return o.globalLines
+      if (o instanceof Wall) return []
+      throw new Error('Unknown object type')
+    }
     return [
-      ...pointsToLines(floorPoints),
-      ...this._apartments.values().flatMap(apartment =>
-        apartment.wallLines.map(mapLine(x => apartment.container.toGlobal(x)))
-      )
+      ...pointsToLines(this.getSectionOutlineGlobalPoints()),
+      ...this._editorObjects
+        .values()
+        .filter(x => x !== options?.exclude)
+        .flatMap(getLines)
     ]
   }
 
-  private getSnapPoints(options: { exclude?: Apartment }): APoint[] {
+  private getSnapPoints(options: { exclude?: EditorObject }): APoint[] {
+    const getPoints = (o: EditorObject) => {
+      if (o instanceof Apartment) return o.globalPoints
+      if (o instanceof GeometryBlock) return o.globalPoints
+      if (o instanceof Wall) return []
+      throw new Error('Unknown object type')
+    }
     return [
-      ...assertDefined(this._sectionOutline).points.map(x => this.app.stage.toGlobal(x)),
-      ...this._apartments
+      ...this.getSectionOutlineGlobalPoints(),
+      ...this._editorObjects
         .values()
         .filter(x => x !== options.exclude)
-        .flatMap(x => x.globalPoints)
+        .flatMap(getPoints)
     ]
   }
 
   private deselectAll() {
-    if (this._selectedApartments.size) {
-      this._selectedApartments.forEach(x => x.setSelected(false))
-      this._selectedApartments.clear()
+    if (this._selectedObjects.size) {
+      this._selectedObjects.forEach(x => x.setSelected(false))
+      this._selectedObjects.clear()
     }
   }
 
@@ -383,35 +411,52 @@ export class Editor {
     }
 
     this.cleanupFns = []
-    this._apartments.clear()
+    this._editorObjects.forEach(x => x.dispose())
+    this._editorObjects.clear()
     this._eventService.dispose()
   }
 
   public setSectionOutline(points: APoint[]) {
     const graphics = new Graphics()
-    drawOutline(graphics, points)
+    drawOutline(graphics, points, undefined, { color: 0xaaaaaa })
     this.app.stage.addChild(graphics)
-    this._sectionOutline = { graphics, points }
+    const offsetGraphics = new Graphics()
+    this.app.stage.addChild(offsetGraphics)
+    this._sectionOutline = { graphics, points, offsetGraphics }
+    this.renderSectionOffset(sectionSettings.getState().offset)
   }
 
-  public addApartment(apartment: Apartment) {
-    this._apartments.set(apartment.id, apartment)
-    this.app.stage.addChild(apartment.container)
+  private renderSectionOffset(offset: number) {
+    const { _sectionOutline } = this
+    if (!_sectionOutline) return
+    drawOutline(_sectionOutline.offsetGraphics, offsetPolygon(_sectionOutline.points, offset))
   }
 
-  public deleteApartment(apartment: Apartment) {
-    this.app.stage.removeChild(apartment.container)
-    this._apartments.delete(apartment.id)
+  public addObject(o: EditorObject) {
+    this._editorObjects.set(o.id, o)
+    this.app.stage.addChild(o.container)
+  }
+
+  public deleteObject(o: EditorObject) {
+    this.app.stage.removeChild(o.container)
+    this._editorObjects.delete(o.id)
+  }
+
+  public getObject(id: string) {
+    const o = assertDefined(this._editorObjects.get(id))
+    return o
   }
 
   public getApartment(id: string) {
-    return this._apartments.get(id)
+    const o = this.getObject(id)
+    if (o instanceof Apartment) return o
+    throw new Error('Object is not an Apartment')
   }
 
   public deleteSelected() {
-    const selectedApartments = [...this._selectedApartments.values()]
-    this.executeCommand(new DeleteApartmentsCommand(this, selectedApartments))
-    this._selectedApartments.clear()
+    const selectedApartments = [...this._selectedObjects.values()]
+    this.executeCommand(new DeleteObjectsCommand(this, selectedApartments))
+    this._selectedObjects.clear()
   }
 
   public zoomToExtents() {

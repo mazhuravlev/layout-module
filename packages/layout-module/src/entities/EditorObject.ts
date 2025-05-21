@@ -1,16 +1,22 @@
-import { FederatedPointerEvent } from 'pixi.js'
+import { Container, FederatedPointerEvent } from 'pixi.js'
 import { IDisposable } from '../types'
 import { AppEvent } from '../EventService/eventTypes'
 import { EventService } from '../EventService/EventService'
+import { makeUuid } from '../func'
 
 export abstract class EditorObject implements IDisposable {
+    protected _id = makeUuid()
+    protected _isSelected: boolean = false
+    protected _isHovered: boolean = false
+
+    public get id() { return this._id }
+
+    public abstract get container(): Container
+
     constructor(
         protected _eventService: EventService,
     ) {
     }
-
-    protected _isSelected: boolean = false
-    protected _isHovered: boolean = false
 
     public setSelected(selected: boolean) {
         this._isSelected = selected
@@ -22,13 +28,9 @@ export abstract class EditorObject implements IDisposable {
         this.render()
     }
 
-    protected render() {
+    protected abstract render(): void
 
-    }
-
-    public dispose(): void {
-        throw new Error('Method not implemented.')
-    }
+    public abstract dispose(): void
 
     protected emit(pixiEvent: FederatedPointerEvent, type: AppEvent['type'], stopEvent = true) {
         if (stopEvent) {

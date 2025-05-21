@@ -1,9 +1,10 @@
 import { Container, Graphics, Polygon } from 'pixi.js'
 import data from './llu.json'
-import { identity } from 'rxjs'
 import { EventService } from '../EventService/EventService'
 import { defaultConfig } from '../Editor/defaultConfig'
 import { EditorObject } from './EditorObject'
+import { identity, pairwise, splitIntoPairs } from '../func'
+import { ALine, aPoint } from '../types'
 
 export class GeometryBlock extends EditorObject {
     private _outline = new Graphics()
@@ -13,6 +14,15 @@ export class GeometryBlock extends EditorObject {
     private _config: typeof defaultConfig
 
     public get container() { return this._container }
+
+    public get globalPoints() {
+        return splitIntoPairs(this.outlinePointdata).map((point) => this._container.toGlobal(aPoint(point)))
+    }
+
+    public get globalLines(): ALine[] {
+        const globalPoints = this.globalPoints
+        return pairwise(globalPoints).map(([start, end]) => ({ start, end }))
+    }
 
     private get outlinePointdata() { return this._data.outline.flatMap(identity) }
 

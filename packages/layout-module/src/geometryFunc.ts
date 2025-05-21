@@ -25,14 +25,14 @@ export function calculateZoomToExtents(app: Application, padding: number, object
   return { centerX, scale, centerY }
 }
 
-export const drawOutline = (graphics: Graphics, points: APoint[], fillStyle?: { color: number }) => {
+export const drawOutline = (graphics: Graphics, points: APoint[], fillStyle?: { color: number }, strokeStyle?: { color: number }) => {
   graphics.clear()
   graphics.moveTo(points[0].x, points[0].y)
   for (let i = 1; i < points.length; i++) {
     graphics.lineTo(points[i].x, points[i].y)
   }
   graphics.lineTo(points[0].x, points[0].y)
-  graphics.stroke({ color: 0, width: 1, pixelLine: true })
+  graphics.stroke({ color: strokeStyle?.color ?? 0, width: 1, pixelLine: true })
   if (fillStyle) graphics.fill({ color: fillStyle.color })
 }
 

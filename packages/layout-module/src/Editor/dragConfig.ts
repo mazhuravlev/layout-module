@@ -3,16 +3,17 @@ import { SnapService } from './SnapService'
 import { APoint, TPoints } from '../types'
 import { Wall } from '../entities/Wall'
 import { EditorObject } from '../entities/EditorObject'
+import { GeometryBlock } from '../entities/GeometryBlock'
 
 interface DragConfigType {
     target: EditorObject
     snapService: SnapService
 }
 
-export interface ApartmentDragConfig extends DragConfigType {
-    type: 'dragApartment'
+export interface BlockDragConfig extends DragConfigType {
+    type: 'dragBlock'
 
-    target: Apartment
+    target: Apartment | GeometryBlock
 
     /**
      * Начальные собственные координаты квартиры.
@@ -40,5 +41,5 @@ export interface WallDragConfig extends DragConfigType {
 }
 
 
-export type DragConfig = ApartmentDragConfig | WallDragConfig
+export type DragConfig = BlockDragConfig | WallDragConfig
 

@@ -4,7 +4,7 @@ import { EditorCommand } from './EditorCommand'
 import { ApartmentProperties } from '../entities/ApartmentProperties'
 import { assertDefined } from '../func'
 
-export class UpdateAppartmentPropertiesCommand implements EditorCommand {
+export class UpdateApartmentPropertiesCommand implements EditorCommand {
     private _savedProperties = new Map<string, ApartmentProperties>()
 
     constructor(
@@ -19,7 +19,7 @@ export class UpdateAppartmentPropertiesCommand implements EditorCommand {
             this._savedProperties.set(apartment.id, { ...apartment.properties })
             apartment.properties = { ...apartment.properties, ...this._properties }
         })
-        this._editor.onApartmentSelected()
+        this._editor.onObjectSelected()
     }
 
     undo(): void {
@@ -27,7 +27,7 @@ export class UpdateAppartmentPropertiesCommand implements EditorCommand {
             const savedProperties = assertDefined(this._savedProperties.get(apartment.id))
             apartment.properties = savedProperties
         })
-        this._editor.onApartmentSelected()
+        this._editor.onObjectSelected()
     }
 
     dispose(): void {

@@ -1,13 +1,13 @@
-import { Apartment } from '../entities/Apartment'
 import { Editor } from '../Editor/Editor'
 import { APoint } from '../types'
 import { EditorCommand } from './EditorCommand'
+import { EditorObject } from '../entities/EditorObject'
 
-export class MoveAppartmentCommand implements EditorCommand {
+export class MoveObjectCommand implements EditorCommand {
 
     constructor(
         private _editor: Editor,
-        private _apartment: Apartment,
+        private _object: EditorObject,
         private _config: {
             startPos: APoint,
             endPos: APoint,
@@ -17,12 +17,12 @@ export class MoveAppartmentCommand implements EditorCommand {
 
     execute(): void {
         const { x, y } = this._config.endPos
-        this._apartment.container.position.set(x, y)
+        this._object.container.position.set(x, y)
     }
 
     undo(): void {
         const { x, y } = this._config.startPos
-        this._apartment.container.position.set(x, y)
+        this._object.container.position.set(x, y)
     }
 
 

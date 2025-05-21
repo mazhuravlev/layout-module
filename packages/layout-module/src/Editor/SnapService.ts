@@ -1,8 +1,6 @@
 import { Container, Graphics } from 'pixi.js'
-import { APoint, ALine, IDisposable, TPoints } from '../types'
-import { $debugConfig, $snapConfig, fromEffectorStore } from '../components/events'
-import { Subscription } from 'rxjs'
-import { identity } from '../func'
+import { APoint, ALine, IDisposable, TPoints, ASubscription } from '../types'
+import { $debugConfig, $snapConfig } from '../components/events'
 import { areLinesCollinear, pointsToLines } from '../geometryFunc'
 
 const emptyResult = { snapped: false } as const
@@ -19,7 +17,7 @@ type SnapResult =
 
 export class SnapService implements IDisposable {
     private _drawDebug = $debugConfig.getState().drawDebug
-    private _subscriptions: Subscription[] = []
+    private _subscriptions: ASubscription[] = []
     private _config: ReturnType<typeof $snapConfig.getState>
     private _snapIndicator = new Graphics()
     private _disposed = false
@@ -31,8 +29,8 @@ export class SnapService implements IDisposable {
     ) {
         _stage.addChild(this._snapIndicator)
         this._config = $snapConfig.getState()
-        this._subscriptions.push(fromEffectorStore($debugConfig, x => x.drawDebug).subscribe(x => this._drawDebug = x))
-        this._subscriptions.push(fromEffectorStore($snapConfig, identity).subscribe(x => this._config = x))
+        this._subscriptions.push($debugConfig.watch(x => this._drawDebug = x.drawDebug))
+        this._subscriptions.push($snapConfig.watch(x => this._config = x))
     }
 
     /**
