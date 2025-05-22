@@ -177,9 +177,11 @@ export class Editor {
                     this.onObjectSelected()
                 })
         )
-        this._subscriptions.push(this._eventService.mouseenter$.subscribe(e => {
-            e.target.setHovered(true)
-        }))
+        this._subscriptions.push(this._eventService.mouseenter$
+            .pipe(filter(() => this._dragConfig === null))
+            .subscribe(e => {
+                e.target.setHovered(true)
+            }))
         this._subscriptions.push(this._eventService.mouseleave$.subscribe(e => {
             e.target.setHovered(false)
         }))
