@@ -33,6 +33,14 @@ export class SnapService implements IDisposable {
         this._subscriptions.push($snapConfig.watch(x => this._config = x))
     }
 
+    public checkDistanceGridSnap(distance: number): number {
+        const { enable, enableGrid, gridStep } = this._config
+        if (!this._disposed && enable && enableGrid) {
+            return Math.round(distance / gridStep) * gridStep
+        }
+        return distance
+    }
+
     /**
      * Проверяет привязку точки к статическим элементам
      */
@@ -69,10 +77,10 @@ export class SnapService implements IDisposable {
         if (!this._config.enable) return emptyResult
 
         // 1. Проверка привязки к сетке (имеет приоритет)
-        if (this._config.enableGrid) {
-            const gridSnap = this.checkLineToGrid([start, end])
-            if (gridSnap.snapped) return gridSnap
-        }
+        // if (this._config.enableGrid) {
+        //     const gridSnap = this.checkLineToGrid([start, end])
+        //     if (gridSnap.snapped) return gridSnap
+        // }
 
         // // 2. Проверяем оба конца линии
         // const startSnap = this.checkPointSnap(start)

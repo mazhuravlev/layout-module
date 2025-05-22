@@ -7,11 +7,19 @@ import { defaultConfig } from '../Editor/defaultConfig'
 import { isVerticalLine, lineCenter, lineLength, makeLineHitbox, shiftLine } from '../geometryFunc'
 import { EditorObject } from './EditorObject'
 
+const wallSettings = {
+    size: {
+        fontSize: 10,
+        fontColor: 0x660000,
+        offset: 4,
+    }
+}
+
 export class Wall extends EditorObject {
     private _drawDebug = $debugConfig.getState().drawDebug
     private _container = new Container()
     private _graphics = new Graphics()
-    private _sizeText = new Text({ resolution: 2, style: { fontSize: 10, fill: 0x660000 } })
+    private _sizeText = new Text({ resolution: 2, style: { fontSize: wallSettings.size.fontSize, fill: wallSettings.size.fontColor } })
     private _config = defaultConfig
     private _subscriptions: ASubscription[] = []
     private _showSize: boolean = true
@@ -87,14 +95,16 @@ export class Wall extends EditorObject {
         const { _sizeText } = this
         if (this._showSize) {
             this._container.addChild(_sizeText)
-            const sizePos = lineCenter(shiftLine(this._points, 4))
+            const sizePos = lineCenter(shiftLine(this._points, wallSettings.size.offset))
             _sizeText.position.set(sizePos.x, sizePos.y)
             _sizeText.text = (lineLength(this._points) * 100).toFixed(0)
-            const vertical = isVerticalLine(this._points)
-            if (vertical === 1) {
-                _sizeText.angle = 90
-            } else if (vertical === -1) {
-                _sizeText.angle = -90
+            switch (isVerticalLine(this._points)) {
+                case 1:
+                    _sizeText.angle = 90
+                    break
+                case -1:
+                    _sizeText.angle = -90
+                    break
             }
         } else {
             this._container.removeChild(_sizeText)

@@ -1,4 +1,4 @@
-import { Application, Container, FederatedEventMap, Graphics, ViewContainer } from 'pixi.js'
+import { Application, Container, FederatedEventMap, Graphics, Polygon, ViewContainer } from 'pixi.js'
 import { ALine, APoint, TPoints } from './types'
 import { fromEventPattern, Observable } from 'rxjs'
 import { pairwise } from './func'
@@ -345,3 +345,6 @@ export const isVerticalLine = (line: TPoints): 1 | -1 | false => {
   }
   return false
 }
+
+export const ensureClockwisePolygon = (points: APoint[]) =>
+  (new Polygon(points)).isClockwise() ? points : [...points].reverse()

@@ -1,6 +1,6 @@
-import { Container, Graphics, Text } from 'pixi.js'
+import { Container, Graphics, Polygon, Text } from 'pixi.js'
 import { assert, pairwise } from '../func'
-import { getPolygonCenter, getPolygonArea, formatArea, findCircularAdjacentElements, closePolygon } from '../geometryFunc'
+import { getPolygonCenter, getPolygonArea, formatArea, findCircularAdjacentElements, closePolygon, ensureClockwisePolygon } from '../geometryFunc'
 import { APoint, TPoints, CoordType, ALine } from '../types'
 import { EventService } from '../EventService/EventService'
 import { defaultConfig } from '../Editor/defaultConfig'
@@ -64,7 +64,7 @@ export class Apartment extends EditorObject {
     ) {
         super(_eventService)
         this._config = { ...defaultConfig, ...config }
-        this.init(points)
+        this.init(ensureClockwisePolygon(points))
     }
 
     public rotate() {
