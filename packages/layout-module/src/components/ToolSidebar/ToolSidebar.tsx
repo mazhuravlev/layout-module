@@ -5,10 +5,11 @@ import { AppContext } from '../../AppContext'
 import styles from './ToolSidebar.module.scss'
 import { Button } from '../Button/Button'
 import { useStoreMap, useUnit } from 'effector-react'
-import { filter, fromEvent } from 'rxjs'
+import { fromEvent } from 'rxjs'
 import { ApartmentTemplateComponent } from './ApartmentTemplateComponent'
 
 const keyMap = [
+  { code: 'Delete', fn: () => deleteSelected() },
   { code: 'KeyA', fn: () => toggleShowWallSize() },
   { code: 'KeyS', fn: () => toggleSnap() },
   { code: 'KeyD', fn: () => toggleDrawDebug() },
@@ -25,13 +26,6 @@ export const ToolSidebar: React.FC<ToolSidebarProps> = () => {
   const snapConfig = useUnit($snapConfig)
   const sizeConfig = useUnit($sizeConfig)
   const { apartmentTemplates } = context
-
-  useEffect(() => {
-    const sDelete = fromEvent<KeyboardEvent>(document, 'keydown', { passive: true })
-      .pipe(filter(e => e.key === 'Delete'))
-      .subscribe(() => deleteSelected())
-    sDelete.unsubscribe()
-  }, [])
 
   useEffect(() => {
     const s = fromEvent<KeyboardEvent>(document, 'keydown', { passive: false })
