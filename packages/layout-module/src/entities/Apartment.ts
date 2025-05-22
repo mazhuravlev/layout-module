@@ -71,7 +71,7 @@ export class Apartment extends EditorObject {
     ) {
         super(_eventService)
         this._config = { ...defaultConfig, ...config }
-        const points = closePolygon(_points.map(mapPoint(Units.fromMm)))
+        const points = _points.map(mapPoint(Units.fromMm))
         this.init(ensureClockwisePolygon(points))
     }
 
@@ -84,7 +84,7 @@ export class Apartment extends EditorObject {
         this._container.addChild(this._areaGraphics)
         this.setupAreaGraphics()
         this.setupLabels()
-        this.setupWalls(points)
+        this.setupWalls(closePolygon(points))
         this.render()
     }
 

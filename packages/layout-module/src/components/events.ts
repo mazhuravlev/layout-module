@@ -7,11 +7,11 @@ import { ApartmentProperties } from '../entities/ApartmentProperties'
 
 const returnPayload = returnSecondArg
 
-export const undoEvent = createEvent<void>()
-export const redoEvent = createEvent<void>()
-export const addApartmentEvent = createEvent<ApartmentTemplate>()
-export const deleteSelectedEvent = createEvent<void>()
-export const zoomToExtentsEvent = createEvent<void>()
+export const undo = createEvent<void>()
+export const redo = createEvent<void>()
+export const addApartment = createEvent<ApartmentTemplate>()
+export const deleteSelected = createEvent<void>()
+export const zoomToExtents = createEvent<void>()
 export const addLLU = createEvent<void>()
 
 export const apartmentSelected = createEvent<ApartmentDto[]>()
@@ -28,7 +28,7 @@ export const toggleDrawDebug = createEvent<void>()
 $debugConfig.on(toggleDrawDebug, (state, _payload) => ({ ...state, drawDebug: !state.drawDebug }))
 persist({ store: $debugConfig, key: 'debugConfig.v1' })
 
-interface SnapConfig {
+export interface SnapConfig {
     enable: boolean
     enableGrid: boolean
     enablePoint: boolean

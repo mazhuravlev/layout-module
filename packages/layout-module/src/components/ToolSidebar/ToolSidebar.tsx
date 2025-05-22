@@ -1,12 +1,23 @@
 import { use, useEffect } from 'react'
 import { ToolSidebarProps } from './ToolSidebarProps'
-import { addApartmentEvent, $debugConfig, deleteSelectedEvent, $snapConfig, toggleDrawDebug, toggleSnap, zoomToExtentsEvent, toggleSnapGrid, toggleSnapPoint, toggleSnapLine, setGridStep, undoEvent, redoEvent, addLLU, rotateSelected, toggleShowWallSize, $sizeConfig } from '../events'
+import { addApartment, $debugConfig, deleteSelected, $snapConfig, toggleDrawDebug, toggleSnap, zoomToExtents, toggleSnapGrid, toggleSnapPoint, toggleSnapLine, setGridStep, undo, redo, addLLU, rotateSelected, toggleShowWallSize, $sizeConfig } from '../events'
 import { AppContext } from '../../AppContext'
 import styles from './ToolSidebar.module.scss'
 import { Button } from '../Button/Button'
 import { useStoreMap, useUnit } from 'effector-react'
 import { filter, fromEvent } from 'rxjs'
 import { ApartmentTemplateComponent } from './ApartmentTemplateComponent'
+
+const keyMap = [
+  { code: 'KeyA', fn: () => toggleShowWallSize() },
+  { code: 'KeyS', fn: () => toggleSnap() },
+  { code: 'KeyD', fn: () => toggleDrawDebug() },
+  { code: 'KeyQ', fn: () => toggleSnapGrid() },
+  { code: 'KeyW', fn: () => toggleSnapPoint() },
+  { code: 'KeyE', fn: () => toggleSnapLine() },
+  { code: 'KeyZ', ctrl: true, preventDefault: true, fn: () => undo() },
+  { code: 'KeyR', ctrl: true, preventDefault: true, fn: () => redo() },
+]
 
 export const ToolSidebar: React.FC<ToolSidebarProps> = () => {
   const context = use(AppContext)
@@ -18,65 +29,17 @@ export const ToolSidebar: React.FC<ToolSidebarProps> = () => {
   useEffect(() => {
     const sDelete = fromEvent<KeyboardEvent>(document, 'keydown', { passive: true })
       .pipe(filter(e => e.key === 'Delete'))
-      .subscribe(() => deleteSelectedEvent())
-    const sDebug = fromEvent<KeyboardEvent>(document, 'keydown', { passive: true })
-      .pipe(filter(e => e.code === 'KeyD'))
-      .subscribe(() => toggleDrawDebug())
-    return () => {
-      sDelete.unsubscribe()
-      sDebug.unsubscribe()
-    }
+      .subscribe(() => deleteSelected())
+    sDelete.unsubscribe()
   }, [])
-
-  useEffect(() => {
-    const s = fromEvent<KeyboardEvent>(document, 'keydown', { passive: true })
-      .pipe(filter(e => e.code.startsWith('Digit')))
-      .subscribe(e => {
-        const t = apartmentTemplates[Number(e.key) - 1]
-        if (t) addApartmentEvent(t)
-      })
-    return () => s.unsubscribe()
-  }, apartmentTemplates)
 
   useEffect(() => {
     const s = fromEvent<KeyboardEvent>(document, 'keydown', { passive: false })
-      .pipe(filter(e => e.ctrlKey))
       .subscribe(e => {
-        switch (e.code) {
-          case 'KeyZ':
-            undoEvent()
-            break
-          case 'KeyR':
-            e.preventDefault()
-            redoEvent()
-            break
-        }
-      })
-    return () => s.unsubscribe()
-  }, [])
-
-  useEffect(() => {
-    const s = fromEvent<KeyboardEvent>(document, 'keydown', { passive: true })
-      .subscribe(e => {
-        switch (e.code) {
-          case 'KeyQ':
-            setGridStep(snapConfig.gridStep + 10)
-            break
-          case 'KeyA':
-            setGridStep(snapConfig.gridStep - 10)
-            break
-          case 'KeyW':
-            toggleSnapGrid()
-            break
-          case 'KeyE':
-            toggleSnapPoint()
-            break
-          case 'KeyR':
-            toggleSnapLine()
-            break
-          case 'KeyS':
-            toggleSnap()
-            break
+        const r = keyMap.find(x => x.code === e.code)
+        if (r && !!r.ctrl === e.ctrlKey) {
+          r.fn()
+          if (r.preventDefault) e.preventDefault()
         }
       })
     return () => s.unsubscribe()
@@ -87,22 +50,22 @@ export const ToolSidebar: React.FC<ToolSidebarProps> = () => {
       <div>
         <Button
           title='Отменить'
-          onClick={() => undoEvent()}>
+          onClick={() => undo()}>
           ↩️
         </Button>
         <Button
           title='Повторить'
-          onClick={() => redoEvent()}>
+          onClick={() => redo()}>
           ↪️
         </Button>
         <Button
           title='Показать всё'
-          onClick={() => zoomToExtentsEvent()}>
+          onClick={() => zoomToExtents()}>
           🔎
         </Button>
         <Button
           title='Удалить выбранное'
-          onClick={() => deleteSelectedEvent()}>
+          onClick={() => deleteSelected()}>
           🗑️
         </Button>
         <Button
@@ -156,7 +119,7 @@ export const ToolSidebar: React.FC<ToolSidebarProps> = () => {
         {apartmentTemplates.map((template) => (
           <li
             key={template.name}
-            onClick={() => addApartmentEvent(template)}>
+            onClick={() => addApartment(template)}>
             <ApartmentTemplateComponent template={template} />
           </li>
         ))}

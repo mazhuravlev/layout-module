@@ -1,7 +1,8 @@
 import { Container, Graphics } from 'pixi.js'
 import { APoint, ALine, IDisposable, TPoints, ASubscription } from '../types'
-import { $debugConfig, $snapConfig } from '../components/events'
+import { $debugConfig, $snapConfig, SnapConfig } from '../components/events'
 import { areLinesCollinear, pointsToLines } from '../geometryFunc'
+import { Units } from '../Units'
 
 const emptyResult = { snapped: false } as const
 
@@ -18,7 +19,7 @@ type SnapResult =
 export class SnapService implements IDisposable {
     private _drawDebug = $debugConfig.getState().drawDebug
     private _subscriptions: ASubscription[] = []
-    private _config: ReturnType<typeof $snapConfig.getState>
+    private _config: SnapConfig
     private _snapIndicator = new Graphics()
     private _disposed = false
 
@@ -31,14 +32,6 @@ export class SnapService implements IDisposable {
         this._config = $snapConfig.getState()
         this._subscriptions.push($debugConfig.watch(x => this._drawDebug = x.drawDebug))
         this._subscriptions.push($snapConfig.watch(x => this._config = x))
-    }
-
-    public checkDistanceGridSnap(distance: number): number {
-        const { enable, enableGrid, gridStep } = this._config
-        if (!this._disposed && enable && enableGrid) {
-            return Math.round(distance / gridStep) * gridStep
-        }
-        return distance
     }
 
     /**
@@ -67,6 +60,16 @@ export class SnapService implements IDisposable {
         }
 
         return emptyResult
+    }
+
+    public applyGridSnap(distance: number) {
+        if (this._disposed) return distance
+        if (!this._config.enable) return distance
+        if (!this._config.enableGrid) return distance
+        const zoom = this._stage.scale.x
+        const gridStep = Units.fromMm(this._config.gridStep) * zoom
+        const result = Math.round(distance / gridStep) * gridStep
+        return result
     }
 
     /**

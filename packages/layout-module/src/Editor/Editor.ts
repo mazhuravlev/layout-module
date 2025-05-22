@@ -5,7 +5,7 @@ import { addVectors, ALine, aPoint, APoint, ASubscription, mapLine, mapPoint, su
 import { BlockDragConfig, DragConfig, WallDragConfig } from './dragConfig'
 import { Apartment } from '../entities/Apartment'
 import { EventService } from '../EventService/EventService'
-import { addApartmentEvent, deleteSelectedEvent, redoEvent, apartmentSelected, undoEvent, zoomToExtentsEvent, setApartmentProperties, addLLU, rotateSelected, sectionSettings } from '../components/events'
+import { addApartment, deleteSelected, redo, apartmentSelected, undo, zoomToExtents, setApartmentProperties, addLLU, rotateSelected, sectionSettings } from '../components/events'
 import { assertDefined, assertUnreachable, offsetPolygon, toError } from '../func'
 import { MouseDownEvent, MouseUpEvent } from '../EventService/eventTypes'
 import { catchError, EMPTY, filter, fromEvent, map, mergeMap, of, switchMap, take, timeout } from 'rxjs'
@@ -108,16 +108,16 @@ export class Editor {
    */
     private setupEvents() {
         this._subscriptions.push(...[
-            addApartmentEvent.watch((shape) => {
+            addApartment.watch((shape) => {
                 this.executeCommand(new AddObjectCommand(this, new Apartment(shape.points, this._eventService)))
             }),
             addLLU.watch(() => {
                 this.executeCommand(new AddObjectCommand(this, new GeometryBlock(this._eventService)))
             }),
-            deleteSelectedEvent.watch(() => this.deleteSelected()),
-            zoomToExtentsEvent.watch(() => this.zoomToExtents()),
-            undoEvent.watch(() => this.undo()),
-            redoEvent.watch(() => this.redo()),
+            deleteSelected.watch(() => this.deleteSelected()),
+            zoomToExtents.watch(() => this.zoomToExtents()),
+            undo.watch(() => this.undo()),
+            redo.watch(() => this.redo()),
             setApartmentProperties.watch((properties) => {
                 const selectedApartments = this.selectedApartments
                 if (selectedApartments.length > 0) {
@@ -279,7 +279,7 @@ export class Editor {
     private dragWall(_dragConfig: WallDragConfig, pixiEvent: FederatedPointerEvent) {
         const { target: wall, snapService } = _dragConfig
         const distance = distanceFromPointToLine(_dragConfig.originalWallGlobalPoints, pixiEvent.global)
-        const newLine = shiftLine(_dragConfig.originalWallGlobalPoints, -1 * snapService.checkDistanceGridSnap(distance))
+        const newLine = shiftLine(_dragConfig.originalWallGlobalPoints, -1 * snapService.applyGridSnap(distance))
         const snapResult = snapService.checkLineSnap(newLine)
         if (snapResult.snapped) {
             snapService.showSnapIndicator(snapResult.snapPoint)
