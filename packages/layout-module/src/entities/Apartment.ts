@@ -1,5 +1,5 @@
 import { Container, Graphics, Text } from 'pixi.js'
-import { assert, pairwise } from '../func'
+import { assert, darkenColor, pairwise } from '../func'
 import { getPolygonCenter, getPolygonArea, formatArea, findCircularAdjacentElements, closePolygon, ensureClockwisePolygon } from '../geometryFunc'
 import { APoint, TPoints, CoordType, ALine, mapPoint } from '../types'
 import { EventService } from '../EventService/EventService'
@@ -162,7 +162,7 @@ export class Apartment extends EditorObject {
         const { _areaGraphics, _areaLabel, _typeLabel, _euroLabel, points } = this
         _areaGraphics.clear()
         _areaGraphics.poly(this.points)
-        _areaGraphics.fill({ color: this.getFillColor() })
+        _areaGraphics.fill({ color: this.addFilter(this.getFillColor()) })
 
         const center = getPolygonCenter(points)
         const area = this.calculateArea()
@@ -179,10 +179,21 @@ export class Apartment extends EditorObject {
         _euroLabel.position.set(center.x, center.y + 8)
     }
 
+    private addFilter(color: number): number {
+        if (this._isHovered && this._isSelected) return darkenColor(color, 20)
+        if (this._isHovered) return darkenColor(color, 10)
+        if (this._isSelected) return darkenColor(color, 40)
+        return color
+    }
+
     private getFillColor() {
-        if (this._isHovered) return this._config.hoverFillColor
-        if (this._isSelected) return this._config.selectedFillColor
-        return this._config.fillColor
+        switch (this._properties.bedroomCount) {
+            case 0: return 0xf2c6c6
+            case 1: return 0x7eaff0
+            case 2: return 0xfbefc9
+            case 3: return 0xa9e2c1
+            default: return 0xFFFFFF
+        }
     }
 
     public dispose() {

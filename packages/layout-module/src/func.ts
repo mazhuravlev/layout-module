@@ -134,3 +134,24 @@ export function normalize(v: APoint): APoint {
   const length = Math.sqrt(v.x ** 2 + v.y ** 2)
   return length > 0 ? { x: v.x / length, y: v.y / length } : { x: 0, y: 0 }
 }
+
+/**
+ * Затемняет HEX-цвет на указанное количество пунктов.
+ * @param {number} color - Исходный цвет в формате 0xRRGGBB.
+ * @param {number} amount - На сколько пунктов затемнить (0–255).
+ * @returns {number} Затемненный цвет в формате 0xRRGGBB.
+ */
+export function darkenColor(color: number, amount: number) {
+  // Извлекаем компоненты RGB
+  let r = (color >> 16) & 0xFF
+  let g = (color >> 8) & 0xFF
+  let b = color & 0xFF
+
+  // Затемняем каждый компонент (не опускаясь ниже 0)
+  r = Math.max(0, r - amount)
+  g = Math.max(0, g - amount)
+  b = Math.max(0, b - amount)
+
+  // Собираем обратно в HEX
+  return (r << 16) | (g << 8) | b
+}
