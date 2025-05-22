@@ -143,7 +143,7 @@ export const ToolSidebar: React.FC<ToolSidebarProps> = () => {
           >Линии</Button>
         </div>
         <div style={{ marginTop: 8 }}>
-          <label>Шаг сетки
+          <label>Шаг сетки, мм
             <input type='number'
               style={{ width: 50, marginLeft: 8, border: 'none' }}
               value={snapConfig.gridStep}

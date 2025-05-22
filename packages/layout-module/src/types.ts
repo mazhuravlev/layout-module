@@ -28,6 +28,9 @@ export interface ALine {
 export const mapLine = (mapFn: (x: APoint) => APoint) => (a: ALine): ALine =>
     ({ start: mapFn(a.start), end: mapFn(a.end) })
 
+export const mapPoint = (mapFn: (x: number) => number) => (a: APoint): APoint =>
+    ({ x: mapFn(a.x), y: mapFn(a.y) })
+
 export interface ApartmentTemplate {
     name: string
     points: APoint[]

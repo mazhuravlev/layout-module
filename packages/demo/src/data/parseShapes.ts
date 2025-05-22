@@ -22,8 +22,8 @@ function convertRawShapeToParsed(raw: RawShapeData): ApartmentShape {
   const minX = Math.min(...xs)
   const minY = Math.min(...ys)
 
-  // например, уменьшаем в 10 раз
-  const scale = 0.1
+  // переводим размеры в мм
+  const scale = 10
 
   // 2) Собираем points (x1,y1,x2,y2,...) в локальных координатах
   const points = raw.Vector3.flatMap((v) => {

@@ -1,7 +1,7 @@
-import { Container, Graphics, Polygon, Text } from 'pixi.js'
+import { Container, Graphics, Text } from 'pixi.js'
 import { assert, pairwise } from '../func'
 import { getPolygonCenter, getPolygonArea, formatArea, findCircularAdjacentElements, closePolygon, ensureClockwisePolygon } from '../geometryFunc'
-import { APoint, TPoints, CoordType, ALine } from '../types'
+import { APoint, TPoints, CoordType, ALine, mapPoint } from '../types'
 import { EventService } from '../EventService/EventService'
 import { defaultConfig } from '../Editor/defaultConfig'
 import { Wall } from './Wall'
@@ -9,6 +9,7 @@ import { ApartmentProperties, defaultApartmentProperties } from './ApartmentProp
 import { ApartmentDto } from './ApartmentDto'
 import { calculateApartmentType, exampleFlatmix } from '../Editor/flatMix'
 import { EditorObject } from './EditorObject'
+import { Units } from '../Units'
 
 export class Apartment extends EditorObject {
     private _container = new Container()
@@ -57,13 +58,20 @@ export class Apartment extends EditorObject {
         }
     }
 
+    /**
+     * 
+     * @param _points Координаты точек в мм
+     * @param _eventService 
+     * @param config 
+     */
     constructor(
-        points: APoint[],
+        _points: APoint[],
         _eventService: EventService,
         config: Partial<typeof defaultConfig> = {}
     ) {
         super(_eventService)
         this._config = { ...defaultConfig, ...config }
+        const points = closePolygon(_points.map(mapPoint(Units.fromMm)))
         this.init(ensureClockwisePolygon(points))
     }
 
@@ -71,8 +79,7 @@ export class Apartment extends EditorObject {
         this.container.angle += 90
     }
 
-    private init(_points: APoint[]) {
-        const points = closePolygon(_points)
+    private init(points: APoint[]) {
         this._container.addChild(this._areaLabel)
         this._container.addChild(this._areaGraphics)
         this.setupAreaGraphics()

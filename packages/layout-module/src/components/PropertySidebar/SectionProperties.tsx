@@ -6,9 +6,9 @@ export const SectionProperties: React.FC = () => {
 
     return <div>
         <p>Свойства секции</p>
-        <label>Офсет <input type='number'
-            value={-offset}
-            onChange={e => setSectionOffset(-Number(e.target.value))} />
+        <label>Офсет, мм<input type='number'
+            value={offset}
+            onChange={e => setSectionOffset(Number(e.target.value))} />
         </label>
     </div>
 }

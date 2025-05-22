@@ -1,7 +1,7 @@
 import { Application, FederatedPointerEvent, Graphics } from 'pixi.js'
 import { calculateZoomToExtents, distanceFromPointToLine, drawOutline, fromPixiEvent, pointsToLines, shiftLine } from '../geometryFunc'
 import { Logger } from '../logger'
-import { addVectors, ALine, aPoint, APoint, ASubscription, mapLine, subtractVectors } from '../types'
+import { addVectors, ALine, aPoint, APoint, ASubscription, mapLine, mapPoint, subtractVectors } from '../types'
 import { BlockDragConfig, DragConfig, WallDragConfig } from './dragConfig'
 import { Apartment } from '../entities/Apartment'
 import { EventService } from '../EventService/EventService'
@@ -20,13 +20,18 @@ import { Wall } from '../entities/Wall'
 import { UpdateApartmentPropertiesCommand } from '../commands/UpdateApartmentPropertiesCommand'
 import { GeometryBlock } from '../entities/GeometryBlock'
 import { EditorObject } from '../entities/EditorObject'
+import { Units } from '../Units'
 
 export class Editor {
     private _app = new Application()
     private _logger = new Logger('Editor')
     private _eventService = new EventService()
 
-    private _sectionOutline: { graphics: Graphics; offsetGraphics: Graphics; points: APoint[] } | null = null
+    private _sectionOutline: { graphics: Graphics; offsetGraphics: Graphics; points: APoint[] } = {
+        graphics: new Graphics(),
+        offsetGraphics: new Graphics(),
+        points: [],
+    }
     private _editorObjects = new Map<string, EditorObject>()
     private _selectedObjects = new Set<EditorObject>()
     private _dragConfig: | DragConfig | null = null
@@ -347,7 +352,7 @@ export class Editor {
 
     private getSectionOutlineGlobalPoints() {
         return offsetPolygon(
-            assertDefined(this._sectionOutline).points,
+            this._sectionOutline.points,
             sectionSettings.getState().offset)
             .map(x => aPoint(this.app.stage.toGlobal(x)))
     }
@@ -415,20 +420,25 @@ export class Editor {
         this._eventService.dispose()
     }
 
-    public setSectionOutline(points: APoint[]) {
-        const graphics = new Graphics()
-        drawOutline(graphics, points, undefined, { color: 0xaaaaaa })
+    /**
+     * Задать контур секции
+     * @param points Координаты точек в миллиметрах
+     */
+    public setSectionOutline(_points: APoint[]) {
+        const points = _points.map(mapPoint(Units.fromMm))
+        const { graphics, offsetGraphics } = this._sectionOutline
         this.app.stage.addChild(graphics)
-        const offsetGraphics = new Graphics()
         this.app.stage.addChild(offsetGraphics)
-        this._sectionOutline = { graphics, points, offsetGraphics }
+        drawOutline(graphics, points, undefined, { color: 0xaaaaaa })
+        this._sectionOutline.points = points
         this.renderSectionOffset(sectionSettings.getState().offset)
     }
 
     private renderSectionOffset(offset: number) {
-        const { _sectionOutline } = this
-        if (!_sectionOutline) return
-        drawOutline(_sectionOutline.offsetGraphics, offsetPolygon(_sectionOutline.points, offset))
+        if (this._sectionOutline.points.length < 4) return
+        drawOutline(
+            this._sectionOutline.offsetGraphics,
+            offsetPolygon(this._sectionOutline.points, -1 * Units.fromMm(offset)))
     }
 
     public addObject(o: EditorObject) {
@@ -471,7 +481,7 @@ export class Editor {
         app.render()
 
         const { centerX, centerY, scale } = calculateZoomToExtents(app, 30, [
-            assertDefined(this._sectionOutline).graphics
+            this._sectionOutline.graphics
         ])
         app.stage.updateTransform({
             scaleX: scale,

@@ -47,7 +47,7 @@ export const $snapConfig = createStore<SnapConfig>({
     angleSnap: 90,
     pointThreshold: 10,
     lineThreshold: 10,
-    gridStep: 30
+    gridStep: 300
 })
 export const toggleSnap = createEvent<void>()
 export const toggleSnapGrid = createEvent<void>()
@@ -61,7 +61,7 @@ $snapConfig.on(toggleSnapLine, (state, _payload) => ({ ...state, enableLine: !st
 $snapConfig.on(setGridStep, (state, payload) => ({ ...state, gridStep: payload < 0 ? 1 : payload }))
 persist({ store: $snapConfig, key: 'snapConfig.v3' })
 
-export const sectionSettings = createStore({ offset: -10 })
+export const sectionSettings = createStore({ offset: 500 })
 export const setSectionOffset = createEvent<number>()
 sectionSettings.on(setSectionOffset, (state, payload) => ({ ...state, offset: payload }))
 

@@ -5,8 +5,6 @@ import { useState } from 'react'
 
 const apartmentTemplates = parseShapes(rawShapesJson)
 
-const scaleFactor = 1 / 100
-
 const sectionOutline = [
   { x: 0, y: 0 },
   { x: 0, y: 18000 },
@@ -22,12 +20,10 @@ function App() {
       <button onClick={() => setShowModule(!showModule)}>Toggle module</button>
       <div style={{ height: '95vh', width: '98vw', border: '2px solid black' }}>
         {showModule && <LayoutModule
+          units={'mm'}
           apartmentTemplates={apartmentTemplates}
           section={{
-            outline: sectionOutline.map((x) => ({
-              x: x.x * scaleFactor,
-              y: x.y * scaleFactor,
-            })),
+            outline: sectionOutline,
           }}
         />
         }
