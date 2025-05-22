@@ -6,6 +6,7 @@ import { $debugConfig, $sizeConfig } from '../components/events'
 import { defaultConfig } from '../Editor/defaultConfig'
 import { isVerticalLine, lineCenter, lineLength, makeLineHitbox, shiftLine } from '../geometryFunc'
 import { EditorObject } from './EditorObject'
+import { GlowFilter } from 'pixi-filters'
 
 const wallSettings = {
     size: {
@@ -14,6 +15,12 @@ const wallSettings = {
         offset: 4,
     }
 }
+
+const glowFilter = new GlowFilter({
+    distance: 10,
+    outerStrength: 2,
+    color: 0x00FF00,
+})
 
 export class Wall extends EditorObject {
     private _drawDebug = $debugConfig.getState().drawDebug
@@ -78,7 +85,7 @@ export class Wall extends EditorObject {
         const [p1, p2] = this._points
         const { _graphics } = this
         const HITBOX_WIDTH = 10
-        const hitbox = makeLineHitbox(p1, p2, HITBOX_WIDTH, HITBOX_WIDTH / 2)
+        const hitbox = makeLineHitbox(p1, p2, HITBOX_WIDTH, 0)
         _graphics.clear()
         if (this._drawDebug) {
             _graphics.poly(hitbox)
@@ -87,10 +94,11 @@ export class Wall extends EditorObject {
         _graphics.moveTo(p1.x, p1.y)
         _graphics.lineTo(p2.x, p2.y)
         _graphics.stroke({
-            color: this._isHovered ? this._config.hoverStrokeColor : this._config.strokeColor,
+            color: this._config.strokeColor,
             width: 1,
             pixelLine: true,
         })
+        _graphics.filters = this._isHovered ? [glowFilter] : []
         _graphics.hitArea = new Polygon(hitbox)
         const { _sizeText } = this
         if (this._showSize) {
