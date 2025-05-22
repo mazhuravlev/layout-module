@@ -1,5 +1,4 @@
-// src/utils/parseShapes.ts
-import type { ApartmentShape } from 'layout-module'
+import type { ApartmentTemplate } from 'layout-module'
 
 // Тип, соответствующий одному объекту из JSON
 interface RawShapeData {
@@ -15,7 +14,7 @@ interface RawShapeData {
  * При желании можно масштабировать (scale)
  * и смещать (приводить минимум к 0).
  */
-function convertRawShapeToParsed(raw: RawShapeData): ApartmentShape {
+function convertRawShapeToParsed(raw: RawShapeData): ApartmentTemplate {
   // 1) найдём minX/minY, если хотим сдвигать
   const xs = raw.Vector3.map((v) => v.X)
   const ys = raw.Vector3.map((v) => v.Y)
@@ -42,6 +41,6 @@ function convertRawShapeToParsed(raw: RawShapeData): ApartmentShape {
  * Главная функция, которую вы вызываете, чтобы преобразовать
  * массив объектов из вашего JSON в массив ShapeConfig
  */
-export function parseShapes(data: RawShapeData[]): ApartmentShape[] {
+export function parseShapes(data: RawShapeData[]): ApartmentTemplate[] {
   return data.map(convertRawShapeToParsed)
 }
