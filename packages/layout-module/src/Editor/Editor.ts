@@ -171,6 +171,7 @@ export class Editor {
                         this.deselectAll()
                         this._selectedObjects.add(target)
                         target.setSelected(true)
+                        target.container.parent.addChild(target.container) // bring to front
                     } else if (ctrlKey || shiftKey) {
                         // Мультиселект: добавляем/удаляем квартиру из выбора
                         if (this._selectedObjects.has(target)) {
