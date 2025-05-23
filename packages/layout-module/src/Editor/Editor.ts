@@ -6,7 +6,7 @@ import { BlockDragConfig, DragConfig, WallDragConfig } from './dragConfig'
 import { Apartment } from '../entities/Apartment'
 import { EventService } from '../EventService/EventService'
 import { addApartment, deleteSelected, redo, apartmentSelected, undo, zoomToExtents, setApartmentProperties, addLLU, rotateSelected, sectionSettings, flipSelected } from '../components/events'
-import { assert, assertDefined, assertUnreachable, toError } from '../func'
+import { assert, assertDefined, assertUnreachable, empty, isUndefined, not, notEmpty, notNull, toError } from '../func'
 import { MouseDownEvent, MouseUpEvent } from '../EventService/eventTypes'
 import { catchError, EMPTY, filter, fromEvent, map, mergeMap, of, switchMap, take, timeout } from 'rxjs'
 import { SnapService } from './SnapService'
@@ -82,7 +82,7 @@ export class Editor {
     }
 
     public undo() {
-        if (this._undoStack.length > 0) {
+        if (notEmpty(this._undoStack)) {
             const command = this._undoStack.pop()
             if (command) {
                 command.undo()
@@ -92,7 +92,7 @@ export class Editor {
     }
 
     public redo() {
-        if (this._redoStack.length > 0) {
+        if (notEmpty(this._undoStack)) {
             const command = this._redoStack.pop()
             if (command) {
                 command.execute()
@@ -117,17 +117,17 @@ export class Editor {
             undo.watch(() => this.undo()),
             redo.watch(() => this.redo()),
             setApartmentProperties.watch((properties) => {
-                if (this.selectedApartments.length === 0) return
+                if (empty(this.selectedApartments)) return
                 this.executeCommand(new UpdateApartmentPropertiesCommand(this, this.selectedApartments, properties))
             }),
             rotateSelected.watch(angle => {
-                if (this.selectedApartments.length === 0) return
+                if (empty(this.selectedApartments)) return
                 this.executeCommand(new SimpleCommand(
                     () => this.selectedApartments.forEach(x => x.rotate(angle)),
                     () => this.selectedApartments.forEach(x => x.rotate(-angle))))
             }),
             flipSelected.watch(t => {
-                if (this.selectedApartments.length === 0) return
+                if (empty(this.selectedApartments)) return
                 const fn = () => this.selectedApartments.forEach(x => x.flip(t))
                 this.executeCommand(new SimpleCommand(fn, fn))
             }),
@@ -163,29 +163,26 @@ export class Editor {
                     filter(({ target }) => target !== undefined)
                 )
                 .subscribe(({ target, ctrlKey, shiftKey }) => {
-                    if (target === undefined) return
-                    if (!(target instanceof Apartment)) return
-                    if (!ctrlKey && !shiftKey) {
+                    if (isUndefined(target)) return
+                    if (not(target.isSelectable)) return
+                    if (not(ctrlKey && shiftKey)) {
                         // Обычный клик (без модификаторов) → сброс предыдущего выбора
                         this.deselectAll()
-                        this._selectedObjects.add(target)
-                        target.setSelected(true)
+                        this.selectObject(target)
                         target.container.parent.addChild(target.container) // bring to front
                     } else if (ctrlKey || shiftKey) {
                         // Мультиселект: добавляем/удаляем квартиру из выбора
                         if (this._selectedObjects.has(target)) {
-                            this._selectedObjects.delete(target)
-                            target.setSelected(false)
+                            this.deselectObject(target)
                         } else {
-                            this._selectedObjects.add(target)
-                            target.setSelected(true)
+                            this.selectObject(target)
                         }
                     }
                     this.onObjectSelected()
                 })
         )
         this._subscriptions.push(this._eventService.mouseenter$
-            .pipe(filter(() => this._dragConfig === null))
+            .pipe(filter(() => notNull(this._dragConfig)))
             .subscribe(e => {
                 e.target.setHovered(true)
             }))
@@ -390,7 +387,7 @@ export class Editor {
         ]
     }
 
-    private deselectAll() {
+    public deselectAll() {
         if (this._selectedObjects.size) {
             this._selectedObjects.forEach(x => x.setSelected(false))
             this._selectedObjects.clear()
@@ -427,7 +424,10 @@ export class Editor {
      */
     public setSectionOutline(points: APoint[]) {
         assert(this._sectionOutline === null)
-        this._sectionOutline = new SectionOutline(points.map(mapPoint(Units.fromMm)), Units.fromMm(sectionSettings.getState().offset))
+        this._sectionOutline = new SectionOutline(
+            points.map(mapPoint(Units.fromMm)),
+            Units.fromMm(sectionSettings.getState().offset)
+        )
         this.app.stage.addChild(this._sectionOutline.container)
     }
 
@@ -453,9 +453,27 @@ export class Editor {
     }
 
     public deleteSelected() {
-        const selectedApartments = [...this._selectedObjects.values()]
-        this.executeCommand(new DeleteObjectsCommand(this, selectedApartments))
+        const selectedObjects = [...this._selectedObjects.values()]
+        this.executeCommand(new DeleteObjectsCommand(this, selectedObjects))
         this._selectedObjects.clear()
+    }
+
+    private selectObject(object: EditorObject) {
+        this._selectedObjects.add(object)
+        object.setSelected(true)
+    }
+
+    private deselectObject(object: EditorObject) {
+        this._selectedObjects.delete(object)
+        object.setSelected(false)
+    }
+
+    public selectObjects(objects: EditorObject[]) {
+        this.deselectAll()
+        objects.forEach(o => {
+            o.setSelected(true)
+            this._selectedObjects.add(o)
+        })
     }
 
     public zoomToExtents(children?: Container[]) {

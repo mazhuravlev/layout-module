@@ -35,6 +35,8 @@ export class Apartment extends EditorObject {
 
     public get container() { return this._container }
 
+    public get isSelectable() { return true }
+
     /**
      * Точки в локальных координатах
      */

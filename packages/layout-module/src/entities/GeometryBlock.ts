@@ -1,19 +1,33 @@
 import { Container, Graphics, Polygon } from 'pixi.js'
 import data from './llu.json'
 import { EventService } from '../EventService/EventService'
-import { defaultConfig } from '../Editor/defaultConfig'
 import { EditorObject } from './EditorObject'
 import { identity, pairwise, splitIntoPairs } from '../func'
 import { ALine, aPoint } from '../types'
+import { OutlineFilter, GlowFilter } from 'pixi-filters'
+
+const outlineFilter = new OutlineFilter({
+    thickness: 2,
+    color: 0x000000,
+    alpha: 0.5,
+})
+
+const glowFilter = new GlowFilter({
+    color: 0x000000,
+    innerStrength: 0,
+    outerStrength: 2,
+    alpha: 0.5,
+})
 
 export class GeometryBlock extends EditorObject {
     private _outline = new Graphics()
     private _lines = new Graphics()
     private _container = new Container()
     private _data = data
-    private _config: typeof defaultConfig
 
     public get container() { return this._container }
+
+    public get isSelectable() { return true }
 
     public get globalPoints() {
         return splitIntoPairs(this.outlinePointdata).map((point) => this._container.toGlobal(aPoint(point)))
@@ -30,7 +44,6 @@ export class GeometryBlock extends EditorObject {
         _eventService: EventService,
     ) {
         super(_eventService)
-        this._config = { ...defaultConfig }
         this.init()
     }
 
@@ -56,20 +69,18 @@ export class GeometryBlock extends EditorObject {
         })
         _lines.stroke({ color: 0, width: 1, pixelLine: true })
 
+        _outline.poly(this.outlinePointdata)
+        _outline.fill({ color: 0xffffff })
+
         this.render()
     }
 
     render() {
-        const { _container, _outline, _lines } = this
-        _outline.clear()
-        _outline.poly(this.outlinePointdata)
-        _outline.fill({ color: this.getFillColor() })
-    }
-
-    private getFillColor() {
-        if (this._isHovered) return this._config.hoverFillColor
-        if (this._isSelected) return this._config.selectedFillColor
-        return this._config.fillColor
+        const { _outline, _isHovered, _isSelected } = this
+        _outline.filters = [
+            ...(_isHovered ? [glowFilter] : []),
+            ...(_isSelected ? [outlineFilter] : []),
+        ]
     }
 
     public dispose(): void {

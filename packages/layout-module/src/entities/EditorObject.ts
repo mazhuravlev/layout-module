@@ -9,6 +9,8 @@ export abstract class EditorObject implements IDisposable {
     protected _isSelected: boolean = false
     protected _isHovered: boolean = false
 
+    public get isSelectable() { return false }
+
     public get id() { return this._id }
 
     public abstract get container(): Container

@@ -10,11 +10,13 @@ export class DeleteObjectsCommand implements EditorCommand {
     }
 
     execute(): void {
+        this._editor.deselectAll()
         this._objects.forEach(o => this._editor.deleteObject(o))
     }
 
     undo(): void {
         this._objects.forEach(o => this._editor.addObject(o))
+        this._editor.selectObjects(this._objects)
     }
 
     dispose(): void {
