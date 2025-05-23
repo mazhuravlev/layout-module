@@ -42,10 +42,10 @@ export class SnapService implements IDisposable {
         if (!this._config.enable) return emptyResult
 
         // 1. Проверка привязки к сетке (имеет приоритет)
-        if (this._config.enableGrid) {
-            const gridSnap = this.checkPointToGrid(point)
-            if (gridSnap.snapped) return gridSnap
-        }
+        // if (this._config.enableGrid) {
+        //     const gridSnap = this.checkPointToGrid(point)
+        //     if (gridSnap.snapped) return gridSnap
+        // }
 
         // 2. Проверка привязки к точкам
         if (this._config.enablePoint) {

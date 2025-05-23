@@ -1,9 +1,9 @@
-import { Application, Container, FederatedEventMap, Graphics, Polygon, ViewContainer } from 'pixi.js'
+import { Application, Container, FederatedEventMap, Graphics, Polygon } from 'pixi.js'
 import { ALine, APoint, TPoints } from './types'
 import { fromEventPattern, Observable } from 'rxjs'
 import { pairwise } from './func'
 
-export function calculateZoomToExtents(app: Application, padding: number, objects: ViewContainer[]) {
+export function calculateZoomToExtents(app: Application, padding: number, objects: Container[]) {
   let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity
 
   objects.forEach((child) => {

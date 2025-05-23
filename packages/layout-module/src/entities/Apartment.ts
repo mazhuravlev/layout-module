@@ -1,5 +1,5 @@
 import { Container, Graphics, Matrix, Text } from 'pixi.js'
-import { assert, darkenColor, degreesToRadians, pairwise } from '../func'
+import { assert, degreesToRadians, pairwise } from '../func'
 import { getPolygonCenter, getPolygonArea, formatArea, findCircularAdjacentElements, closePolygon, ensureClockwisePolygon } from '../geometryFunc'
 import { APoint, TPoints, CoordType, ALine, mapPoint } from '../types'
 import { EventService } from '../EventService/EventService'
@@ -9,6 +9,20 @@ import { ApartmentDto } from './ApartmentDto'
 import { calculateApartmentType, exampleFlatmix } from '../Editor/flatMix'
 import { EditorObject } from './EditorObject'
 import { Units } from '../Units'
+import { OutlineFilter, GlowFilter } from 'pixi-filters'
+
+const outlineFilter = new OutlineFilter({
+    thickness: 2,
+    color: 0x000000,
+    alpha: 0.5,
+})
+
+const glowFilter = new GlowFilter({
+    color: 0x000000,
+    innerStrength: 0,
+    outerStrength: 2,
+    alpha: 0.5,
+})
 
 export class Apartment extends EditorObject {
     private _container = new Container()
@@ -44,11 +58,7 @@ export class Apartment extends EditorObject {
         return this.container.parent.toGlobal(this.container.position)
     }
 
-    public get properties() { return this._properties }
-
-    public set properties(properties: ApartmentProperties) {
-        this._properties = properties
-    }
+    public get properties(): ApartmentProperties { return this._properties }
 
     public get dto(): ApartmentDto {
         return {
@@ -72,6 +82,11 @@ export class Apartment extends EditorObject {
         super(_eventService)
         const points = _points.map(mapPoint(Units.fromMm))
         this.init(ensureClockwisePolygon(points))
+    }
+
+    public setProperties(properties: Partial<ApartmentProperties>) {
+        this._properties = { ...this._properties, ...properties }
+        this.render()
     }
 
     /**
@@ -184,10 +199,16 @@ export class Apartment extends EditorObject {
     }
 
     render() {
-        const { _areaGraphics, _areaLabel, _typeLabel, _euroLabel } = this
+        const { _areaGraphics, _areaLabel, _typeLabel, _euroLabel, _isHovered, _isSelected } = this
+
+        this._areaGraphics.filters = [
+            ...(_isHovered ? [glowFilter] : []),
+            ...(_isSelected ? [outlineFilter] : []),
+        ]
+
         _areaGraphics.clear()
         _areaGraphics.poly(this.points)
-        _areaGraphics.fill({ color: this.addFilter(this.getFillColor()) })
+        _areaGraphics.fill({ color: this.getFillColor() })
 
         const center = this.getCenter()
         const area = this.calculateArea()
@@ -206,13 +227,6 @@ export class Apartment extends EditorObject {
 
     private getCenter() {
         return getPolygonCenter(this.points)
-    }
-
-    private addFilter(color: number): number {
-        if (this._isHovered && this._isSelected) return darkenColor(color, 20)
-        if (this._isHovered) return darkenColor(color, 10)
-        if (this._isSelected) return darkenColor(color, 40)
-        return color
     }
 
     private getFillColor() {

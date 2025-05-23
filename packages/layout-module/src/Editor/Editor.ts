@@ -1,12 +1,12 @@
-import { Application, FederatedPointerEvent, Graphics } from 'pixi.js'
-import { calculateZoomToExtents, distanceFromPointToLine, drawOutline, fromPixiEvent, pointsToLines, shiftLine } from '../geometryFunc'
+import { Application, Container, FederatedPointerEvent } from 'pixi.js'
+import { calculateZoomToExtents, distanceFromPointToLine, fromPixiEvent, shiftLine } from '../geometryFunc'
 import { Logger } from '../logger'
 import { addVectors, ALine, aPoint, APoint, ASubscription, mapLine, mapPoint, subtractVectors } from '../types'
 import { BlockDragConfig, DragConfig, WallDragConfig } from './dragConfig'
 import { Apartment } from '../entities/Apartment'
 import { EventService } from '../EventService/EventService'
 import { addApartment, deleteSelected, redo, apartmentSelected, undo, zoomToExtents, setApartmentProperties, addLLU, rotateSelected, sectionSettings, flipSelected } from '../components/events'
-import { assertDefined, assertUnreachable, offsetPolygon, toError } from '../func'
+import { assert, assertDefined, assertUnreachable, toError } from '../func'
 import { MouseDownEvent, MouseUpEvent } from '../EventService/eventTypes'
 import { catchError, EMPTY, filter, fromEvent, map, mergeMap, of, switchMap, take, timeout } from 'rxjs'
 import { SnapService } from './SnapService'
@@ -22,17 +22,14 @@ import { GeometryBlock } from '../entities/GeometryBlock'
 import { EditorObject } from '../entities/EditorObject'
 import { Units } from '../Units'
 import { SimpleCommand } from '../commands/SimpleCommand'
+import { SectionOutline } from './SectionOutline'
 
 export class Editor {
     private _app = new Application()
     private _logger = new Logger('Editor')
     private _eventService = new EventService()
 
-    private _sectionOutline: { graphics: Graphics; offsetGraphics: Graphics; points: APoint[] } = {
-        graphics: new Graphics(),
-        offsetGraphics: new Graphics(),
-        points: [],
-    }
+    private _sectionOutline: SectionOutline | null = null
     private _editorObjects = new Map<string, EditorObject>()
     private _selectedObjects = new Set<EditorObject>()
     private _dragConfig: | DragConfig | null = null
@@ -134,7 +131,9 @@ export class Editor {
                 const fn = () => this.selectedApartments.forEach(x => x.flip(t))
                 this.executeCommand(new SimpleCommand(fn, fn))
             }),
-            sectionSettings.map(x => x.offset).watch(offset => this.renderSectionOffset(offset))
+            sectionSettings
+                .map(x => x.offset)
+                .watch(offset => this._sectionOutline?.setOffset(Units.fromMm(offset)))
         ])
     }
 
@@ -359,13 +358,6 @@ export class Editor {
         }
     }
 
-    private getSectionOutlineGlobalPoints() {
-        return offsetPolygon(
-            this._sectionOutline.points,
-            sectionSettings.getState().offset)
-            .map(x => aPoint(this.app.stage.toGlobal(x)))
-    }
-
     private getSnapLines(options?: { exclude?: EditorObject }): ALine[] {
         const getLines = (o: EditorObject) => {
             if (o instanceof Apartment) return o.wallLines.map(mapLine(x => o.container.toGlobal(x)))
@@ -374,7 +366,7 @@ export class Editor {
             throw new Error('Unknown object type')
         }
         return [
-            ...pointsToLines(this.getSectionOutlineGlobalPoints()),
+            // ...pointsToLines(this.getSectionOutlineGlobalPoints()),
             ...this._editorObjects
                 .values()
                 .filter(x => x !== options?.exclude)
@@ -390,7 +382,7 @@ export class Editor {
             throw new Error('Unknown object type')
         }
         return [
-            ...this.getSectionOutlineGlobalPoints(),
+            ...assertDefined(this._sectionOutline).globalPoints,
             ...this._editorObjects
                 .values()
                 .filter(x => x !== options.exclude)
@@ -433,21 +425,10 @@ export class Editor {
      * Задать контур секции
      * @param points Координаты точек в миллиметрах
      */
-    public setSectionOutline(_points: APoint[]) {
-        const points = _points.map(mapPoint(Units.fromMm))
-        const { graphics, offsetGraphics } = this._sectionOutline
-        this.app.stage.addChild(graphics)
-        this.app.stage.addChild(offsetGraphics)
-        drawOutline(graphics, points, undefined, { color: 0xaaaaaa })
-        this._sectionOutline.points = points
-        this.renderSectionOffset(sectionSettings.getState().offset)
-    }
-
-    private renderSectionOffset(offset: number) {
-        if (this._sectionOutline.points.length < 4) return
-        drawOutline(
-            this._sectionOutline.offsetGraphics,
-            offsetPolygon(this._sectionOutline.points, -1 * Units.fromMm(offset)))
+    public setSectionOutline(points: APoint[]) {
+        assert(this._sectionOutline === null)
+        this._sectionOutline = new SectionOutline(points.map(mapPoint(Units.fromMm)), Units.fromMm(sectionSettings.getState().offset))
+        this.app.stage.addChild(this._sectionOutline.container)
     }
 
     public addObject(o: EditorObject) {
@@ -477,9 +458,10 @@ export class Editor {
         this._selectedObjects.clear()
     }
 
-    public zoomToExtents() {
+    public zoomToExtents(children?: Container[]) {
         const { app } = this
-        if (!app.stage.children.length) return
+        const objects: Container[] = children ?? app.stage.children
+        if (objects.length === 0) return
 
         app.stage.updateTransform({
             scaleX: 1,
@@ -489,9 +471,7 @@ export class Editor {
         })
         app.render()
 
-        const { centerX, centerY, scale } = calculateZoomToExtents(app, 30, [
-            this._sectionOutline.graphics
-        ])
+        const { centerX, centerY, scale } = calculateZoomToExtents(app, 30, objects)
         app.stage.updateTransform({
             scaleX: scale,
             scaleY: scale,

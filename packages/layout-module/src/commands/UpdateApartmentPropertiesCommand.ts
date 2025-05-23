@@ -17,7 +17,7 @@ export class UpdateApartmentPropertiesCommand implements EditorCommand {
     execute(): void {
         this._apartments.forEach((apartment) => {
             this._savedProperties.set(apartment.id, { ...apartment.properties })
-            apartment.properties = { ...apartment.properties, ...this._properties }
+            apartment.setProperties(this._properties)
         })
         this._editor.onObjectSelected()
     }
@@ -25,7 +25,7 @@ export class UpdateApartmentPropertiesCommand implements EditorCommand {
     undo(): void {
         this._apartments.forEach((apartment) => {
             const savedProperties = assertDefined(this._savedProperties.get(apartment.id))
-            apartment.properties = savedProperties
+            apartment.setProperties(savedProperties)
         })
         this._editor.onObjectSelected()
     }
