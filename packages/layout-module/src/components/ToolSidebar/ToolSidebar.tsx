@@ -1,6 +1,6 @@
 import { use, useEffect } from 'react'
 import { ToolSidebarProps } from './ToolSidebarProps'
-import { addApartment, $debugConfig, deleteSelected, $snapConfig, toggleDrawDebug, toggleSnap, zoomToExtents, toggleSnapGrid, toggleSnapPoint, toggleSnapLine, setGridStep, undo, redo, addLLU, rotateSelected, toggleShowWallSize, $sizeConfig } from '../events'
+import { addApartment, $debugConfig, deleteSelected, $snapConfig, toggleDrawDebug, toggleSnap, zoomToExtents, toggleSnapGrid, toggleSnapPoint, toggleSnapLine, setGridStep, undo, redo, addLLU, rotateSelected, toggleShowWallSize, $sizeConfig, flipSelected } from '../events'
 import { AppContext } from '../../AppContext'
 import styles from './ToolSidebar.module.scss'
 import { Button } from '../Button/Button'
@@ -74,8 +74,16 @@ export const ToolSidebar: React.FC<ToolSidebarProps> = () => {
         >📏</Button>
         <Button
           title='Повернуть выбранные'
-          onClick={() => rotateSelected()}
-        >⤸</Button>
+          onClick={() => rotateSelected(90)}
+        >🔄</Button>
+        <Button
+          title='Отразить по горизонтали'
+          onClick={() => flipSelected('horizontal')}
+        >↔️</Button>
+        <Button
+          title='Отразить по вертикали'
+          onClick={() => flipSelected('vertical')}
+        >↕️</Button>
         <Button
           active={debugEnabled}
           title='Toggle visual debug'

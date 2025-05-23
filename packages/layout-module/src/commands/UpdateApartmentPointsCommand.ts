@@ -1,12 +1,10 @@
 import { Apartment } from '../entities/Apartment'
-import { Editor } from '../Editor/Editor'
 import { APoint } from '../types'
 import { EditorCommand } from './EditorCommand'
 
 export class UpdateApartmentPointsCommand implements EditorCommand {
 
     constructor(
-        private _editor: Editor,
         private _apartment: Apartment,
         private _config: {
             newPoints: APoint[],

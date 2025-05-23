@@ -13,12 +13,13 @@ export const addApartment = createEvent<ApartmentTemplate>()
 export const deleteSelected = createEvent<void>()
 export const zoomToExtents = createEvent<void>()
 export const addLLU = createEvent<void>()
+export const rotateSelected = createEvent<number>()
+export const flipSelected = createEvent<'horizontal' | 'vertical'>()
 
 export const apartmentSelected = createEvent<ApartmentDto[]>()
 export const $selectedApartments = createStore<ApartmentDto[]>([])
 $selectedApartments.on(apartmentSelected, returnPayload)
 export const setApartmentProperties = createEvent<Partial<ApartmentProperties>>()
-export const rotateSelected = createEvent<void>()
 
 interface DebugConfig {
     drawDebug: boolean

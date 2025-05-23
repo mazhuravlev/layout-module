@@ -1,9 +1,8 @@
-import { Container, Graphics, Text } from 'pixi.js'
-import { assert, darkenColor, pairwise } from '../func'
+import { Container, Graphics, Matrix, Text } from 'pixi.js'
+import { assert, darkenColor, degreesToRadians, pairwise } from '../func'
 import { getPolygonCenter, getPolygonArea, formatArea, findCircularAdjacentElements, closePolygon, ensureClockwisePolygon } from '../geometryFunc'
 import { APoint, TPoints, CoordType, ALine, mapPoint } from '../types'
 import { EventService } from '../EventService/EventService'
-import { defaultConfig } from '../Editor/defaultConfig'
 import { Wall } from './Wall'
 import { ApartmentProperties, defaultApartmentProperties } from './ApartmentProperties'
 import { ApartmentDto } from './ApartmentDto'
@@ -18,11 +17,13 @@ export class Apartment extends EditorObject {
     private _euroLabel = new Text({ style: { fontSize: 12 } })
     private _areaGraphics = new Graphics()
     private _walls: Wall[] = []
-    private _config: typeof defaultConfig
     private _properties: ApartmentProperties = defaultApartmentProperties
 
     public get container() { return this._container }
 
+    /**
+     * Точки в локальных координатах
+     */
     public get points(): APoint[] {
         return this._walls.map(x => x.points[0])
     }
@@ -67,16 +68,40 @@ export class Apartment extends EditorObject {
     constructor(
         _points: APoint[],
         _eventService: EventService,
-        config: Partial<typeof defaultConfig> = {}
     ) {
         super(_eventService)
-        this._config = { ...defaultConfig, ...config }
         const points = _points.map(mapPoint(Units.fromMm))
         this.init(ensureClockwisePolygon(points))
     }
 
-    public rotate() {
-        this.container.angle += 90
+    /**
+     * 
+     * @param angle Угол в градусах
+     */
+    public rotate(angle: number) {
+        const center = this.getCenter()
+        this.applyMatrix(
+            new Matrix()
+                .translate(-center.x, -center.y)
+                .rotate(degreesToRadians(angle))
+                .translate(center.x, center.y))
+    }
+
+    public flip(type: 'horizontal' | 'vertical') {
+        const center = this.getCenter()
+        const scaleFactor = type === 'vertical' ? -1 : 1
+        this.applyMatrix(
+            new Matrix()
+                .translate(-center.x, -center.y)
+                .scale(-1 * scaleFactor, 1 * scaleFactor)
+                .translate(center.x, center.y))
+    }
+
+    private applyMatrix(matrix: Matrix) {
+        this.updatePoints(
+            ensureClockwisePolygon(
+                this.points.map(point => matrix.apply(point))))
+        this.render()
     }
 
     private init(points: APoint[]) {
@@ -159,12 +184,12 @@ export class Apartment extends EditorObject {
     }
 
     render() {
-        const { _areaGraphics, _areaLabel, _typeLabel, _euroLabel, points } = this
+        const { _areaGraphics, _areaLabel, _typeLabel, _euroLabel } = this
         _areaGraphics.clear()
         _areaGraphics.poly(this.points)
         _areaGraphics.fill({ color: this.addFilter(this.getFillColor()) })
 
-        const center = getPolygonCenter(points)
+        const center = this.getCenter()
         const area = this.calculateArea()
         _areaLabel.text = formatArea(area)
         _areaLabel.position.set(center.x, center.y)
@@ -177,6 +202,10 @@ export class Apartment extends EditorObject {
         _typeLabel.position.set(center.x, center.y - 8)
         _euroLabel.text = `${this.properties.isEuro ? 'Евро' : 'Стандарт'}`
         _euroLabel.position.set(center.x, center.y + 8)
+    }
+
+    private getCenter() {
+        return getPolygonCenter(this.points)
     }
 
     private addFilter(color: number): number {

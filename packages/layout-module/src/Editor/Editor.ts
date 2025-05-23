@@ -5,7 +5,7 @@ import { addVectors, ALine, aPoint, APoint, ASubscription, mapLine, mapPoint, su
 import { BlockDragConfig, DragConfig, WallDragConfig } from './dragConfig'
 import { Apartment } from '../entities/Apartment'
 import { EventService } from '../EventService/EventService'
-import { addApartment, deleteSelected, redo, apartmentSelected, undo, zoomToExtents, setApartmentProperties, addLLU, rotateSelected, sectionSettings } from '../components/events'
+import { addApartment, deleteSelected, redo, apartmentSelected, undo, zoomToExtents, setApartmentProperties, addLLU, rotateSelected, sectionSettings, flipSelected } from '../components/events'
 import { assertDefined, assertUnreachable, offsetPolygon, toError } from '../func'
 import { MouseDownEvent, MouseUpEvent } from '../EventService/eventTypes'
 import { catchError, EMPTY, filter, fromEvent, map, mergeMap, of, switchMap, take, timeout } from 'rxjs'
@@ -21,6 +21,7 @@ import { UpdateApartmentPropertiesCommand } from '../commands/UpdateApartmentPro
 import { GeometryBlock } from '../entities/GeometryBlock'
 import { EditorObject } from '../entities/EditorObject'
 import { Units } from '../Units'
+import { SimpleCommand } from '../commands/SimpleCommand'
 
 export class Editor {
     private _app = new Application()
@@ -119,13 +120,19 @@ export class Editor {
             undo.watch(() => this.undo()),
             redo.watch(() => this.redo()),
             setApartmentProperties.watch((properties) => {
-                const selectedApartments = this.selectedApartments
-                if (selectedApartments.length > 0) {
-                    this.executeCommand(new UpdateApartmentPropertiesCommand(this, selectedApartments, properties))
-                }
+                if (this.selectedApartments.length === 0) return
+                this.executeCommand(new UpdateApartmentPropertiesCommand(this, this.selectedApartments, properties))
             }),
-            rotateSelected.watch(() => {
-                this.selectedApartments.forEach(x => x.rotate())
+            rotateSelected.watch(angle => {
+                if (this.selectedApartments.length === 0) return
+                this.executeCommand(new SimpleCommand(
+                    () => this.selectedApartments.forEach(x => x.rotate(angle)),
+                    () => this.selectedApartments.forEach(x => x.rotate(-angle))))
+            }),
+            flipSelected.watch(t => {
+                if (this.selectedApartments.length === 0) return
+                const fn = () => this.selectedApartments.forEach(x => x.flip(t))
+                this.executeCommand(new SimpleCommand(fn, fn))
             }),
             sectionSettings.map(x => x.offset).watch(offset => this.renderSectionOffset(offset))
         ])
@@ -340,7 +347,6 @@ export class Editor {
                 break
             case 'dragWall':
                 this.executeCommand(new UpdateApartmentPointsCommand(
-                    this,
                     dragConfig.target.apartment,
                     {
                         originalPoints: dragConfig.originalApartmentPoints,

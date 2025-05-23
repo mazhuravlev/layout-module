@@ -155,3 +155,7 @@ export function darkenColor(color: number, amount: number) {
   // Собираем обратно в HEX
   return (r << 16) | (g << 8) | b
 }
+
+export function degreesToRadians(degrees: number) {
+  return degrees * (Math.PI / 180)
+}
