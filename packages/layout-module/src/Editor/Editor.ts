@@ -1,5 +1,5 @@
 import { Application, Container, FederatedPointerEvent } from 'pixi.js'
-import { calculateZoomToExtents, distanceFromPointToLine, fromPixiEvent, shiftLine } from '../geometryFunc'
+import { calculateZoomToExtents, distanceFromPointToLine, fromPixiEvent, pointsToLines, shiftLine } from '../geometryFunc'
 import { Logger } from '../logger'
 import { addVectors, ALine, aPoint, APoint, ASubscription, mapLine, mapPoint, subtractVectors } from '../types'
 import { BlockDragConfig, DragConfig, WallDragConfig } from './dragConfig'
@@ -267,8 +267,8 @@ export class Editor {
         const delta = subtractVectors(pixiEvent.global, _dragConfig.startMousePos)
         const movedPoints = _dragConfig.originalGlobalPoints.map(p => addVectors(p, delta))
         const snapResult = snapService.checkOutlineSnap(movedPoints)
+        snapService.showSnapIndicator(snapResult)
         if (snapResult.snapped) {
-            snapService.showSnapIndicator(snapResult.snapPoint)
             const globalTargetPos = subtractVectors(
                 addVectors(toGlobal(_dragConfig.startPos), delta),
                 subtractVectors(snapResult.originalPoint, snapResult.snapPoint)
@@ -287,8 +287,8 @@ export class Editor {
         const distance = distanceFromPointToLine(_dragConfig.originalWallGlobalPoints, pixiEvent.global)
         const newLine = shiftLine(_dragConfig.originalWallGlobalPoints, -1 * snapService.applyGridSnap(distance))
         const snapResult = snapService.checkLineSnap(newLine)
+        snapService.showSnapIndicator(snapResult)
         if (snapResult.snapped) {
-            snapService.showSnapIndicator(snapResult.snapPoint)
             const snapDistance = distanceFromPointToLine(_dragConfig.originalWallGlobalPoints, snapResult.snapPoint)
             const snapLine = shiftLine(_dragConfig.originalWallGlobalPoints, -snapDistance)
             wall.apartment.updateWall(wall, snapLine, 'global')
@@ -305,7 +305,7 @@ export class Editor {
                 snapService: new SnapService(
                     this.app.stage,
                     this.getSnapPoints({ exclude: target }),
-                    this.getSnapLines()),
+                    this.getSnapLines({ exclude: target })),
                 target,
                 startPos: aPoint(target.container.position),
                 startMousePos: aPoint(pixiEvent.global),
@@ -363,7 +363,7 @@ export class Editor {
             throw new Error('Unknown object type')
         }
         return [
-            // ...pointsToLines(this.getSectionOutlineGlobalPoints()),
+            ...pointsToLines(assertDefined(this._sectionOutline).globalPoints),
             ...this._editorObjects
                 .values()
                 .filter(x => x !== options?.exclude)

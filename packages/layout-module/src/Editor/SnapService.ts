@@ -1,20 +1,31 @@
 import { Container, Graphics } from 'pixi.js'
 import { APoint, ALine, IDisposable, TPoints, ASubscription } from '../types'
 import { $debugConfig, $snapConfig, SnapConfig } from '../components/events'
-import { areLinesCollinear, pointsToLines } from '../geometryFunc'
+import { areLinesCollinear, getSlope, pointsToLines } from '../geometryFunc'
 import { Units } from '../Units'
+import { assertUnreachable, not } from '../func'
 
 const emptyResult = { snapped: false } as const
 
 type SnapResult =
     | { snapped: false }
     | {
-        snapped: true
+        snapped: 'point'
         dx: number
         dy: number
         snapPoint: APoint
         originalPoint: APoint
     }
+    | {
+        snapped: 'line'
+        dx: number
+        dy: number
+        snapPoint: APoint
+        originalPoint: APoint
+        k: number | null
+    }
+
+const snapIndicatorColor = 0xee0000
 
 export class SnapService implements IDisposable {
     private _drawDebug = $debugConfig.getState().drawDebug
@@ -77,27 +88,7 @@ export class SnapService implements IDisposable {
      */
     public checkLineSnap([start, end]: TPoints): SnapResult {
         if (this._disposed) return emptyResult
-        if (!this._config.enable) return emptyResult
-
-        // 1. Проверка привязки к сетке (имеет приоритет)
-        // if (this._config.enableGrid) {
-        //     const gridSnap = this.checkLineToGrid([start, end])
-        //     if (gridSnap.snapped) return gridSnap
-        // }
-
-        // // 2. Проверяем оба конца линии
-        // const startSnap = this.checkPointSnap(start)
-        // const endSnap = this.checkPointSnap(end)
-
-        // if (startSnap.snapped && endSnap.snapped) {
-        //     // Если оба конца привязаны, выбираем более близкую привязку
-        //     const startDist = Math.hypot(startSnap.dx!, startSnap.dy!)
-        //     const endDist = Math.hypot(endSnap.dx!, endSnap.dy!)
-
-        //     return startDist < endDist ? startSnap : endSnap
-        // } else if (startSnap.snapped || endSnap.snapped) {
-        //     return startSnap.snapped ? startSnap : endSnap
-        // }
+        if (not(this._config.enable)) return emptyResult
 
         // 3. Проверка привязки к статическим линиям (коллинеарность)
         if (this._config.enableLine) {
@@ -123,19 +114,21 @@ export class SnapService implements IDisposable {
                         // Выбираем точку с минимальным расстоянием
                         if (startDist <= endDist && startDist < this._config.lineThreshold!) {
                             return {
-                                snapped: true,
+                                snapped: 'line',
                                 dx: projectedStart.x - start.x,
                                 dy: projectedStart.y - start.y,
                                 snapPoint: projectedStart,
                                 originalPoint: start,
+                                k: getSlope(start, end),
                             }
                         } else if (endDist < this._config.lineThreshold!) {
                             return {
-                                snapped: true,
+                                snapped: 'line',
                                 dx: projectedEnd.x - end.x,
                                 dy: projectedEnd.y - end.y,
                                 snapPoint: projectedEnd,
                                 originalPoint: end,
+                                k: getSlope(start, end),
                             }
                         }
                     }
@@ -173,103 +166,6 @@ export class SnapService implements IDisposable {
         return emptyResult
     }
 
-    /**
-     * Проверяет привязку точки к ближайшей точке сетки
-     */
-    private checkPointToGrid(point: APoint): SnapResult {
-        const gridStep = this._config.gridStep
-        if (!gridStep || gridStep <= 0) return emptyResult
-
-        // Находим ближайшую точку сетки
-        const snappedX = Math.round(point.x / gridStep) * gridStep
-        const snappedY = Math.round(point.y / gridStep) * gridStep
-        const dx = snappedX - point.x
-        const dy = snappedY - point.y
-        const distance = Math.hypot(dx, dy)
-
-        if (distance < this._config.pointThreshold!) {
-            return {
-                snapped: true,
-                dx,
-                dy,
-                snapPoint: { x: snappedX, y: snappedY },
-                originalPoint: point
-            }
-        }
-
-        return emptyResult
-    }
-
-    /**
-     * Проверяет привязку стены к сетке (только перпендикулярное направление для ортогональных стен)
-     */
-    private checkLineToGrid([start, end]: TPoints): SnapResult {
-        const gridStep = this._config.gridStep
-        if (!gridStep || gridStep <= 0) return emptyResult
-
-        // Проверяем, является ли стена ортогональной (0°, 90°, 180° или 270°)
-        const angle = Math.atan2(end.y - start.y, end.x - start.x) * 180 / Math.PI
-        const isOrthogonal = Math.abs(angle % 90) < this._config.angleSnap! / 2
-
-        if (!isOrthogonal) return emptyResult
-
-        // Определяем направление стены
-        const isHorizontal = Math.abs(angle % 180) < this._config.angleSnap! / 2
-
-        // Для горизонтальных стен привязываем только по Y, для вертикальных - только по X
-        if (isHorizontal) {
-            const snappedY1 = Math.round(start.y / gridStep) * gridStep
-            const snappedY2 = Math.round(end.y / gridStep) * gridStep
-            const dy1 = snappedY1 - start.y
-            const dy2 = snappedY2 - end.y
-
-            // Выбираем более близкую привязку
-            if (Math.abs(dy1) <= Math.abs(dy2) && Math.abs(dy1) < this._config.lineThreshold!) {
-                return {
-                    snapped: true,
-                    dx: 0,
-                    dy: dy1,
-                    snapPoint: { x: start.x, y: snappedY1 },
-                    originalPoint: start
-                }
-            } else if (Math.abs(dy2) < this._config.lineThreshold!) {
-                return {
-                    snapped: true,
-                    dx: 0,
-                    dy: dy2,
-                    snapPoint: { x: end.x, y: snappedY2 },
-                    originalPoint: end
-                }
-            }
-        } else {
-            const snappedX1 = Math.round(start.x / gridStep) * gridStep
-            const snappedX2 = Math.round(end.x / gridStep) * gridStep
-            const dx1 = snappedX1 - start.x
-            const dx2 = snappedX2 - end.x
-
-            // Выбираем более близкую привязку
-            if (Math.abs(dx1) <= Math.abs(dx2) && Math.abs(dx1) < this._config.lineThreshold!) {
-                return {
-                    snapped: true,
-                    dx: dx1,
-                    dy: 0,
-                    snapPoint: { x: snappedX1, y: start.y },
-                    originalPoint: start
-                }
-            } else if (Math.abs(dx2) < this._config.lineThreshold!) {
-                return {
-                    snapped: true,
-                    dx: dx2,
-                    dy: 0,
-                    snapPoint: { x: snappedX2, y: end.y },
-                    originalPoint: end
-                }
-            }
-        }
-
-        return emptyResult
-    }
-
     private checkPointToPoint(point: APoint): SnapResult {
         let minDistance = Infinity
         let result: SnapResult = emptyResult
@@ -282,7 +178,7 @@ export class SnapService implements IDisposable {
             if (distance < this._config.pointThreshold! && distance < minDistance) {
                 minDistance = distance
                 result = {
-                    snapped: true,
+                    snapped: 'point',
                     dx,
                     dy,
                     snapPoint: staticPoint,
@@ -308,11 +204,12 @@ export class SnapService implements IDisposable {
             if (distance < this._config.lineThreshold! && distance < minDistance) {
                 minDistance = distance
                 result = {
-                    snapped: true,
+                    snapped: 'line',
                     dx,
                     dy,
                     snapPoint: projected,
                     originalPoint: point,
+                    k: getSlope(line.start, line.end),
                 }
             }
         }
@@ -334,20 +231,64 @@ export class SnapService implements IDisposable {
     }
 
     /**
-     * Визуализация точки привязки (для отладки)
+     * Визуализация привязки
      */
-    public showSnapIndicator(point: APoint) {
+    public showSnapIndicator(snapResult: SnapResult) {
         if (this._disposed) return
-        if (!this._drawDebug) return
+        if (not(this._config.enable)) return
 
+        switch (snapResult.snapped) {
+            case 'line':
+                this.showLineSnapIndicator(snapResult)
+                break
+            case 'point':
+                this.showPointSnapIndicator(snapResult.snapPoint)
+                break
+            case false:
+                this._snapIndicator.clear()
+                break
+            default:
+                assertUnreachable(snapResult)
+        }
+    }
+
+    private showLineSnapIndicator(snapResult: SnapResult) {
+        if (snapResult.snapped === 'line') {
+            const { x, y } = this._stage.toLocal(snapResult.snapPoint)
+            const g = this._snapIndicator
+            g.clear()
+            const { k } = snapResult
+            const lineLength = 1000
+            if (k === null || !isFinite(k)) {
+                g.moveTo(x, y - lineLength)
+                g.lineTo(x, y + lineLength)
+            } else {
+                const dx = lineLength / Math.sqrt(1 + k * k)
+                const dy = k * dx
+                g.moveTo(x - dx, y - dy)
+                g.lineTo(x + dx, y + dy)
+            }
+            this._snapIndicator.stroke({ color: snapIndicatorColor, pixelLine: true, })
+
+        } else {
+            throw new Error(`snapResult.snapped !== 'line': ${snapResult.snapped}`)
+        }
+    }
+
+    private showPointSnapIndicator(point: APoint) {
         const { x, y } = this._stage.toLocal(point)
-        this._snapIndicator.clear()
-        this._snapIndicator.circle(x, y, 2)
-        this._snapIndicator.fill({ color: 0xFF0000, alpha: 0.5 })
+        const g = this._snapIndicator
+        g.clear()
+        g.circle(x, y, 1)
+        const offset = 3
+        g.moveTo(x, y - offset)
+        g.lineTo(x, y + offset)
+        g.moveTo(x - offset, y)
+        g.lineTo(x + offset, y)
+        this._snapIndicator.stroke({ color: snapIndicatorColor, pixelLine: true })
     }
 
     public hideSnapIndicator() {
-        if (this._disposed) return
         this._snapIndicator.clear()
     }
 

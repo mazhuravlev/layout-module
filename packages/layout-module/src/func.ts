@@ -10,10 +10,11 @@ export const assertDefined = <T>(value: T | null | undefined, cause?: string): T
   return value
 }
 
-export const assert = (v: boolean, cause?: string): void => {
+export const assert = (v: boolean, cause?: string): v is true => {
   if (!v) {
     throw new Error('assert', { cause })
   }
+  return true
 }
 
 export const assertUnreachable = (_x: never): never => {

@@ -348,3 +348,20 @@ export const isVerticalLine = (line: TPoints): 1 | -1 | false => {
 
 export const ensureClockwisePolygon = (points: APoint[]) =>
   (new Polygon(points)).isClockwise() ? points : [...points].reverse()
+
+/**
+ * Вычисляет угловой коэффициент (slope) прямой, проходящей через две точки.
+ * @param start Начальная точка отрезка.
+ * @param end Конечная точка отрезка.
+ * @returns Угловой коэффициент или `null` для вертикальной прямой.
+ */
+export function getSlope(start: APoint, end: APoint): number | null {
+  const deltaX = end.x - start.x
+
+  // Вертикальная прямая (деление на 0)
+  if (deltaX === 0) {
+    return null
+  }
+
+  return (end.y - start.y) / deltaX
+}
