@@ -3,7 +3,6 @@ import { EventService } from '../EventService/EventService'
 import { APoint, ASubscription, CoordType, TPoints } from '../types'
 import { Apartment } from '../entities/Apartment'
 import { $debugConfig, $sizeConfig } from '../components/events'
-import { defaultConfig } from '../Editor/defaultConfig'
 import { isVerticalLine, lineCenter, lineLength, makeLineHitbox, shiftLine } from '../geometryFunc'
 import { EditorObject } from './EditorObject'
 import { GlowFilter } from 'pixi-filters'
@@ -27,7 +26,6 @@ export class Wall extends EditorObject {
     private _container = new Container()
     private _graphics = new Graphics()
     private _sizeText = new Text({ resolution: 2, style: { fontSize: wallSettings.size.fontSize, fill: wallSettings.size.fontColor } })
-    private _config = defaultConfig
     private _subscriptions: ASubscription[] = []
     private _showSize: boolean = true
 
@@ -94,7 +92,7 @@ export class Wall extends EditorObject {
         _graphics.moveTo(p1.x, p1.y)
         _graphics.lineTo(p2.x, p2.y)
         _graphics.stroke({
-            color: this._config.strokeColor,
+            color: 0,
             width: 1,
             pixelLine: true,
         })

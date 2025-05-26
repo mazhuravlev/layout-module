@@ -6,9 +6,9 @@ import { BlockDragConfig, DragConfig, WallDragConfig } from './dragConfig'
 import { Apartment } from '../entities/Apartment'
 import { EventService } from '../EventService/EventService'
 import { addApartment, deleteSelected, redo, apartmentSelected, undo, zoomToExtents, setApartmentProperties, addLLU, rotateSelected, sectionSettings, flipSelected } from '../components/events'
-import { assert, assertDefined, assertUnreachable, empty, isUndefined, not, notNull, toError } from '../func'
+import { assert, assertDefined, assertUnreachable, empty, isNull, isUndefined, not, toError } from '../func'
 import { MouseDownEvent, MouseUpEvent } from '../EventService/eventTypes'
-import { catchError, EMPTY, filter, fromEvent, map, mergeMap, of, switchMap, take, timeout } from 'rxjs'
+import { catchError, EMPTY, filter, map, mergeMap, of, switchMap, take, timeout } from 'rxjs'
 import { SnapService } from './SnapService'
 import { EditorCommand } from '../commands/EditorCommand'
 import { AddObjectCommand } from '../commands/AddObjectCommand'
@@ -26,6 +26,7 @@ import { SectionOutline } from './SectionOutline'
 import { SelectionManager } from './SelectionManager'
 import { CommandManager } from './CommandManager'
 import { ViewportManager } from './ViewportManager'
+import { MouseEventProcessor } from './MouseEventProcessor'
 
 export class Editor {
     private _app = new Application()
@@ -39,6 +40,7 @@ export class Editor {
     private _selectionManager = new SelectionManager()
     private _commandManager = new CommandManager()
     private _viewportManager: ViewportManager
+    private _mouseEventProcessor: MouseEventProcessor
 
     /**
      * @description Cleanup functions to be called on dispose
@@ -49,6 +51,11 @@ export class Editor {
 
     constructor(private _container: HTMLDivElement) {
         this._viewportManager = new ViewportManager(this._app, this._container)
+        this._mouseEventProcessor = new MouseEventProcessor(
+            this._eventService,
+            this._selectionManager,
+            () => this.onObjectSelected()
+        )
     }
 
     public get app() {
@@ -89,9 +96,6 @@ export class Editor {
         return this._selectionManager.selectedApartments as Apartment[]
     }
 
-    /**
-   * @description Настройка входящих событий от компонентов
-   */
     private setupEvents() {
         this._subscriptions.push(...[
             addApartment.watch((shape) => {
@@ -121,7 +125,9 @@ export class Editor {
             }),
             sectionSettings
                 .map(x => x.offset)
-                .watch(offset => this._sectionOutline?.setOffset(Units.fromMm(offset)))
+                .watch(offset => this._sectionOutline?.setOffset(Units.fromMm(offset))),
+            this._mouseEventProcessor.setupClickHandling(),
+            this._viewportManager.setupZoomControls(),
         ])
     }
 
@@ -170,7 +176,7 @@ export class Editor {
                 })
         )
         this._subscriptions.push(this._eventService.mouseenter$
-            .pipe(filter(() => notNull(this._dragConfig)))
+            .pipe(filter(() => isNull(this._dragConfig)))
             .subscribe(e => {
                 e.target.setHovered(true)
             }))
@@ -206,28 +212,6 @@ export class Editor {
             }
         })
 
-        this._subscriptions.push(fromEvent<WheelEvent>(this._container, 'wheel', { passive: true })
-            .subscribe(e => {
-                const { stage } = this.app
-                const clientPoint = { x: e.clientX, y: e.clientY }
-                const mouseGlobalBeforeZoom = stage.toLocal(clientPoint)
-
-                // Определяем направление и скорость зума
-                const zoomFactor = e.deltaY > 0 ? 0.9 : 1.1 // Уменьшаем или увеличиваем масштаб
-                const MIN_ZOOM = 1
-                const MAX_ZOOM = 6
-                const newScale = Math.max(
-                    MIN_ZOOM,
-                    Math.min(MAX_ZOOM, stage.scale.x * zoomFactor) // Ограничиваем масштаб
-                )
-
-                stage.scale.set(newScale)
-
-                // Корректируем позицию stage для зума относительно курсора
-                const mouseGlobalAfterZoom = stage.toLocal(clientPoint)
-                stage.position.x += (mouseGlobalAfterZoom.x - mouseGlobalBeforeZoom.x) * newScale
-                stage.position.y += (mouseGlobalAfterZoom.y - mouseGlobalBeforeZoom.y) * newScale
-            }))
         this._subscriptions.push(fromPixiEvent(this.app.stage, 'mousemove')
             .pipe(filter(e => e instanceof FederatedPointerEvent))
             .subscribe(event => this._eventService.emit({ type: 'mousemove', pixiEvent: event })))
@@ -438,6 +422,3 @@ export class Editor {
         this.executeCommand(new DeleteObjectsCommand(this, this._selectionManager.selectedObjects))
     }
 }
-
-
-

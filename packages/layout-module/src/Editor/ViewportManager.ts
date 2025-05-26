@@ -1,14 +1,13 @@
 import { Application, Container } from 'pixi.js'
 import { fromEvent } from 'rxjs'
 import { calculateZoomToExtents } from '../geometryFunc'
+import { EDITOR_CONFIG } from './editorConfig'
 
 export class ViewportManager {
-    private static readonly MIN_ZOOM = 1
-    private static readonly MAX_ZOOM = 6
 
     constructor(private app: Application, private container: HTMLDivElement) { }
 
-    setupZoomControls() {
+    public setupZoomControls() {
         return fromEvent<WheelEvent>(this.container, 'wheel', { passive: true })
             .subscribe(this.handleWheel.bind(this))
     }
@@ -20,8 +19,8 @@ export class ViewportManager {
 
         const zoomFactor = e.deltaY > 0 ? 0.9 : 1.1
         const newScale = Math.max(
-            ViewportManager.MIN_ZOOM,
-            Math.min(ViewportManager.MAX_ZOOM, stage.scale.x * zoomFactor)
+            EDITOR_CONFIG.ZOOM.MIN,
+            Math.min(EDITOR_CONFIG.ZOOM.MAX, stage.scale.x * zoomFactor)
         )
 
         stage.scale.set(newScale)
@@ -38,7 +37,7 @@ export class ViewportManager {
         this.app.stage.updateTransform({ scaleX: 1, scaleY: 1, x: 0, y: 0 })
         this.app.render()
 
-        const { centerX, centerY, scale } = calculateZoomToExtents(this.app, 30, containers)
+        const { centerX, centerY, scale } = calculateZoomToExtents(this.app, EDITOR_CONFIG.VISUAL.ZOOM_TO_EXTENTS_PADDING, containers)
         this.app.stage.updateTransform({
             scaleX: scale,
             scaleY: scale,
