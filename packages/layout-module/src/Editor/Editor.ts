@@ -1,12 +1,12 @@
 import { Application, Container, FederatedPointerEvent } from 'pixi.js'
-import { calculateZoomToExtents, distanceFromPointToLine, fromPixiEvent, pointsToLines, shiftLine } from '../geometryFunc'
+import { distanceFromPointToLine, fromPixiEvent, pointsToLines, shiftLine } from '../geometryFunc'
 import { Logger } from '../logger'
 import { addVectors, ALine, aPoint, APoint, ASubscription, mapLine, mapPoint, subtractVectors } from '../types'
 import { BlockDragConfig, DragConfig, WallDragConfig } from './dragConfig'
 import { Apartment } from '../entities/Apartment'
 import { EventService } from '../EventService/EventService'
 import { addApartment, deleteSelected, redo, apartmentSelected, undo, zoomToExtents, setApartmentProperties, addLLU, rotateSelected, sectionSettings, flipSelected } from '../components/events'
-import { assert, assertDefined, assertUnreachable, empty, isUndefined, not, notEmpty, notNull, toError } from '../func'
+import { assert, assertDefined, assertUnreachable, empty, isUndefined, not, notNull, toError } from '../func'
 import { MouseDownEvent, MouseUpEvent } from '../EventService/eventTypes'
 import { catchError, EMPTY, filter, fromEvent, map, mergeMap, of, switchMap, take, timeout } from 'rxjs'
 import { SnapService } from './SnapService'
@@ -23,6 +23,9 @@ import { EditorObject } from '../entities/EditorObject'
 import { Units } from '../Units'
 import { SimpleCommand } from '../commands/SimpleCommand'
 import { SectionOutline } from './SectionOutline'
+import { SelectionManager } from './SelectionManager'
+import { CommandManager } from './CommandManager'
+import { ViewportManager } from './ViewportManager'
 
 export class Editor {
     private _app = new Application()
@@ -31,11 +34,11 @@ export class Editor {
 
     private _sectionOutline: SectionOutline | null = null
     private _editorObjects = new Map<string, EditorObject>()
-    private _selectedObjects = new Set<EditorObject>()
     private _dragConfig: | DragConfig | null = null
 
-    private _undoStack: EditorCommand[] = []
-    private _redoStack: EditorCommand[] = []
+    private _selectionManager = new SelectionManager()
+    private _commandManager = new CommandManager()
+    private _viewportManager: ViewportManager
 
     /**
      * @description Cleanup functions to be called on dispose
@@ -44,14 +47,12 @@ export class Editor {
 
     private _subscriptions: ASubscription[] = []
 
-    constructor(private _container: HTMLDivElement) { }
+    constructor(private _container: HTMLDivElement) {
+        this._viewportManager = new ViewportManager(this._app, this._container)
+    }
 
     public get app() {
         return this._app
-    }
-
-    private get selectedApartments() {
-        return [...this._selectedObjects.values().filter(x => x instanceof Apartment)]
     }
 
     public get eventService() {
@@ -75,30 +76,17 @@ export class Editor {
     }
 
     private executeCommand(command: EditorCommand) {
-        this._undoStack.push(command)
-        this._redoStack.forEach(x => x.dispose())
-        this._redoStack = []
-        command.execute()
+        this._commandManager.execute(command)
     }
 
-    public undo() {
-        if (notEmpty(this._undoStack)) {
-            const command = this._undoStack.pop()
-            if (command) {
-                command.undo()
-                this._redoStack.push(command)
-            }
-        }
-    }
+    public undo() { return this._commandManager.undo() }
+    public redo() { return this._commandManager.redo() }
+    public deselectAll() { this._selectionManager.deselectAll() }
+    public selectObjects(objects: EditorObject[]) { this._selectionManager.selectObjects(objects) }
+    public zoomToExtents(children?: Container[]) { this._viewportManager.zoomToExtents(children) }
 
-    public redo() {
-        if (notEmpty(this._undoStack)) {
-            const command = this._redoStack.pop()
-            if (command) {
-                command.execute()
-                this._undoStack.push(command)
-            }
-        }
+    private get selectedApartments() {
+        return this._selectionManager.selectedApartments as Apartment[]
     }
 
     /**
@@ -165,17 +153,17 @@ export class Editor {
                 .subscribe(({ target, ctrlKey, shiftKey }) => {
                     if (isUndefined(target)) return
                     if (not(target.isSelectable)) return
-                    if (not(ctrlKey && shiftKey)) {
+                    if (not(ctrlKey) && not(shiftKey)) {
                         // Обычный клик (без модификаторов) → сброс предыдущего выбора
                         this.deselectAll()
-                        this.selectObject(target)
+                        this._selectionManager.selectObject(target)
                         target.container.parent.addChild(target.container) // bring to front
                     } else if (ctrlKey || shiftKey) {
                         // Мультиселект: добавляем/удаляем квартиру из выбора
-                        if (this._selectedObjects.has(target)) {
-                            this.deselectObject(target)
+                        if (this._selectionManager.has(target)) {
+                            this._selectionManager.deselectObject(target)
                         } else {
-                            this.selectObject(target)
+                            this._selectionManager.selectObject(target)
                         }
                     }
                     this.onObjectSelected()
@@ -387,13 +375,6 @@ export class Editor {
         ]
     }
 
-    public deselectAll() {
-        if (this._selectedObjects.size) {
-            this._selectedObjects.forEach(x => x.setSelected(false))
-            this._selectedObjects.clear()
-        }
-    }
-
     public async dispose(): Promise<void> {
         this._logger.debug('dispose')
         this._subscriptions.forEach(x => x.unsubscribe())
@@ -416,6 +397,7 @@ export class Editor {
         this._editorObjects.forEach(x => x.dispose())
         this._editorObjects.clear()
         this._eventService.dispose()
+        this._commandManager.dispose()
     }
 
     /**
@@ -453,49 +435,7 @@ export class Editor {
     }
 
     public deleteSelected() {
-        const selectedObjects = [...this._selectedObjects.values()]
-        this.executeCommand(new DeleteObjectsCommand(this, selectedObjects))
-        this._selectedObjects.clear()
-    }
-
-    private selectObject(object: EditorObject) {
-        this._selectedObjects.add(object)
-        object.setSelected(true)
-    }
-
-    private deselectObject(object: EditorObject) {
-        this._selectedObjects.delete(object)
-        object.setSelected(false)
-    }
-
-    public selectObjects(objects: EditorObject[]) {
-        this.deselectAll()
-        objects.forEach(o => {
-            o.setSelected(true)
-            this._selectedObjects.add(o)
-        })
-    }
-
-    public zoomToExtents(children?: Container[]) {
-        const { app } = this
-        const objects: Container[] = children ?? app.stage.children
-        if (objects.length === 0) return
-
-        app.stage.updateTransform({
-            scaleX: 1,
-            scaleY: 1,
-            x: 0,
-            y: 0,
-        })
-        app.render()
-
-        const { centerX, centerY, scale } = calculateZoomToExtents(app, 30, objects)
-        app.stage.updateTransform({
-            scaleX: scale,
-            scaleY: scale,
-            x: app.screen.width / 2 - centerX * scale,
-            y: app.screen.height / 2 - centerY * scale,
-        })
+        this.executeCommand(new DeleteObjectsCommand(this, this._selectionManager.selectedObjects))
     }
 }
 
