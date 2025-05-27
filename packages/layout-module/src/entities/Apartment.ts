@@ -142,7 +142,12 @@ export class Apartment extends EditorObject {
         this.init(points)
     }
 
-    public clone(): EditorObject {
+    public updatePosition(point: APoint) {
+        this._container.position.copyFrom(point)
+        this.render()
+    }
+
+    public clone(): Apartment {
         return new Apartment(this.points, this._eventService)
     }
 

@@ -3,7 +3,7 @@ import data from './llu.json'
 import { EventService } from '../EventService/EventService'
 import { EditorObject } from './EditorObject'
 import { identity, pairwise, splitIntoPairs } from '../func'
-import { ALine, aPoint, NotImplemented } from '../types'
+import { ALine, APoint, aPoint, NotImplemented } from '../types'
 import { OutlineFilter, GlowFilter } from 'pixi-filters'
 
 const outlineFilter = new OutlineFilter({
@@ -94,7 +94,12 @@ export class GeometryBlock extends EditorObject {
         return outline
     }
 
-    public clone(): EditorObject {
+    public updatePosition(point: APoint) {
+        this._container.position.copyFrom(point)
+        this.render()
+    }
+
+    public clone(): GeometryBlock {
         throw new NotImplemented()
     }
 

@@ -29,7 +29,7 @@ export const defaultWindowProperties: WindowProperties = {
 
 export interface WindowDto {
     id: string
-    centerPoint: APoint
+    position: APoint
     properties: WindowProperties
 }
 
@@ -38,33 +38,32 @@ export class WindowObj extends EditorObject {
     private _graphics = new Graphics()
     private _sizeLabel = new Text({ style: { fontSize: 8, fill: 0x333333 } })
     private _properties: WindowProperties = defaultWindowProperties
-    private _centerPoint: APoint
 
     public get container() { return this._container }
     public get isSelectable() { return true }
-    public get centerPoint() { return this._centerPoint }
     public get properties() { return this._properties }
+    public get position() { return this._container.position }
 
     public get dto(): WindowDto {
         return {
             id: this._id,
-            centerPoint: this._centerPoint,
+            position: this.position,
             properties: this._properties
         }
     }
 
     constructor(
-        centerPoint: APoint, // в пикселях
+        position: APoint,
         _eventService: EventService,
         properties: WindowProperties = defaultWindowProperties
     ) {
         super(_eventService)
-        this._centerPoint = centerPoint
         this._properties = properties
-        this.init()
+        this.init(position)
     }
 
-    private init() {
+    private init(position: APoint) {
+        this._container.position.copyFrom(position)
         this._container.addChild(this._graphics)
         this._container.addChild(this._sizeLabel)
         this.setupGraphics()
@@ -99,37 +98,40 @@ export class WindowObj extends EditorObject {
     }
 
     public updatePosition(point: APoint) {
-        this._centerPoint = point
+        this._container.position.copyFrom(point)
         this.render()
     }
 
     render() {
-        const { _graphics, _sizeLabel, _isHovered, _isSelected, _centerPoint, _container } = this
+        const { _graphics, _sizeLabel, _isHovered, _isSelected, _container } = this
 
         this._graphics.filters = [
             ...(_isHovered ? [glowFilter] : []),
             ...(_isSelected ? [outlineFilter] : []),
         ]
 
-        _graphics.clear()
-
-        _graphics.circle(_centerPoint.x, _centerPoint.y, 2)
-        _graphics.fill({ color: this.getFillColor() })
-
-        _graphics.circle(_centerPoint.x, _centerPoint.y, 2)
-        _graphics.stroke({ color: 0x333333, width: 1, pixelLine: true })
+        _graphics
+            .clear()
+            .circle(0, 0, 2)
+            .fill({ color: this.getFillColor() })
+            .circle(0, 0, 2)
+            .stroke({ color: 0x333333, width: 1, pixelLine: true })
 
         if (_isHovered) {
             _container.addChild(_sizeLabel)
             _sizeLabel.text = `${this._properties.size}`
-            _sizeLabel.position.set(_centerPoint.x, _centerPoint.y - 5)
+            _sizeLabel.position.set(0, -5)
         } else {
             _container.removeChild(_sizeLabel)
         }
     }
 
-    public clone(): EditorObject {
-        return new WindowObj(aPoint(this._centerPoint), this._eventService, { ...this._properties })
+    public clone(): WindowObj {
+        return new WindowObj(
+            aPoint(this._container.position),
+            this._eventService,
+            { ...this._properties }
+        )
     }
 
     public createDragOutline(): Container {
@@ -138,12 +140,13 @@ export class WindowObj extends EditorObject {
 
         const graphics = new Graphics()
         graphics
-            .circle(this._centerPoint.x, this._centerPoint.y, 2)
+            .circle(0, 0, 2)
             .fill({ color: 0x3399cc, alpha: 0.5 })
-            .circle(this._centerPoint.x, this._centerPoint.y, 2)
+            .circle(0, 0, 2)
             .stroke({ color: 0x3399cc, width: 1, alpha: 0.8 })
 
         outline.addChild(graphics)
+        outline.position.copyFrom(this._container.position)
         return outline
     }
 

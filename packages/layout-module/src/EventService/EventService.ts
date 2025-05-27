@@ -2,12 +2,14 @@
 import { Subject, Observable, filter } from 'rxjs'
 import { AppEvent, MouseDownEvent, MouseEnterEvent, MouseLeaveEvent, MouseUpEvent } from './eventTypes'
 import { IDisposable } from '../types'
+import { Logger } from '../logger'
 
 export class EventService implements IDisposable {
-    private eventSubject = new Subject<AppEvent>()
+    private _logger = new Logger('EventService')
+    private _eventSubject = new Subject<AppEvent>()
 
     get events$(): Observable<AppEvent> {
-        return this.eventSubject.asObservable()
+        return this._eventSubject.asObservable()
     }
 
     get mousedown$(): Observable<MouseDownEvent> {
@@ -27,10 +29,11 @@ export class EventService implements IDisposable {
     }
 
     public emit(event: AppEvent) {
-        this.eventSubject.next(event)
+        this._logger.debug(event.type)
+        this._eventSubject.next(event)
     }
 
     public dispose() {
-        this.eventSubject.complete()
+        this._eventSubject.complete()
     }
 }

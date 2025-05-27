@@ -201,17 +201,19 @@ export class Editor {
         this._subscriptions.push(fromPixiEvent(this.stage, 'mousemove')
             .pipe(filter(e => e instanceof FederatedPointerEvent))
             .subscribe(event => this._eventService.emit({ type: 'mousemove', pixiEvent: event })))
-        this._subscriptions.push(fromPixiEvent(this.stage, 'mouseup')
-            .pipe(mergeMap(e => {
-                if (e.target instanceof EditorObject) {
-                    return of<MouseUpEvent>({ type: 'mouseup', pixiEvent: e, target: e.target })
-                } else {
-                    return of<MouseUpEvent>({ type: 'mouseup', pixiEvent: e })
-                }
-            }))
-            .subscribe(event => {
-                this._eventService.emit(event)
-            }))
+
+        // TODO: не копируются окна, починить
+        // this._subscriptions.push(fromPixiEvent(this.stage, 'mouseup')
+        //     .pipe(mergeMap(e => {
+        //         if (e.target instanceof EditorObject) {
+        //             return of<MouseUpEvent>({ type: 'mouseup', pixiEvent: e, target: e.target })
+        //         } else {
+        //             return of<MouseUpEvent>({ type: 'mouseup', pixiEvent: e })
+        //         }
+        //     }))
+        //     .subscribe(event => {
+        //         this._eventService.emit(event)
+        //     }))
     }
 
     public onObjectSelected() {
@@ -306,7 +308,7 @@ export class Editor {
                     []),
                 target,
                 startMousePos: aPoint(pixiEvent.global),
-                originalCenterPoint: aPoint(target.centerPoint),
+                originalCenterPoint: aPoint(target.position),
                 sectionOutlinePoints: assertDefined(this._sectionOutline).points,
                 dragOutline,
             }
@@ -324,7 +326,7 @@ export class Editor {
             case 'dragBlock':
                 if (this._keyboardState.shift) {
                     const copy = target.clone()
-                    copy.container.position.copyFrom(dragConfig.dragOutline.position)
+                    copy.updatePosition(dragConfig.dragOutline.position)
                     this.executeCommand(new AddObjectCommand(this, copy))
                 } else {
                     this.executeCommand(new MoveObjectCommand(
@@ -345,12 +347,18 @@ export class Editor {
                     }))
                 break
             case 'dragWindow':
-                this.executeCommand(new MoveWindowCommand(
-                    dragConfig.target,
-                    {
-                        startPos: dragConfig.originalCenterPoint,
-                        endPos: aPoint(dragConfig.dragOutline.position)
-                    }))
+                if (this._keyboardState.shift) {
+                    const copy = target.clone()
+                    copy.updatePosition(dragConfig.dragOutline.position)
+                    this.executeCommand(new AddObjectCommand(this, copy))
+                } else {
+                    this.executeCommand(new MoveWindowCommand(
+                        dragConfig.target,
+                        {
+                            startPos: dragConfig.originalCenterPoint,
+                            endPos: aPoint(dragConfig.dragOutline.position)
+                        }))
+                }
                 break
             default:
                 assertUnreachable(type)

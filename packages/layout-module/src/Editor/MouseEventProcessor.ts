@@ -1,4 +1,4 @@
-import { switchMap, filter, take, timeout, map, catchError, of } from 'rxjs'
+import { switchMap, filter, take, timeout, map, catchError, of, tap } from 'rxjs'
 import { EditorObject } from '../entities/EditorObject'
 import { EventService } from '../EventService/EventService'
 import { MouseDownEvent } from '../EventService/eventTypes'
