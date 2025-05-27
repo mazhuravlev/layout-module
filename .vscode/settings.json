@@ -35,4 +35,7 @@
   "[csharp]": {
     "editor.defaultFormatter": "ms-dotnettools.csharp"
   },
+  "[scss]": {
+    "editor.defaultFormatter": "vscode.css-language-features"
+  },
 }

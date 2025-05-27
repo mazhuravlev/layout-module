@@ -4,6 +4,7 @@ import { APoint, TPoints } from '../types'
 import { Wall } from '../entities/Wall'
 import { EditorObject } from '../entities/EditorObject'
 import { GeometryBlock } from '../entities/GeometryBlock'
+import { WindowObj } from '../entities/Window'
 
 interface DragConfigType {
     target: EditorObject
@@ -40,6 +41,16 @@ export interface WallDragConfig extends DragConfigType {
     originalApartmentPoints: APoint[]
 }
 
+export interface WindowDragConfig {
+    type: 'dragWindow'
+    target: WindowObj
+    snapService: SnapService
+    startMousePos: APoint
+    originalCenterPoint: APoint
+    // Точки контура секции для привязки окна к контуру
+    sectionOutlinePoints: APoint[]
+}
 
-export type DragConfig = BlockDragConfig | WallDragConfig
+
+export type DragConfig = BlockDragConfig | WallDragConfig | WindowDragConfig
 

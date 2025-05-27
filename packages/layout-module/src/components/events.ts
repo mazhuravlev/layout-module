@@ -4,6 +4,7 @@ import { returnSecondArg } from '../func'
 import persist from 'effector-localstorage'
 import { ApartmentDto } from '../entities/ApartmentDto'
 import { ApartmentProperties } from '../entities/ApartmentProperties'
+import { WindowProperties } from '../entities/Window'
 
 const returnPayload = returnSecondArg
 
@@ -70,3 +71,9 @@ export const $sizeConfig = createStore({ showWallSize: true })
 export const toggleShowWallSize = createEvent<void>()
 $sizeConfig.on(toggleShowWallSize, (state, _payload) => ({ ...state, showWallSize: !state.showWallSize }))
 persist({ store: $sizeConfig, key: 'sizeConfig.v1' })
+
+export const populateWindows = createEvent<{
+    windowSize: number // размер окна в мм
+    spacing: number // интервал между окнами в мм 
+}>()
+export const setWindowProperties = createEvent<Partial<WindowProperties>>()

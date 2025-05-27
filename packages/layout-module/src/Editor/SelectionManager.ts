@@ -1,12 +1,18 @@
 import { Apartment } from '../entities/Apartment'
 import { EditorObject } from '../entities/EditorObject'
+import { WindowObj } from '../entities/Window'
 
 export class SelectionManager {
     private _selectedObjects = new Set<EditorObject>()
 
-    get selectedObjects() { return [...this._selectedObjects] }
-    get selectedApartments() {
+    public get selectedObjects() { return [...this._selectedObjects] }
+
+    public get selectedApartments(): Apartment[] {
         return this.selectedObjects.filter(x => x instanceof Apartment)
+    }
+
+    public get selectedWindows(): WindowObj[] {
+        return this.selectedObjects.filter(obj => obj instanceof WindowObj)
     }
 
     public selectObject(object: EditorObject) {

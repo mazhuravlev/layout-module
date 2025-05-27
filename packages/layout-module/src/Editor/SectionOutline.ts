@@ -16,8 +16,12 @@ export class SectionOutline {
         return this.offsetPoints.map(x => this._graphics.toGlobal(x))
     }
 
-    private get offsetPoints() {
+    public get offsetPoints() {
         return offsetPolygon(this._points, -1 * this._offset)
+    }
+
+    public get points() {
+        return this._points
     }
 
     /**

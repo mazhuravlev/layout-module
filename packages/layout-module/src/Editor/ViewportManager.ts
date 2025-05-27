@@ -2,7 +2,9 @@ import { Application, Container } from 'pixi.js'
 import { EDITOR_CONFIG } from './editorConfig'
 import { Viewport } from 'pixi-viewport'
 import { ASubscription, IDisposable, unsubscribe } from '../types'
-import { fromEvent } from 'rxjs'
+import { filter, fromEvent } from 'rxjs'
+import { fromPixiEvent } from '../geometryFunc'
+import { assert } from '../func'
 
 export class ViewportManager implements IDisposable {
     private _viewport: Viewport
@@ -12,9 +14,16 @@ export class ViewportManager implements IDisposable {
         return this._viewport
     }
 
+    public get scale() {
+        const { x, y } = this._viewport.scale
+        assert(x === y)
+        return x
+    }
+
     constructor(
         private _app: Application,
-        container: HTMLDivElement
+        container: HTMLDivElement,
+        onStageClick: () => void,
     ) {
         this._viewport = new Viewport({
             screenWidth: container.clientWidth,
@@ -31,6 +40,9 @@ export class ViewportManager implements IDisposable {
             .decelerate()
         this._subscriptions.push(fromEvent(container, 'resize')
             .subscribe(() => this._viewport.resize(container.clientWidth, container.clientHeight)))
+        this._subscriptions.push(fromPixiEvent(this.stage, 'click')
+            .pipe(filter(e => e.target === this._viewport))
+            .subscribe(onStageClick))
         _app.stage.addChild(this._viewport)
     }
 

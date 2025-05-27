@@ -17,6 +17,7 @@ export function aPoint(arg: APoint | [number, number]): APoint {
 
 export const subtractVectors = (a: APoint, b: APoint): APoint => ({ x: a.x - b.x, y: a.y - b.y })
 export const addVectors = (a: APoint, b: APoint): APoint => ({ x: a.x + b.x, y: a.y + b.y })
+export const multiplyVector = ({ x, y }: APoint, v: number): APoint => ({ x: x * v, y: y * v })
 
 export type TPoints = [APoint, APoint]
 

@@ -3,23 +3,27 @@ import { EditorCommand } from './EditorCommand'
 import { EditorObject } from '../entities/EditorObject'
 
 export class AddObjectCommand implements EditorCommand {
+    private _objects: EditorObject[]
 
     constructor(
         private _editor: Editor,
-        private _object: EditorObject
+        object: EditorObject | EditorObject[]
     ) {
+        this._objects = object instanceof Array ? object : [object]
     }
 
     execute(): void {
-        this._editor.addObject(this._object)
+        this._objects.forEach(x => this._editor.addObject(x))
     }
 
     undo(): void {
-        this._editor.deleteObject(this._object)
+        this._objects.forEach(x => this._editor.deleteObject(x))
     }
 
 
     dispose(): void {
-        this._object.dispose()
+        // Команда не владеет объектами, редактор управляет их жизненным циклом
+        // Поэтому явное удаление здесь не требуется
+        // this._objects.forEach(x => x.dispose())
     }
 }

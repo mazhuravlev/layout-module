@@ -333,11 +333,6 @@ export const lineCenter = (line: TPoints): APoint => {
   }
 }
 
-export const lineLength = (line: TPoints): number => {
-  const [p1, p2] = line
-  return Math.sqrt((p1.x - p2.x) ** 2 + (p1.y - p2.y) ** 2)
-}
-
 export const isVerticalLine = (line: TPoints): 1 | -1 | false => {
   const [p1, p2] = line
   if (Math.abs(p1.x - p2.x) < 1e-10) {
@@ -364,4 +359,40 @@ export function getSlope(start: APoint, end: APoint): number | null {
   }
 
   return (end.y - start.y) / deltaX
+}
+
+export const lineLength = (line: TPoints): number => {
+  const [p1, p2] = line
+  return Math.sqrt((p1.x - p2.x) ** 2 + (p1.y - p2.y) ** 2)
+}
+
+export function getLineLength(line: ALine): number {
+  return Math.sqrt(
+    Math.pow(line.end.x - line.start.x, 2) +
+    Math.pow(line.end.y - line.start.y, 2)
+  )
+}
+
+export function interpolatePoint(start: APoint, end: APoint, t: number): APoint {
+  return {
+    x: start.x + (end.x - start.x) * t,
+    y: start.y + (end.y - start.y) * t
+  }
+}
+
+export function projectPointOnLine(point: APoint, line: ALine): APoint {
+  const { start, end } = line
+  const lineLength = getLineLength(line)
+
+  if (lineLength === 0) return start
+
+  const t = Math.max(0, Math.min(1,
+    ((point.x - start.x) * (end.x - start.x) + (point.y - start.y) * (end.y - start.y)) / (lineLength * lineLength)
+  ))
+
+  return interpolatePoint(start, end, t)
+}
+
+export function getPointDistance(p1: APoint, p2: APoint): number {
+  return Math.sqrt(Math.pow(p2.x - p1.x, 2) + Math.pow(p2.y - p1.y, 2))
 }

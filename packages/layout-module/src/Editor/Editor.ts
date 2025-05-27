@@ -1,14 +1,14 @@
 import { Application, FederatedPointerEvent } from 'pixi.js'
 import { distanceFromPointToLine, fromPixiEvent, pointsToLines, shiftLine } from '../geometryFunc'
 import { Logger } from '../logger'
-import { addVectors, ALine, aPoint, APoint, ASubscription, mapLine, mapPoint, subtractVectors, unsubscribe } from '../types'
-import { BlockDragConfig, DragConfig, WallDragConfig } from './dragConfig'
+import { addVectors, ALine, aPoint, APoint, ASubscription, mapLine, mapPoint, multiplyVector, subtractVectors, unsubscribe } from '../types'
+import { BlockDragConfig, DragConfig, WallDragConfig, WindowDragConfig } from './dragConfig'
 import { Apartment } from '../entities/Apartment'
 import { EventService } from '../EventService/EventService'
-import { addApartment, deleteSelected, redo, apartmentSelected, undo, zoomToExtents, setApartmentProperties, addLLU, rotateSelected, sectionSettings, flipSelected } from '../components/events'
-import { assert, assertDefined, assertUnreachable, empty, isNull, isUndefined, not, toError } from '../func'
+import * as events from '../components/events'
+import { assert, assertDefined, assertUnreachable, empty, isNull, toError } from '../func'
 import { MouseDownEvent, MouseUpEvent } from '../EventService/eventTypes'
-import { catchError, EMPTY, filter, map, mergeMap, of, switchMap, take, timeout } from 'rxjs'
+import { filter, mergeMap, of } from 'rxjs'
 import { SnapService } from './SnapService'
 import { EditorCommand } from '../commands/EditorCommand'
 import { AddObjectCommand } from '../commands/AddObjectCommand'
@@ -27,6 +27,10 @@ import { SelectionManager } from './SelectionManager'
 import { CommandManager } from './CommandManager'
 import { ViewportManager } from './ViewportManager'
 import { MouseEventProcessor } from './MouseEventProcessor'
+import { createWindowsAlongOutline, snapWindowToOutline, WindowObj } from '../entities/Window'
+import { UpdateWindowPropertiesCommand } from '../commands/UpdateWindowPropertiesCommand'
+import { MoveWindowCommand } from '../commands/MoveWindowCommand'
+import { EDITOR_CONFIG } from './editorConfig'
 
 export class Editor {
     private _app = new Application()
@@ -61,6 +65,10 @@ export class Editor {
         return assertDefined(this._viewportManager).stage
     }
 
+    public get scale() {
+        return assertDefined(this._viewportManager).scale
+    }
+
     public get eventService() {
         return this._eventService
     }
@@ -69,16 +77,23 @@ export class Editor {
         this._logger.debug('init')
         const app = assertDefined(this._app, 'Editor._app must be defined')
         if (process.env.NODE_ENV === 'development') {
-            initDevtools({ app: app })
+            initDevtools({ app })
         }
         await app.init({
-            background: '#ededed',
+            background: EDITOR_CONFIG.VISUAL.BACKGROUND_COLOR,
             resizeTo: this._container,
             autoStart: true,
             antialias: false,
         })
         this._container.appendChild(app.canvas)
-        this._viewportManager = new ViewportManager(app, this._container)
+        this._viewportManager = new ViewportManager(
+            app,
+            this._container,
+            () => {
+                this.deselectAll()
+                this.onObjectSelected()
+            }
+        )
         this.setupObjectEvents()
         this.setupEvents()
     }
@@ -99,35 +114,49 @@ export class Editor {
 
     private setupEvents() {
         this._subscriptions.push(...[
-            addApartment.watch((shape) => {
+            events.addApartment.watch((shape) => {
                 this.executeCommand(new AddObjectCommand(this, new Apartment(shape.points, this._eventService)))
             }),
-            addLLU.watch(() => {
+            events.addLLU.watch(() => {
                 this.executeCommand(new AddObjectCommand(this, new GeometryBlock(this._eventService)))
             }),
-            deleteSelected.watch(() => this.deleteSelected()),
-            zoomToExtents.watch(() => this.zoomToExtents()),
-            undo.watch(() => this.undo()),
-            redo.watch(() => this.redo()),
-            setApartmentProperties.watch((properties) => {
+            events.deleteSelected.watch(() => this.deleteSelected()),
+            events.zoomToExtents.watch(() => this.zoomToExtents()),
+            events.undo.watch(() => this.undo()),
+            events.redo.watch(() => this.redo()),
+            events.setApartmentProperties.watch((properties) => {
                 if (empty(this.selectedApartments)) return
                 this.executeCommand(new UpdateApartmentPropertiesCommand(this, this.selectedApartments, properties))
             }),
-            rotateSelected.watch(angle => {
+            events.rotateSelected.watch(angle => {
                 if (empty(this.selectedApartments)) return
                 this.executeCommand(new SimpleCommand(
                     () => this.selectedApartments.forEach(x => x.rotate(angle)),
                     () => this.selectedApartments.forEach(x => x.rotate(-angle))))
             }),
-            flipSelected.watch(t => {
+            events.flipSelected.watch(t => {
                 if (empty(this.selectedApartments)) return
                 const fn = () => this.selectedApartments.forEach(x => x.flip(t))
                 this.executeCommand(new SimpleCommand(fn, fn))
             }),
-            sectionSettings
+            events.sectionSettings
                 .map(x => x.offset)
                 .watch(offset => this._sectionOutline?.setOffset(Units.fromMm(offset))),
             this._mouseEventProcessor.setupClickHandling(),
+            events.populateWindows.watch((options) => {
+                const { points } = assertDefined(this._sectionOutline)
+                const windows = createWindowsAlongOutline(
+                    points,
+                    this._eventService,
+                    options
+                )
+                this.executeCommand(new AddObjectCommand(this, windows))
+            }),
+            events.setWindowProperties.watch((properties) => {
+                const { selectedWindows } = this._selectionManager
+                if (empty(selectedWindows)) return
+                this.executeCommand(new UpdateWindowPropertiesCommand(selectedWindows, properties))
+            }),
         ])
     }
 
@@ -135,46 +164,6 @@ export class Editor {
      * @description Настройка событий редактора
      */
     private setupObjectEvents() {
-        this._subscriptions.push(
-            this._eventService.mousedown$
-                .pipe(
-                    switchMap((downEvent) => {
-                        const isCtrlPressed = downEvent.pixiEvent.ctrlKey || downEvent.pixiEvent.metaKey
-                        const isShiftPressed = downEvent.pixiEvent.shiftKey
-
-                        return this._eventService.mouseup$.pipe(
-                            take(1),
-                            timeout(200),
-                            filter((upEvent) => upEvent.target === downEvent.target),
-                            map((upEvent) => ({
-                                target: upEvent.target,
-                                ctrlKey: isCtrlPressed,
-                                shiftKey: isShiftPressed,
-                            })),
-                            catchError(() => EMPTY)
-                        )
-                    }),
-                    filter(({ target }) => target !== undefined)
-                )
-                .subscribe(({ target, ctrlKey, shiftKey }) => {
-                    if (isUndefined(target)) return
-                    if (not(target.isSelectable)) return
-                    if (not(ctrlKey) && not(shiftKey)) {
-                        // Обычный клик (без модификаторов) → сброс предыдущего выбора
-                        this.deselectAll()
-                        this._selectionManager.selectObject(target)
-                        target.container.parent.addChild(target.container) // bring to front
-                    } else if (ctrlKey || shiftKey) {
-                        // Мультиселект: добавляем/удаляем квартиру из выбора
-                        if (this._selectionManager.has(target)) {
-                            this._selectionManager.deselectObject(target)
-                        } else {
-                            this._selectionManager.selectObject(target)
-                        }
-                    }
-                    this.onObjectSelected()
-                })
-        )
         this._subscriptions.push(this._eventService.mouseenter$
             .pipe(filter(() => isNull(this._dragConfig)))
             .subscribe(e => {
@@ -195,6 +184,9 @@ export class Editor {
                         break
                     case 'dragWall':
                         this.dragWall(this._dragConfig, e.pixiEvent)
+                        break
+                    case 'dragWindow':
+                        this.dragWindow(this._dragConfig, e.pixiEvent)
                         break
                     default:
                         assertUnreachable(this._dragConfig)
@@ -219,7 +211,8 @@ export class Editor {
     }
 
     public onObjectSelected() {
-        apartmentSelected([...this.selectedApartments.values().map(x => x.dto)])
+        // TODO: придумать что-то для работы со всеми типами объектов: квартиры, ЛЛУ, окна
+        events.apartmentSelected([...this.selectedApartments.values().map(x => x.dto)])
     }
 
     private dragBlock(_dragConfig: BlockDragConfig, pixiEvent: FederatedPointerEvent) {
@@ -260,6 +253,14 @@ export class Editor {
         }
     }
 
+    private dragWindow(_dragConfig: WindowDragConfig, pixiEvent: FederatedPointerEvent) {
+        const { target, startMousePos, originalCenterPoint, sectionOutlinePoints } = _dragConfig
+        const delta = subtractVectors(pixiEvent.global, startMousePos)
+        const newPosition = addVectors(originalCenterPoint, multiplyVector(delta, 1 / this.scale))
+        const snappedPosition = snapWindowToOutline(newPosition, sectionOutlinePoints)
+        target.updatePosition(snappedPosition)
+    }
+
     private startDrag({ pixiEvent, target }: MouseDownEvent) {
         if (target instanceof Apartment || target instanceof GeometryBlock) {
             const dragConfig: BlockDragConfig = {
@@ -284,6 +285,19 @@ export class Editor {
                 target,
                 originalWallGlobalPoints: target.globalPoints,
                 originalApartmentPoints: target.apartment.points
+            }
+            this._dragConfig = dragConfig
+        } else if (target instanceof WindowObj) {
+            const dragConfig: WindowDragConfig = {
+                type: 'dragWindow',
+                snapService: new SnapService(
+                    this.stage,
+                    [], // no point snapping for windows
+                    []), // no line snapping for windows  
+                target,
+                startMousePos: aPoint(pixiEvent.global),
+                originalCenterPoint: aPoint(target.centerPoint),
+                sectionOutlinePoints: assertDefined(this._sectionOutline).points
             }
             this._dragConfig = dragConfig
         }
@@ -312,6 +326,14 @@ export class Editor {
                         newPoints: dragConfig.target.apartment.points
                     }))
                 break
+            case 'dragWindow':
+                this.executeCommand(new MoveWindowCommand(
+                    dragConfig.target,
+                    {
+                        startPos: dragConfig.originalCenterPoint,
+                        endPos: aPoint(dragConfig.target.centerPoint)
+                    }))
+                break
             default:
                 assertUnreachable(type)
         }
@@ -322,6 +344,7 @@ export class Editor {
             if (o instanceof Apartment) return o.wallLines.map(mapLine(x => o.container.toGlobal(x)))
             if (o instanceof GeometryBlock) return o.globalLines
             if (o instanceof Wall) return []
+            if (o instanceof WindowObj) return []
             throw new Error('Unknown object type')
         }
         return [
@@ -338,6 +361,7 @@ export class Editor {
             if (o instanceof Apartment) return o.globalPoints
             if (o instanceof GeometryBlock) return o.globalPoints
             if (o instanceof Wall) return []
+            if (o instanceof WindowObj) return []
             throw new Error('Unknown object type')
         }
         return [
@@ -382,7 +406,7 @@ export class Editor {
         assert(this._sectionOutline === null)
         this._sectionOutline = new SectionOutline(
             points.map(mapPoint(Units.fromMm)),
-            Units.fromMm(sectionSettings.getState().offset)
+            Units.fromMm(events.sectionSettings.getState().offset)
         )
         this.stage.addChild(this._sectionOutline.container)
     }
