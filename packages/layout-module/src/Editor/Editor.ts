@@ -1,7 +1,7 @@
-import { Application, Container, FederatedPointerEvent } from 'pixi.js'
+import { Application, FederatedPointerEvent } from 'pixi.js'
 import { distanceFromPointToLine, fromPixiEvent, pointsToLines, shiftLine } from '../geometryFunc'
 import { Logger } from '../logger'
-import { addVectors, ALine, aPoint, APoint, ASubscription, mapLine, mapPoint, subtractVectors } from '../types'
+import { addVectors, ALine, aPoint, APoint, ASubscription, mapLine, mapPoint, subtractVectors, unsubscribe } from '../types'
 import { BlockDragConfig, DragConfig, WallDragConfig } from './dragConfig'
 import { Apartment } from '../entities/Apartment'
 import { EventService } from '../EventService/EventService'
@@ -39,7 +39,7 @@ export class Editor {
 
     private _selectionManager = new SelectionManager()
     private _commandManager = new CommandManager()
-    private _viewportManager: ViewportManager
+    private _viewportManager: ViewportManager | null = null
     private _mouseEventProcessor: MouseEventProcessor
 
     /**
@@ -50,7 +50,6 @@ export class Editor {
     private _subscriptions: ASubscription[] = []
 
     constructor(private _container: HTMLDivElement) {
-        this._viewportManager = new ViewportManager(this._app, this._container)
         this._mouseEventProcessor = new MouseEventProcessor(
             this._eventService,
             this._selectionManager,
@@ -58,8 +57,8 @@ export class Editor {
         )
     }
 
-    public get app() {
-        return this._app
+    public get stage() {
+        return assertDefined(this._viewportManager).stage
     }
 
     public get eventService() {
@@ -68,16 +67,18 @@ export class Editor {
 
     public async init(): Promise<void> {
         this._logger.debug('init')
+        const app = assertDefined(this._app, 'Editor._app must be defined')
         if (process.env.NODE_ENV === 'development') {
-            initDevtools({ app: this._app })
+            initDevtools({ app: app })
         }
-        await this.app.init({
+        await app.init({
             background: '#ededed',
             resizeTo: this._container,
             autoStart: true,
             antialias: false,
         })
-        this._container.appendChild(this._app.canvas)
+        this._container.appendChild(app.canvas)
+        this._viewportManager = new ViewportManager(app, this._container)
         this.setupObjectEvents()
         this.setupEvents()
     }
@@ -90,7 +91,7 @@ export class Editor {
     public redo() { return this._commandManager.redo() }
     public deselectAll() { this._selectionManager.deselectAll() }
     public selectObjects(objects: EditorObject[]) { this._selectionManager.selectObjects(objects) }
-    public zoomToExtents(children?: Container[]) { this._viewportManager.zoomToExtents(children) }
+    public zoomToExtents() { this._viewportManager?.zoomToExtents() }
 
     private get selectedApartments() {
         return this._selectionManager.selectedApartments as Apartment[]
@@ -127,7 +128,6 @@ export class Editor {
                 .map(x => x.offset)
                 .watch(offset => this._sectionOutline?.setOffset(Units.fromMm(offset))),
             this._mouseEventProcessor.setupClickHandling(),
-            this._viewportManager.setupZoomControls(),
         ])
     }
 
@@ -202,20 +202,10 @@ export class Editor {
             }
         }))
 
-        const { stage } = this.app
-        stage.eventMode = 'static'
-        stage.hitArea = this.app.screen
-        stage.on('click', (e: PointerEvent) => {
-            if (e.target === stage) {
-                this.deselectAll()
-                apartmentSelected([])
-            }
-        })
-
-        this._subscriptions.push(fromPixiEvent(this.app.stage, 'mousemove')
+        this._subscriptions.push(fromPixiEvent(this.stage, 'mousemove')
             .pipe(filter(e => e instanceof FederatedPointerEvent))
             .subscribe(event => this._eventService.emit({ type: 'mousemove', pixiEvent: event })))
-        this._subscriptions.push(fromPixiEvent(this.app.stage, 'mouseup')
+        this._subscriptions.push(fromPixiEvent(this.stage, 'mouseup')
             .pipe(mergeMap(e => {
                 if (e.target instanceof EditorObject) {
                     return of<MouseUpEvent>({ type: 'mouseup', pixiEvent: e, target: e.target })
@@ -275,7 +265,7 @@ export class Editor {
             const dragConfig: BlockDragConfig = {
                 type: 'dragBlock',
                 snapService: new SnapService(
-                    this.app.stage,
+                    this.stage,
                     this.getSnapPoints({ exclude: target }),
                     this.getSnapLines({ exclude: target })),
                 target,
@@ -288,7 +278,7 @@ export class Editor {
             const dragConfig: WallDragConfig = {
                 type: 'dragWall',
                 snapService: new SnapService(
-                    this.app.stage,
+                    this.stage,
                     this.getSnapPoints({ exclude: target.apartment }),
                     this.getSnapLines()),
                 target,
@@ -361,10 +351,10 @@ export class Editor {
 
     public async dispose(): Promise<void> {
         this._logger.debug('dispose')
-        this._subscriptions.forEach(x => x.unsubscribe())
-        this.app.stage.removeAllListeners()
+        this._subscriptions.forEach(unsubscribe)
+        this.stage.removeAllListeners()
         try {
-            this.app.destroy(true, { children: true })
+            this._app?.destroy(true, { children: true })
         } catch (error) {
             this._logger.error('Error destroying app:', toError(error))
         }
@@ -394,16 +384,16 @@ export class Editor {
             points.map(mapPoint(Units.fromMm)),
             Units.fromMm(sectionSettings.getState().offset)
         )
-        this.app.stage.addChild(this._sectionOutline.container)
+        this.stage.addChild(this._sectionOutline.container)
     }
 
     public addObject(o: EditorObject) {
         this._editorObjects.set(o.id, o)
-        this.app.stage.addChild(o.container)
+        this.stage.addChild(o.container)
     }
 
     public deleteObject(o: EditorObject) {
-        this.app.stage.removeChild(o.container)
+        this.stage.removeChild(o.container)
         this._editorObjects.delete(o.id)
     }
 

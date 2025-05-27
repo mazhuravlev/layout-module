@@ -1,6 +1,6 @@
 import { Container, Graphics, Polygon, Text } from 'pixi.js'
 import { EventService } from '../EventService/EventService'
-import { APoint, ASubscription, CoordType, TPoints } from '../types'
+import { APoint, ASubscription, CoordType, TPoints, unsubscribe } from '../types'
 import { Apartment } from '../entities/Apartment'
 import { $debugConfig, $sizeConfig } from '../components/events'
 import { isVerticalLine, lineCenter, lineLength, makeLineHitbox, shiftLine } from '../geometryFunc'
@@ -119,7 +119,7 @@ export class Wall extends EditorObject {
 
     public dispose() {
         this._graphics.removeAllListeners()
-        this._subscriptions.forEach(x => x.unsubscribe())
+        this._subscriptions.forEach(unsubscribe)
     }
 
     public update(points: TPoints, coordType: CoordType) {

@@ -1,48 +1,47 @@
 import { Application, Container } from 'pixi.js'
-import { fromEvent } from 'rxjs'
-import { calculateZoomToExtents } from '../geometryFunc'
 import { EDITOR_CONFIG } from './editorConfig'
+import { Viewport } from 'pixi-viewport'
+import { ASubscription, IDisposable, unsubscribe } from '../types'
+import { fromEvent } from 'rxjs'
 
-export class ViewportManager {
+export class ViewportManager implements IDisposable {
+    private _viewport: Viewport
+    private _subscriptions: ASubscription[] = []
 
-    constructor(private app: Application, private container: HTMLDivElement) { }
-
-    public setupZoomControls() {
-        return fromEvent<WheelEvent>(this.container, 'wheel', { passive: true })
-            .subscribe(this.handleWheel.bind(this))
+    public get stage(): Container {
+        return this._viewport
     }
 
-    private handleWheel(e: WheelEvent) {
-        const { stage } = this.app
-        const clientPoint = { x: e.clientX, y: e.clientY }
-        const mouseGlobalBeforeZoom = stage.toLocal(clientPoint)
-
-        const zoomFactor = e.deltaY > 0 ? 0.9 : 1.1
-        const newScale = Math.max(
-            EDITOR_CONFIG.ZOOM.MIN,
-            Math.min(EDITOR_CONFIG.ZOOM.MAX, stage.scale.x * zoomFactor)
-        )
-
-        stage.scale.set(newScale)
-
-        const mouseGlobalAfterZoom = stage.toLocal(clientPoint)
-        stage.position.x += (mouseGlobalAfterZoom.x - mouseGlobalBeforeZoom.x) * newScale
-        stage.position.y += (mouseGlobalAfterZoom.y - mouseGlobalBeforeZoom.y) * newScale
-    }
-
-    zoomToExtents(objects?: Container[]) {
-        const containers = objects ?? this.app.stage.children
-        if (containers.length === 0) return
-
-        this.app.stage.updateTransform({ scaleX: 1, scaleY: 1, x: 0, y: 0 })
-        this.app.render()
-
-        const { centerX, centerY, scale } = calculateZoomToExtents(this.app, EDITOR_CONFIG.VISUAL.ZOOM_TO_EXTENTS_PADDING, containers)
-        this.app.stage.updateTransform({
-            scaleX: scale,
-            scaleY: scale,
-            x: this.app.screen.width / 2 - centerX * scale,
-            y: this.app.screen.height / 2 - centerY * scale,
+    constructor(
+        private _app: Application,
+        container: HTMLDivElement
+    ) {
+        this._viewport = new Viewport({
+            screenWidth: container.clientWidth,
+            screenHeight: container.clientHeight,
+            events: _app.renderer.events,
+            passiveWheel: false,
         })
+        this._viewport
+            .wheel()
+            .clampZoom({
+                minScale: EDITOR_CONFIG.ZOOM.MIN,
+                maxScale: EDITOR_CONFIG.ZOOM.MAX
+            })
+            .decelerate()
+        this._subscriptions.push(fromEvent(container, 'resize')
+            .subscribe(() => this._viewport.resize(container.clientWidth, container.clientHeight)))
+        _app.stage.addChild(this._viewport)
+    }
+
+    public zoomToExtents() {
+        this._viewport.fit()
+    }
+
+    public dispose(): void {
+        const { _app, _viewport, _subscriptions } = this
+        _subscriptions.forEach(unsubscribe)
+        _app.stage.removeChild(_viewport)
+        _viewport.destroy()
     }
 }

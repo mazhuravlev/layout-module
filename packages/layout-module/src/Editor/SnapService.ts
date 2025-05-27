@@ -1,5 +1,5 @@
 import { Container, Graphics } from 'pixi.js'
-import { APoint, ALine, IDisposable, TPoints, ASubscription } from '../types'
+import { APoint, ALine, IDisposable, TPoints, ASubscription, unsubscribe } from '../types'
 import { $debugConfig, $snapConfig, SnapConfig } from '../components/events'
 import { areLinesCollinear, getSlope, pointsToLines } from '../geometryFunc'
 import { Units } from '../Units'
@@ -300,6 +300,6 @@ export class SnapService implements IDisposable {
             _snapIndicator.parent.removeChild(_snapIndicator)
             _snapIndicator.destroy()
         }
-        this._subscriptions.forEach(x => x.unsubscribe())
+        this._subscriptions.forEach(unsubscribe)
     }
 }
