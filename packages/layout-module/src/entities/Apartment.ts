@@ -1,13 +1,14 @@
 import { Container, Graphics, Matrix, Text } from 'pixi.js'
 import { assert, degreesToRadians, pairwise } from '../func'
 import { getPolygonCenter, getPolygonArea, formatArea, findCircularAdjacentElements, closePolygon, ensureClockwisePolygon } from '../geometryFunc'
-import { APoint, TPoints, CoordType, ALine, mapPoint } from '../types'
+import { APoint, TPoints, CoordType, ALine } from '../types'
 import { EventService } from '../EventService/EventService'
 import { Wall } from './Wall'
 import { ApartmentProperties, defaultApartmentProperties } from './ApartmentProperties'
 import { ApartmentDto } from './ApartmentDto'
 import { calculateApartmentType, exampleFlatmix } from '../Editor/flatMix'
 import { EditorObject } from './EditorObject'
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { Units } from '../Units'
 import { OutlineFilter, GlowFilter } from 'pixi-filters'
 
@@ -46,6 +47,9 @@ export class Apartment extends EditorObject {
 
     public get position() { return this.container.position }
 
+    /** 
+     * Стены в локальных координатах
+     */
     public get wallLines(): ALine[] {
         return this._walls
             .map(x => x.points)
@@ -73,16 +77,15 @@ export class Apartment extends EditorObject {
 
     /**
      * 
-     * @param _points Координаты точек в мм
+     * @param _points Координаты точек во внутренних координатах {@link Units}
      * @param _eventService 
      * @param config 
      */
     constructor(
-        _points: APoint[],
+        points: APoint[],
         _eventService: EventService,
     ) {
         super(_eventService)
-        const points = _points.map(mapPoint(Units.fromMm))
         this.init(ensureClockwisePolygon(points))
     }
 
@@ -137,6 +140,10 @@ export class Apartment extends EditorObject {
         this._areaGraphics.clear()
         this._areaGraphics.removeAllListeners()
         this.init(points)
+    }
+
+    public clone(): EditorObject {
+        return new Apartment(this.points, this._eventService)
     }
 
     private setupWalls(points: APoint[]) {
@@ -225,6 +232,21 @@ export class Apartment extends EditorObject {
         _typeLabel.position.set(center.x, center.y - 8)
         _euroLabel.text = `${this.properties.isEuro ? 'Евро' : 'Стандарт'}`
         _euroLabel.position.set(center.x, center.y + 8)
+    }
+
+    public createDragOutline(): Container {
+        const outline = new Container()
+        outline.position.copyFrom(this._container.position)
+        const graphics = new Graphics()
+
+        this.wallLines.forEach(({ start, end }) => {
+            graphics.moveTo(start.x, start.y)
+            graphics.lineTo(end.x, end.y)
+        })
+
+        graphics.stroke({ color: 0x666666, pixelLine: true, alpha: 0.6 })
+        outline.addChild(graphics)
+        return outline
     }
 
     private getCenter() {

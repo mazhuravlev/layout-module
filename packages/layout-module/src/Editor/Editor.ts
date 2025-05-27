@@ -2,7 +2,7 @@ import { Application, FederatedPointerEvent } from 'pixi.js'
 import { distanceFromPointToLine, fromPixiEvent, pointsToLines, shiftLine } from '../geometryFunc'
 import { Logger } from '../logger'
 import { addVectors, ALine, aPoint, APoint, ASubscription, mapLine, mapPoint, multiplyVector, subtractVectors, unsubscribe } from '../types'
-import { BlockDragConfig, DragConfig, WallDragConfig, WindowDragConfig } from './dragConfig'
+import { BlockDragConfig, DragConfig, WallDragConfig, WindowDragConfig, withDragOutline } from './dragConfig'
 import { Apartment } from '../entities/Apartment'
 import { EventService } from '../EventService/EventService'
 import * as events from '../components/events'
@@ -31,6 +31,7 @@ import { createWindowsAlongOutline, snapWindowToOutline, WindowObj } from '../en
 import { UpdateWindowPropertiesCommand } from '../commands/UpdateWindowPropertiesCommand'
 import { MoveWindowCommand } from '../commands/MoveWindowCommand'
 import { EDITOR_CONFIG } from './editorConfig'
+import { KeyboardState } from './KeyboardState'
 
 export class Editor {
     private _app = new Application()
@@ -45,6 +46,7 @@ export class Editor {
     private _commandManager = new CommandManager()
     private _viewportManager: ViewportManager | null = null
     private _mouseEventProcessor: MouseEventProcessor
+    private _keyboardState = new KeyboardState()
 
     /**
      * @description Cleanup functions to be called on dispose
@@ -115,7 +117,9 @@ export class Editor {
     private setupEvents() {
         this._subscriptions.push(...[
             events.addApartment.watch((shape) => {
-                this.executeCommand(new AddObjectCommand(this, new Apartment(shape.points, this._eventService)))
+                this.executeCommand(new AddObjectCommand(
+                    this,
+                    new Apartment(shape.points.map(mapPoint(Units.fromMm)), this._eventService)))
             }),
             events.addLLU.watch(() => {
                 this.executeCommand(new AddObjectCommand(this, new GeometryBlock(this._eventService)))
@@ -216,25 +220,27 @@ export class Editor {
     }
 
     private dragBlock(_dragConfig: BlockDragConfig, pixiEvent: FederatedPointerEvent) {
-        const { target, snapService } = _dragConfig
+        const { target, snapService, dragOutline } = _dragConfig
         const toParentLocal = (point: APoint) => target.container.parent.toLocal(point)
         const toGlobal = (point: APoint) => target.container.parent.toGlobal(point)
         const delta = subtractVectors(pixiEvent.global, _dragConfig.startMousePos)
         const movedPoints = _dragConfig.originalGlobalPoints.map(p => addVectors(p, delta))
         const snapResult = snapService.checkOutlineSnap(movedPoints)
         snapService.showSnapIndicator(snapResult)
-        if (snapResult.snapped) {
-            const globalTargetPos = subtractVectors(
-                addVectors(toGlobal(_dragConfig.startPos), delta),
-                subtractVectors(snapResult.originalPoint, snapResult.snapPoint)
-            )
-            const newPos = toParentLocal(globalTargetPos)
-            target.container.position.set(newPos.x, newPos.y)
-        } else {
-            snapService.hideSnapIndicator()
-            const newPos = toParentLocal(addVectors(toGlobal(_dragConfig.startPos), delta))
-            target.container.position.set(newPos.x, newPos.y)
-        }
+
+        const newPos = (() => {
+            if (snapResult.snapped) {
+                const globalTargetPos = subtractVectors(
+                    addVectors(toGlobal(_dragConfig.startPos), delta),
+                    subtractVectors(snapResult.originalPoint, snapResult.snapPoint)
+                )
+                return toParentLocal(globalTargetPos)
+            } else {
+                snapService.hideSnapIndicator()
+                return toParentLocal(addVectors(toGlobal(_dragConfig.startPos), delta))
+            }
+        })()
+        dragOutline.position.copyFrom(newPos)
     }
 
     private dragWall(_dragConfig: WallDragConfig, pixiEvent: FederatedPointerEvent) {
@@ -254,26 +260,29 @@ export class Editor {
     }
 
     private dragWindow(_dragConfig: WindowDragConfig, pixiEvent: FederatedPointerEvent) {
-        const { target, startMousePos, originalCenterPoint, sectionOutlinePoints } = _dragConfig
+        const { startMousePos, originalCenterPoint, sectionOutlinePoints, dragOutline } = _dragConfig
         const delta = subtractVectors(pixiEvent.global, startMousePos)
         const newPosition = addVectors(originalCenterPoint, multiplyVector(delta, 1 / this.scale))
         const snappedPosition = snapWindowToOutline(newPosition, sectionOutlinePoints)
-        target.updatePosition(snappedPosition)
+        dragOutline.position.copyFrom(snappedPosition)
     }
 
     private startDrag({ pixiEvent, target }: MouseDownEvent) {
         if (target instanceof Apartment || target instanceof GeometryBlock) {
+            const dragOutline = target.createDragOutline()
             const dragConfig: BlockDragConfig = {
                 type: 'dragBlock',
                 snapService: new SnapService(
                     this.stage,
-                    this.getSnapPoints({ exclude: target }),
-                    this.getSnapLines({ exclude: target })),
+                    this.getSnapPoints(),
+                    this.getSnapLines()),
                 target,
                 startPos: aPoint(target.container.position),
                 startMousePos: aPoint(pixiEvent.global),
-                originalGlobalPoints: target.globalPoints.map(aPoint)
+                originalGlobalPoints: target.globalPoints.map(aPoint),
+                dragOutline,
             }
+            this.stage.addChild(dragOutline)
             this._dragConfig = dragConfig
         } else if (target instanceof Wall) {
             const dragConfig: WallDragConfig = {
@@ -288,17 +297,20 @@ export class Editor {
             }
             this._dragConfig = dragConfig
         } else if (target instanceof WindowObj) {
+            const dragOutline = target.createDragOutline()
             const dragConfig: WindowDragConfig = {
                 type: 'dragWindow',
                 snapService: new SnapService(
                     this.stage,
-                    [], // no point snapping for windows
-                    []), // no line snapping for windows  
+                    [],
+                    []),
                 target,
                 startMousePos: aPoint(pixiEvent.global),
                 originalCenterPoint: aPoint(target.centerPoint),
-                sectionOutlinePoints: assertDefined(this._sectionOutline).points
+                sectionOutlinePoints: assertDefined(this._sectionOutline).points,
+                dragOutline,
             }
+            this.stage.addChild(dragOutline)
             this._dragConfig = dragConfig
         }
     }
@@ -310,13 +322,19 @@ export class Editor {
         const { type, target } = dragConfig
         switch (type) {
             case 'dragBlock':
-                this.executeCommand(new MoveObjectCommand(
-                    this,
-                    dragConfig.target,
-                    {
-                        startPos: dragConfig.startPos,
-                        endPos: aPoint(target.container.position)
-                    }))
+                if (this._keyboardState.shift) {
+                    const copy = target.clone()
+                    copy.container.position.copyFrom(dragConfig.dragOutline.position)
+                    this.executeCommand(new AddObjectCommand(this, copy))
+                } else {
+                    this.executeCommand(new MoveObjectCommand(
+                        this,
+                        dragConfig.target,
+                        {
+                            startPos: dragConfig.startPos,
+                            endPos: aPoint(dragConfig.dragOutline.position)
+                        }))
+                }
                 break
             case 'dragWall':
                 this.executeCommand(new UpdateApartmentPointsCommand(
@@ -331,12 +349,16 @@ export class Editor {
                     dragConfig.target,
                     {
                         startPos: dragConfig.originalCenterPoint,
-                        endPos: aPoint(dragConfig.target.centerPoint)
+                        endPos: aPoint(dragConfig.dragOutline.position)
                     }))
                 break
             default:
                 assertUnreachable(type)
         }
+        withDragOutline(dragConfig, dragOutline => {
+            this.stage.removeChild(dragOutline)
+            dragOutline.destroy({ children: true })
+        })
     }
 
     private getSnapLines(options?: { exclude?: EditorObject }): ALine[] {
@@ -356,7 +378,7 @@ export class Editor {
         ]
     }
 
-    private getSnapPoints(options: { exclude?: EditorObject }): APoint[] {
+    private getSnapPoints(options?: { exclude?: EditorObject }): APoint[] {
         const getPoints = (o: EditorObject) => {
             if (o instanceof Apartment) return o.globalPoints
             if (o instanceof GeometryBlock) return o.globalPoints
@@ -368,13 +390,14 @@ export class Editor {
             ...assertDefined(this._sectionOutline).globalPoints,
             ...this._editorObjects
                 .values()
-                .filter(x => x !== options.exclude)
+                .filter(x => x !== options?.exclude)
                 .flatMap(getPoints)
         ]
     }
 
     public async dispose(): Promise<void> {
         this._logger.debug('dispose')
+        this._keyboardState.dispose()
         this._subscriptions.forEach(unsubscribe)
         this.stage.removeAllListeners()
         try {

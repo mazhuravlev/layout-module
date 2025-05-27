@@ -1,6 +1,6 @@
 import { Container, Graphics, Polygon, Text } from 'pixi.js'
 import { EventService } from '../EventService/EventService'
-import { APoint, ASubscription, CoordType, TPoints, unsubscribe } from '../types'
+import { APoint, ASubscription, CoordType, InvalidOperation, TPoints, unsubscribe } from '../types'
 import { Apartment } from '../entities/Apartment'
 import { $debugConfig, $sizeConfig } from '../components/events'
 import { isVerticalLine, lineCenter, lineLength, makeLineHitbox, shiftLine } from '../geometryFunc'
@@ -117,8 +117,17 @@ export class Wall extends EditorObject {
         }
     }
 
+    public createDragOutline(): Container {
+        throw new InvalidOperation('Стену не надо копировать')
+    }
+
+    public clone(): EditorObject {
+        throw new InvalidOperation('Стену не надо копировать')
+    }
+
     public dispose() {
         this._graphics.removeAllListeners()
+        this._container.destroy({ children: true })
         this._subscriptions.forEach(unsubscribe)
     }
 

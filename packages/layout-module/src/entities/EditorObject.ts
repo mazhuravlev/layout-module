@@ -34,6 +34,10 @@ export abstract class EditorObject implements IDisposable {
 
     public abstract dispose(): void
 
+    public abstract clone(): EditorObject
+
+    public abstract createDragOutline(): Container
+
     protected emit(pixiEvent: FederatedPointerEvent, type: AppEvent['type'], stopEvent = true) {
         if (stopEvent) {
             pixiEvent.preventDefault()

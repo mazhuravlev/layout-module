@@ -3,7 +3,7 @@ import data from './llu.json'
 import { EventService } from '../EventService/EventService'
 import { EditorObject } from './EditorObject'
 import { identity, pairwise, splitIntoPairs } from '../func'
-import { ALine, aPoint } from '../types'
+import { ALine, aPoint, NotImplemented } from '../types'
 import { OutlineFilter, GlowFilter } from 'pixi-filters'
 
 const outlineFilter = new OutlineFilter({
@@ -81,6 +81,21 @@ export class GeometryBlock extends EditorObject {
             ...(_isHovered ? [glowFilter] : []),
             ...(_isSelected ? [outlineFilter] : []),
         ]
+    }
+
+    public createDragOutline(): Container {
+        const outline = new Container()
+        const graphics = new Graphics()
+
+        graphics.rect(0, 0, 50, 50)
+        graphics.stroke({ color: 0x999999, width: 1, alpha: 0.6 })
+
+        outline.addChild(graphics)
+        return outline
+    }
+
+    public clone(): EditorObject {
+        throw new NotImplemented()
     }
 
     public dispose(): void {

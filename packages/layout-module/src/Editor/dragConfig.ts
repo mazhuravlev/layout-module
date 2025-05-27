@@ -5,6 +5,7 @@ import { Wall } from '../entities/Wall'
 import { EditorObject } from '../entities/EditorObject'
 import { GeometryBlock } from '../entities/GeometryBlock'
 import { WindowObj } from '../entities/Window'
+import { Container } from 'pixi.js'
 
 interface DragConfigType {
     target: EditorObject
@@ -32,6 +33,8 @@ export interface BlockDragConfig extends DragConfigType {
      * Точки контура квартиры до начала перемещения
      */
     originalGlobalPoints: APoint[]
+
+    dragOutline: Container
 }
 
 export interface WallDragConfig extends DragConfigType {
@@ -49,8 +52,15 @@ export interface WindowDragConfig {
     originalCenterPoint: APoint
     // Точки контура секции для привязки окна к контуру
     sectionOutlinePoints: APoint[]
+
+    dragOutline: Container
 }
 
 
 export type DragConfig = BlockDragConfig | WallDragConfig | WindowDragConfig
 
+export const withDragOutline = (dragConfig: DragConfig, fn: (dragOutline: Container) => void) => {
+    if ('dragOutline' in dragConfig) {
+        fn(dragConfig.dragOutline)
+    }
+}

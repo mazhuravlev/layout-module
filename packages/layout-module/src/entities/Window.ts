@@ -1,5 +1,5 @@
 import { Container, Graphics, Text } from 'pixi.js'
-import { APoint } from '../types'
+import { aPoint, APoint } from '../types'
 import { EventService } from '../EventService/EventService'
 import { EditorObject } from './EditorObject'
 import { OutlineFilter, GlowFilter } from 'pixi-filters'
@@ -126,6 +126,25 @@ export class WindowObj extends EditorObject {
         } else {
             _container.removeChild(_sizeLabel)
         }
+    }
+
+    public clone(): EditorObject {
+        return new WindowObj(aPoint(this._centerPoint), this._eventService, { ...this._properties })
+    }
+
+    public createDragOutline(): Container {
+        const outline = new Container()
+        outline.position.copyFrom(this._container)
+
+        const graphics = new Graphics()
+        graphics
+            .circle(this._centerPoint.x, this._centerPoint.y, 2)
+            .fill({ color: 0x3399cc, alpha: 0.5 })
+            .circle(this._centerPoint.x, this._centerPoint.y, 2)
+            .stroke({ color: 0x3399cc, width: 1, alpha: 0.8 })
+
+        outline.addChild(graphics)
+        return outline
     }
 
     private getFillColor() {
