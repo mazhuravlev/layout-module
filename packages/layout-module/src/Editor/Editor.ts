@@ -1,14 +1,14 @@
 import { Application, FederatedPointerEvent } from 'pixi.js'
-import { distanceFromPointToLine, fromPixiEvent, pointsToLines, shiftLine } from '../geometryFunc'
+import { distanceFromPointToLine, fromPixiEvent, getLineLength, pointsToLines, shiftLine } from '../geometryFunc'
 import { Logger } from '../logger'
-import { addVectors, ALine, aPoint, APoint, ASubscription, mapLine, mapPoint, multiplyVector, subtractVectors, unsubscribe } from '../types'
+import { addVectors, ALine, aPoint, APoint, ASubscription, LogicError, mapLine, mapPoint, multiplyVector, subtractVectors, unsubscribe } from '../types'
 import { BlockDragConfig, DragConfig, WallDragConfig, WindowDragConfig, withDragOutline } from './dragConfig'
 import { Apartment } from '../entities/Apartment'
 import { EventService } from '../EventService/EventService'
 import * as events from '../components/events'
-import { assert, assertDefined, assertUnreachable, empty, isNull, toError } from '../func'
+import { assert, assertDefined, assertUnreachable, empty, not, toError } from '../func'
 import { MouseDownEvent, MouseUpEvent } from '../EventService/eventTypes'
-import { filter, mergeMap, of } from 'rxjs'
+import { EMPTY, filter, finalize, map, mergeMap, of, take, takeUntil, tap } from 'rxjs'
 import { SnapService } from './SnapService'
 import { EditorCommand } from '../commands/EditorCommand'
 import { AddObjectCommand } from '../commands/AddObjectCommand'
@@ -40,7 +40,7 @@ export class Editor {
 
     private _sectionOutline: SectionOutline | null = null
     private _editorObjects = new Map<string, EditorObject>()
-    private _dragConfig: | DragConfig | null = null
+    private _isDragging = false
 
     private _selectionManager = new SelectionManager()
     private _commandManager = new CommandManager()
@@ -168,57 +168,104 @@ export class Editor {
      * @description Настройка событий редактора
      */
     private setupObjectEvents() {
-        this._subscriptions.push(this._eventService.mouseenter$
-            .pipe(filter(() => isNull(this._dragConfig)))
-            .subscribe(e => {
-                e.target.setHovered(true)
+        {
+            // Hover
+            this._subscriptions.push(this._eventService.mouseenter$
+                .pipe(filter(() => not(this._isDragging)))
+                .subscribe(e => {
+                    e.target.setHovered(true)
+                }))
+            this._subscriptions.push(this._eventService.mouseleave$.subscribe(e => {
+                e.target.setHovered(false)
             }))
-        this._subscriptions.push(this._eventService.mouseleave$.subscribe(e => {
-            e.target.setHovered(false)
-        }))
-        this._subscriptions.push(this._eventService.events$.subscribe(e => {
-            if (e.type === 'mousedown') {
-                this.startDrag(e)
-            } else if (e.type === 'mouseup') {
-                if (this._dragConfig) this.stopDrag()
-            } else if (e.type === 'mousemove' && this._dragConfig) {
-                switch (this._dragConfig.type) {
-                    case 'dragBlock':
-                        this.dragBlock(this._dragConfig, e.pixiEvent)
-                        break
-                    case 'dragWall':
-                        this.dragWall(this._dragConfig, e.pixiEvent)
-                        break
-                    case 'dragWindow':
-                        this.dragWindow(this._dragConfig, e.pixiEvent)
-                        break
-                    default:
-                        assertUnreachable(this._dragConfig)
-                }
-            }
-        }))
+        }
+
+        // Drag sequence: mousedown -> mousemove (with threshold) -> drag operations -> mouseup
+        const dragSequence$ = this._eventService.mousedown$.pipe(
+            mergeMap(mouseDownEvent => {
+                const startPos = aPoint(mouseDownEvent.pixiEvent.global)
+
+                // Create drag config immediately but don't activate drag yet
+                const dragConfig = this.createDragConfig(mouseDownEvent)
+                if (!dragConfig) return EMPTY
+
+                return this._eventService.mousemoves$.pipe(
+                    // Calculate distance from start position
+                    map(mouseMoveEvent => ({
+                        ...mouseMoveEvent,
+                        distance: getLineLength({ start: startPos, end: mouseMoveEvent.pixiEvent.global }),
+                        dragConfig
+                    })),
+                    // Only proceed once threshold is exceeded
+                    filter(({ distance }) => distance >= EDITOR_CONFIG.INTERACTION.DRAG_THRESHOLD),
+                    // Take the first move that exceeds threshold
+                    take(1),
+                    // Start the actual drag sequence
+                    mergeMap(({ dragConfig }) => {
+                        // Activate drag
+                        this._isDragging = true
+                        withDragOutline(dragConfig, x => this.stage.addChild(x))
+                        return this._eventService.mousemoves$.pipe(
+                            // Perform drag operations
+                            tap(({ pixiEvent }) => this.performDrag(dragConfig, pixiEvent)),
+                            // Continue until mouseup
+                            takeUntil(this._eventService.mouseup$),
+                            finalize(() => {
+                                // Clean up on completion
+                                this._isDragging = false
+                                withDragOutline(dragConfig, x => this.stage.removeChild(x))
+                                this.completeDrag(dragConfig)
+                            })
+                        )
+                    }),
+                    // Cancel if mouseup occurs before threshold is reached
+                    takeUntil(this._eventService.mouseup$.pipe(
+                        tap(() => {
+                            // This was just a click, clean up the unused drag config
+                            dragConfig.snapService.dispose()
+                        })
+                    ))
+                )
+            })
+        )
+        this._subscriptions.push(dragSequence$.subscribe())
 
         this._subscriptions.push(fromPixiEvent(this.stage, 'mousemove')
             .pipe(filter(e => e instanceof FederatedPointerEvent))
             .subscribe(event => this._eventService.emit({ type: 'mousemove', pixiEvent: event })))
 
-        // TODO: не копируются окна, починить
-        // this._subscriptions.push(fromPixiEvent(this.stage, 'mouseup')
-        //     .pipe(mergeMap(e => {
-        //         if (e.target instanceof EditorObject) {
-        //             return of<MouseUpEvent>({ type: 'mouseup', pixiEvent: e, target: e.target })
-        //         } else {
-        //             return of<MouseUpEvent>({ type: 'mouseup', pixiEvent: e })
-        //         }
-        //     }))
-        //     .subscribe(event => {
-        //         this._eventService.emit(event)
-        //     }))
+        this._subscriptions.push(fromPixiEvent(this.stage, 'mouseup')
+            .pipe(mergeMap(e => {
+                if (e.target instanceof EditorObject) {
+                    return of<MouseUpEvent>({ type: 'mouseup', pixiEvent: e, target: e.target })
+                } else {
+                    return of<MouseUpEvent>({ type: 'mouseup', pixiEvent: e })
+                }
+            }))
+            .subscribe(event => {
+                this._eventService.emit(event)
+            }))
     }
 
     public onObjectSelected() {
         // TODO: придумать что-то для работы со всеми типами объектов: квартиры, ЛЛУ, окна
         events.apartmentSelected([...this.selectedApartments.values().map(x => x.dto)])
+    }
+
+    private performDrag(dragConfig: DragConfig, pixiEvent: FederatedPointerEvent) {
+        switch (dragConfig.type) {
+            case 'dragBlock':
+                this.dragBlock(dragConfig, pixiEvent)
+                break
+            case 'dragWall':
+                this.dragWall(dragConfig, pixiEvent)
+                break
+            case 'dragWindow':
+                this.dragWindow(dragConfig, pixiEvent)
+                break
+            default:
+                assertUnreachable(dragConfig)
+        }
     }
 
     private dragBlock(_dragConfig: BlockDragConfig, pixiEvent: FederatedPointerEvent) {
@@ -269,7 +316,7 @@ export class Editor {
         dragOutline.position.copyFrom(snappedPosition)
     }
 
-    private startDrag({ pixiEvent, target }: MouseDownEvent) {
+    private createDragConfig({ pixiEvent, target }: MouseDownEvent): DragConfig {
         if (target instanceof Apartment || target instanceof GeometryBlock) {
             const dragOutline = target.createDragOutline()
             const dragConfig: BlockDragConfig = {
@@ -284,8 +331,7 @@ export class Editor {
                 originalGlobalPoints: target.globalPoints.map(aPoint),
                 dragOutline,
             }
-            this.stage.addChild(dragOutline)
-            this._dragConfig = dragConfig
+            return dragConfig
         } else if (target instanceof Wall) {
             const dragConfig: WallDragConfig = {
                 type: 'dragWall',
@@ -297,7 +343,7 @@ export class Editor {
                 originalWallGlobalPoints: target.globalPoints,
                 originalApartmentPoints: target.apartment.points
             }
-            this._dragConfig = dragConfig
+            return dragConfig
         } else if (target instanceof WindowObj) {
             const dragOutline = target.createDragOutline()
             const dragConfig: WindowDragConfig = {
@@ -312,14 +358,12 @@ export class Editor {
                 sectionOutlinePoints: assertDefined(this._sectionOutline).points,
                 dragOutline,
             }
-            this.stage.addChild(dragOutline)
-            this._dragConfig = dragConfig
+            return dragConfig
         }
+        throw new LogicError('Didn\'t expect to get here')
     }
 
-    private stopDrag() {
-        const dragConfig = assertDefined(this._dragConfig)
-        this._dragConfig = null
+    private completeDrag(dragConfig: DragConfig) {
         dragConfig.snapService.dispose()
         const { type, target } = dragConfig
         switch (type) {
