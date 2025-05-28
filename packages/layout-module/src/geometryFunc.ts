@@ -293,14 +293,18 @@ export const areLinesCollinear = (line1: ALine, line2: ALine): boolean => {
   const { start: a1, end: a2 } = line1
   const { start: b1, end: b2 } = line2
 
-  // Векторы линий
+  // Skip if either segment is zero-length
+  if (isSamePoint(a1, a2) || isSamePoint(b1, b2)) {
+    return false
+  }
+
+  // Vectors of the lines
   const vecA = { x: a2.x - a1.x, y: a2.y - a1.y }
   const vecB = { x: b2.x - b1.x, y: b2.y - b1.y }
 
-  // Кросс-произведение векторов (проверка коллинеарности)
+  // Cross product to determine collinearity
   const cross = vecA.x * vecB.y - vecA.y * vecB.x
 
-  // Если кросс-произведение близко к нулю, линии коллинеарны
   return Math.abs(cross) < 1e-10
 }
 
@@ -323,6 +327,58 @@ export const closePolygon = (points: APoint[]): APoint[] => {
   if (points.length < 4) throw new Error('points is not an outline (points.length < 4)')
   if (isClosedPolyline(points)) return points
   return [...points, points[0]]
+}
+
+export const joinCollinearWalls = (points: APoint[], e = 0.001): APoint[] => {
+  if (points.length < 3) return [...points] // nothing to simplify
+
+  const simplified: APoint[] = []
+
+  for (let i = 0; i < points.length; i++) {
+    const prev = points[(i - 1 + points.length) % points.length]
+    const curr = points[i]
+    const next = points[(i + 1) % points.length]
+
+    const line1: ALine = { start: prev, end: curr }
+    const line2: ALine = { start: curr, end: next }
+
+    if (!areLinesCollinear(line1, line2)) {
+      simplified.push(curr)
+    }
+  }
+
+  // Preserve closure if original was closed
+  const isClosedOriginal = isSamePoint(points[0], points[points.length - 1], e)
+  const isClosedNow = simplified.length > 0 && isSamePoint(simplified[0], simplified[simplified.length - 1], e)
+
+  if (isClosedOriginal && !isClosedNow) {
+    return [...simplified, simplified[0]]
+  }
+
+  return simplified.length >= 3 ? simplified : points
+}
+
+export const filterZeroLengthWalls = (points: APoint[], e = 0.001): APoint[] => {
+  if (points.length < 4) throw new Error('points is not an outline (points.length < 4)')
+
+  const filtered: APoint[] = []
+
+  for (let i = 0; i < points.length; i++) {
+    const current = points[i]
+    const previous = points[(i - 1 + points.length) % points.length]
+
+    if (!isSamePoint(current, previous, e)) {
+      filtered.push(current)
+    }
+  }
+
+  // After filtering, ensure the polygon remains closed if it was originally closed
+  const isClosed = isSamePoint(filtered[0], filtered[filtered.length - 1], e)
+  if (!isClosed && isSamePoint(points[0], points[points.length - 1], e)) {
+    return [...filtered, filtered[0]]
+  }
+
+  return filtered
 }
 
 export const lineCenter = (line: TPoints): APoint => {

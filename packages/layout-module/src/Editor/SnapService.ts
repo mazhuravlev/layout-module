@@ -1,7 +1,7 @@
 import { Container, Graphics } from 'pixi.js'
 import { APoint, ALine, IDisposable, TPoints, ASubscription, unsubscribe } from '../types'
 import { $debugConfig, $snapConfig, SnapConfig } from '../components/events'
-import { areLinesCollinear, getSlope, pointsToLines } from '../geometryFunc'
+import { areLinesCollinear, getPointDistance, getSlope, pointsToLines, projectPointOnLine } from '../geometryFunc'
 import { Units } from '../Units'
 import { assertUnreachable, not } from '../func'
 
@@ -54,16 +54,9 @@ export class SnapService implements IDisposable {
         if (this._disposed) return emptyResult
         if (!this._config.enable) return emptyResult
 
-        // 2. Проверка привязки к точкам
         if (this._config.enablePoint) {
             const pointSnap = this.checkPointToPoint(point)
             if (pointSnap.snapped) return pointSnap
-        }
-
-        // 3. Проверка привязки к линиям
-        if (this._config.enableLine) {
-            const lineSnap = this.checkPointToLine(point)
-            if (lineSnap.snapped) return lineSnap
         }
 
         return emptyResult
@@ -89,39 +82,28 @@ export class SnapService implements IDisposable {
         // 3. Проверка привязки к статическим линиям (коллинеарность)
         if (this._config.enableLine) {
             for (const staticLine of this._staticLines) {
-                const { start: sStart, end: sEnd } = staticLine
-
-                // Проверяем коллинеарность линий
-                const areCollinear = areLinesCollinear(
-                    { start, end },
-                    { start: sStart, end: sEnd }
-                )
-
+                const areCollinear = areLinesCollinear({ start, end }, staticLine)
                 if (areCollinear) {
                     // Проецируем оба конца линии на статическую линию
-                    const projectedStart = this.projectPointToLine(start, staticLine)
-                    const projectedEnd = this.projectPointToLine(end, staticLine)
+                    const projectedStart = projectPointOnLine(start, staticLine)
+                    const projectedEnd = projectPointOnLine(end, staticLine)
 
                     // Проверяем расстояние от исходных точек до проекций
-                    const startDist = Math.hypot(projectedStart.x - start.x, projectedStart.y - start.y)
-                    const endDist = Math.hypot(projectedEnd.x - end.x, projectedEnd.y - end.y)
+                    const startDist = getPointDistance(projectedStart, start)
+                    const endDist = getPointDistance(projectedEnd, end)
 
                     if (startDist < this._config.lineThreshold! || endDist < this._config.lineThreshold!) {
                         // Выбираем точку с минимальным расстоянием
+                        const result = (p: APoint): LineSnap => ({
+                            snapped: 'line',
+                            snapPoint: p,
+                            originalPoint: start,
+                            k: getSlope(start, end),
+                        })
                         if (startDist <= endDist && startDist < this._config.lineThreshold!) {
-                            return {
-                                snapped: 'line',
-                                snapPoint: projectedStart,
-                                originalPoint: start,
-                                k: getSlope(start, end),
-                            }
+                            return result(projectedStart)
                         } else if (endDist < this._config.lineThreshold!) {
-                            return {
-                                snapped: 'line',
-                                snapPoint: projectedEnd,
-                                originalPoint: end,
-                                k: getSlope(start, end),
-                            }
+                            return result(projectedEnd)
                         }
                     }
                 }
@@ -132,7 +114,7 @@ export class SnapService implements IDisposable {
     }
 
     /**
-     * Проверяет привязку всей квартиры (всех точек)
+     * Проверяет привязку контура (всех точек)
      */
     public checkOutlineSnap(points: APoint[]): SnapResult {
         if (this._disposed) return emptyResult
@@ -186,7 +168,7 @@ export class SnapService implements IDisposable {
         let result: SnapResult = emptyResult
 
         for (const line of this._staticLines) {
-            const projected = this.projectPointToLine(point, line)
+            const projected = projectPointOnLine(point, line)
             const dx = projected.x - point.x
             const dy = projected.y - point.y
             const distance = Math.hypot(dx, dy)
@@ -203,19 +185,6 @@ export class SnapService implements IDisposable {
         }
 
         return result
-    }
-
-    private projectPointToLine(point: APoint, line: ALine): APoint {
-        const { start, end } = line
-        const l2 = (end.x - start.x) ** 2 + (end.y - start.y) ** 2
-        let t = ((point.x - start.x) * (end.x - start.x) +
-            (point.y - start.y) * (end.y - start.y)) / l2
-        t = Math.max(0, Math.min(1, t))
-
-        return {
-            x: start.x + t * (end.x - start.x),
-            y: start.y + t * (end.y - start.y)
-        }
     }
 
     /**
@@ -265,15 +234,15 @@ export class SnapService implements IDisposable {
 
     private showPointSnapIndicator(point: APoint) {
         const { x, y } = this._stage.toLocal(point)
-        const g = this._snapIndicator
-        g.clear()
-        g.circle(x, y, 1)
         const offset = 3
-        g.moveTo(x, y - offset)
-        g.lineTo(x, y + offset)
-        g.moveTo(x - offset, y)
-        g.lineTo(x + offset, y)
-        this._snapIndicator.stroke({ color: snapIndicatorColor, pixelLine: true })
+        this._snapIndicator
+            .clear()
+            .circle(x, y, 1)
+            .moveTo(x, y - offset)
+            .lineTo(x, y + offset)
+            .moveTo(x - offset, y)
+            .lineTo(x + offset, y)
+            .stroke({ color: snapIndicatorColor, pixelLine: true })
     }
 
     public hideSnapIndicator() {

@@ -1,6 +1,6 @@
 import { Container, Graphics, Matrix, Text } from 'pixi.js'
 import { assert, degreesToRadians, pairwise } from '../func'
-import { getPolygonCenter, getPolygonArea, formatArea, findCircularAdjacentElements, closePolygon, ensureClockwisePolygon } from '../geometryFunc'
+import { getPolygonCenter, getPolygonArea, formatArea, findCircularAdjacentElements, closePolygon, ensureClockwisePolygon, filterZeroLengthWalls, joinCollinearWalls } from '../geometryFunc'
 import { APoint, TPoints, CoordType, ALine } from '../types'
 import { EventService } from '../EventService/EventService'
 import { Wall } from './Wall'
@@ -11,6 +11,7 @@ import { EditorObject } from './EditorObject'
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { Units } from '../Units'
 import { OutlineFilter, GlowFilter } from 'pixi-filters'
+import * as R from 'remeda'
 
 const outlineFilter = new OutlineFilter({
     thickness: 2,
@@ -129,7 +130,12 @@ export class Apartment extends EditorObject {
         this._container.addChild(this._areaGraphics)
         this.setupAreaGraphics()
         this.setupLabels()
-        this.setupWalls(closePolygon(points))
+        this.setupWalls(
+            R.pipe(
+                points,
+                closePolygon,
+                filterZeroLengthWalls,
+                joinCollinearWalls))
         this.render()
     }
 
