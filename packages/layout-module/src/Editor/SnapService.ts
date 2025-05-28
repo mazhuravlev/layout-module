@@ -5,25 +5,27 @@ import { areLinesCollinear, getSlope, pointsToLines } from '../geometryFunc'
 import { Units } from '../Units'
 import { assertUnreachable, not } from '../func'
 
-const emptyResult = { snapped: false } as const
+const emptyResult: NoSnap = { snapped: false }
+
+type NoSnap = { snapped: false }
+
+type PointSnap = {
+    snapped: 'point'
+    snapPoint: APoint
+    originalPoint: APoint
+}
+
+type LineSnap = {
+    snapped: 'line'
+    snapPoint: APoint
+    originalPoint: APoint
+    k: number | null
+}
 
 type SnapResult =
-    | { snapped: false }
-    | {
-        snapped: 'point'
-        dx: number
-        dy: number
-        snapPoint: APoint
-        originalPoint: APoint
-    }
-    | {
-        snapped: 'line'
-        dx: number
-        dy: number
-        snapPoint: APoint
-        originalPoint: APoint
-        k: number | null
-    }
+    | NoSnap
+    | PointSnap
+    | LineSnap
 
 const snapIndicatorColor = 0xee0000
 
@@ -51,12 +53,6 @@ export class SnapService implements IDisposable {
     public checkPointSnap(point: APoint): SnapResult {
         if (this._disposed) return emptyResult
         if (!this._config.enable) return emptyResult
-
-        // 1. Проверка привязки к сетке (имеет приоритет)
-        // if (this._config.enableGrid) {
-        //     const gridSnap = this.checkPointToGrid(point)
-        //     if (gridSnap.snapped) return gridSnap
-        // }
 
         // 2. Проверка привязки к точкам
         if (this._config.enablePoint) {
@@ -115,8 +111,6 @@ export class SnapService implements IDisposable {
                         if (startDist <= endDist && startDist < this._config.lineThreshold!) {
                             return {
                                 snapped: 'line',
-                                dx: projectedStart.x - start.x,
-                                dy: projectedStart.y - start.y,
                                 snapPoint: projectedStart,
                                 originalPoint: start,
                                 k: getSlope(start, end),
@@ -124,8 +118,6 @@ export class SnapService implements IDisposable {
                         } else if (endDist < this._config.lineThreshold!) {
                             return {
                                 snapped: 'line',
-                                dx: projectedEnd.x - end.x,
-                                dy: projectedEnd.y - end.y,
                                 snapPoint: projectedEnd,
                                 originalPoint: end,
                                 k: getSlope(start, end),
@@ -179,8 +171,6 @@ export class SnapService implements IDisposable {
                 minDistance = distance
                 result = {
                     snapped: 'point',
-                    dx,
-                    dy,
                     snapPoint: staticPoint,
                     originalPoint: point,
                 }
@@ -205,8 +195,6 @@ export class SnapService implements IDisposable {
                 minDistance = distance
                 result = {
                     snapped: 'line',
-                    dx,
-                    dy,
                     snapPoint: projected,
                     originalPoint: point,
                     k: getSlope(line.start, line.end),
