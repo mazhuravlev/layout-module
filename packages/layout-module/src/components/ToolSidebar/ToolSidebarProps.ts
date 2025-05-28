@@ -1,2 +1,5 @@
-// eslint-disable-next-line @typescript-eslint/no-empty-object-type
-export interface ToolSidebarProps { }
+import { ApartmentTemplate } from '../../types'
+
+export interface ToolSidebarProps {
+    apartmentTemplates: ApartmentTemplate[]
+}

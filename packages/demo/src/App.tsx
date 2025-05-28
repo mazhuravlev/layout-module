@@ -5,13 +5,6 @@ import { useState } from 'react'
 
 const apartmentTemplates = parseShapes(rawShapesJson)
 
-const sectionOutline = [
-  { x: 0, y: 0 },
-  { x: 0, y: 18000 },
-  { x: 36000, y: 18000 },
-  { x: 36000, y: 0 },
-]
-
 function App() {
   const [showModule, setShowModule] = useState(true)
 
@@ -22,9 +15,6 @@ function App() {
         {showModule && <LayoutModule
           units={'mm'}
           apartmentTemplates={apartmentTemplates}
-          section={{
-            outline: sectionOutline,
-          }}
         />
         }
       </div>

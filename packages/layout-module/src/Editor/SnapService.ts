@@ -149,7 +149,7 @@ export class SnapService implements IDisposable {
             const dy = staticPoint.y - point.y
             const distance = Math.hypot(dx, dy)
 
-            if (distance < this._config.pointThreshold! && distance < minDistance) {
+            if (distance < this._config.pointThreshold && distance < minDistance) {
                 minDistance = distance
                 result = {
                     snapped: 'point',

@@ -1,7 +1,6 @@
-import { use, useEffect } from 'react'
+import { useEffect } from 'react'
 import { ToolSidebarProps } from './ToolSidebarProps'
 import * as events from '../events'
-import { AppContext } from '../../AppContext'
 import styles from './ToolSidebar.module.scss'
 import { Button } from '../common/Button'
 import { useStoreMap, useUnit } from 'effector-react'
@@ -22,12 +21,10 @@ const keyMap = [
   { code: 'KeyR', ctrl: true, preventDefault: true, fn: () => events.redo() },
 ]
 
-export const ToolSidebar: React.FC<ToolSidebarProps> = () => {
-  const context = use(AppContext)
+export const ToolSidebar: React.FC<ToolSidebarProps> = props => {
   const debugEnabled = useStoreMap({ store: events.$debugConfig, keys: ['drawDebug'], fn: x => x.drawDebug })
   const snapConfig = useUnit(events.$snapConfig)
   const sizeConfig = useUnit(events.$sizeConfig)
-  const { apartmentTemplates } = context
 
   useEffect(() => {
     const s = fromEvent<KeyboardEvent>(document, 'keydown', { passive: false })
@@ -125,7 +122,7 @@ export const ToolSidebar: React.FC<ToolSidebarProps> = () => {
       </div>
 
       <ul className={styles.apartmentTemplates}>
-        {apartmentTemplates.map((template) => (
+        {props.apartmentTemplates.map((template) => (
           <li
             key={template.name}
             onClick={() => events.addApartment(template)}>
