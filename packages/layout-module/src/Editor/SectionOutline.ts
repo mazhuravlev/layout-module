@@ -1,11 +1,12 @@
 import { Container, Graphics } from 'pixi.js'
-import { APoint } from '../types'
+import { APoint, IDisposable, mapPoint } from '../types'
 import { drawOutline } from '../geometryFunc'
 import { offsetPolygon } from '../func'
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-import type { Units } from '../Units'
 
-export class SectionOutline {
+import { Units } from '../Units'
+import { SectionOutlineDto } from './SectionOutlineDto'
+
+export class SectionOutline implements IDisposable {
     private _container = new Container()
     private _graphics = new Graphics()
     private _offsetGraphics = new Graphics()
@@ -51,5 +52,21 @@ export class SectionOutline {
     public setOffset(offset: number) {
         this._offset = offset
         this.render()
+    }
+
+    public serialize(): SectionOutlineDto {
+        return {
+            type: 'sectionOutline',
+            points: this._points.map(mapPoint(Units.toMm)),
+            offset: Units.toMm(this._offset)
+        }
+    }
+
+    public static deserialize(dto: SectionOutlineDto): SectionOutline {
+        return new SectionOutline(dto.points, dto.offset)
+    }
+
+    public dispose() {
+        this._container.destroy({ children: true })
     }
 }

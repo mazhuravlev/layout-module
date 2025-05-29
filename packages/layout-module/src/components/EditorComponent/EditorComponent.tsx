@@ -2,8 +2,13 @@ import React, { useEffect, useRef } from 'react'
 import styles from './EditorComponent.module.scss'
 import { EditorProps } from './EditorProps'
 import { Editor } from '../../Editor/Editor'
+import { withNullable } from '../../func'
+import { StateTypeSchema } from '../../Editor/dtoSchema'
+import { Logger } from '../../logger'
 
-export const EditorComponent: React.FC<EditorProps> = (props) => {
+const logger = new Logger('EditorComponent')
+
+export const EditorComponent: React.FC<EditorProps> = (_props) => {
   const containerRef = useRef<HTMLDivElement>(null)
   const editorRef = useRef<Editor | null>(null)
 
@@ -12,8 +17,17 @@ export const EditorComponent: React.FC<EditorProps> = (props) => {
     editorRef.current = editor
     await Promise.resolve()
       .then(() => editor.init())
-      .then(() => editor.setSectionOutline(props.sectionOutline))
-      .then(() => editor.zoomToExtents())
+      .then(() => {
+        withNullable(localStorage.getItem('state'), stateData => {
+          const { success, data, error } = StateTypeSchema.safeParse(JSON.parse(stateData))
+          if (success && data) {
+            editor.restoreState(data)
+            editor.zoomToExtents()
+          } else {
+            logger.warn(`parse state failed: ${error.message}`)
+          }
+        })
+      })
   }
 
   useEffect(() => {
@@ -22,10 +36,10 @@ export const EditorComponent: React.FC<EditorProps> = (props) => {
     }
 
     return () => {
-      if (!editorRef.current) return
-      const editor = editorRef.current
-      editorRef.current = null
-      editor.dispose()
+      withNullable(editorRef.current, editor => {
+        editorRef.current = null
+        editor.dispose()
+      })
     }
   }, [])
 

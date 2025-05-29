@@ -168,3 +168,12 @@ export const notUndefined = <T>(v: T | undefined): v is T => v !== undefined
 export const isUndefined = <T>(v: T | undefined): v is undefined => v === undefined
 export const empty = <T>(v: T[]) => v.length === 0
 export const notEmpty = <T>(v: T[]) => v.length > 0
+
+/**
+ * Вызвать функцию со значением, если оно не равно null
+ * @param o значение
+ * @param fn функция
+ */
+export const withNullable = <T>(o: T | null | undefined, fn: (o: T) => void) => {
+  if (o) fn(o)
+}

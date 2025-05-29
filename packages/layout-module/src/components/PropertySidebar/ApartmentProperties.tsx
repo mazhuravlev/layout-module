@@ -1,4 +1,4 @@
-import { ApartmentDto } from '../../entities/ApartmentDto'
+import { ApartmentDto } from '../../Editor/dto'
 import { setApartmentProperties } from '../events'
 
 interface ApartmentPropertiesProps {

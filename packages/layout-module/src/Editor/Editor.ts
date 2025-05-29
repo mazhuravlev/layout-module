@@ -6,7 +6,7 @@ import { BlockDragConfig, DragConfig, WallDragConfig, WindowDragConfig, withDrag
 import { Apartment } from '../entities/Apartment'
 import { EventService } from '../EventService/EventService'
 import * as events from '../components/events'
-import { assert, assertDefined, assertUnreachable, empty, not, toError } from '../func'
+import { assert, assertDefined, assertUnreachable, empty, isNull, not, notNull, toError, withNullable } from '../func'
 import { MouseDownEvent, MouseUpEvent } from '../EventService/eventTypes'
 import { EMPTY, filter, finalize, map, mergeMap, of, take, takeUntil, tap } from 'rxjs'
 import { SnapService } from './SnapService'
@@ -32,6 +32,7 @@ import { UpdateWindowPropertiesCommand } from '../commands/UpdateWindowPropertie
 import { MoveWindowCommand } from '../commands/MoveWindowCommand'
 import { EDITOR_CONFIG } from './editorConfig'
 import { KeyboardState } from './KeyboardState'
+import { StateType } from './dtoSchema'
 
 export class Editor {
     private _app = new Application()
@@ -102,6 +103,8 @@ export class Editor {
 
     private executeCommand(command: EditorCommand) {
         this._commandManager.execute(command)
+        const state = this.getState()
+        localStorage.setItem('state', JSON.stringify(state))
     }
 
     public undo() { return this._commandManager.undo() }
@@ -114,12 +117,42 @@ export class Editor {
         return this._selectionManager.selectedApartments as Apartment[]
     }
 
+    private getState() {
+        const objects = [...this._editorObjects.values()
+            .map(x => x.serialize())
+            .filter(notNull)]
+        const sectionOutline = this._sectionOutline?.serialize()
+        return {
+            objects,
+            sectionOutline
+        }
+    }
+
+    public restoreState(state: StateType) {
+        const { sectionOutline, objects } = state
+        withNullable(sectionOutline, ({ points, offset }) => {
+            events.setSectionOffset(offset)
+            this.setSectionOutline(points)
+        })
+        const editorObjects = objects.map(x => {
+            switch (x.type) {
+                case 'apartment':
+                    return Apartment.deserialize(this.eventService, x)
+                case 'window':
+                    return WindowObj.deserialize(this.eventService, x)
+                default:
+                    throw assertUnreachable(x)
+            }
+        })
+        this.executeCommand(new AddObjectCommand(this, editorObjects))
+    }
+
     private setupEvents() {
         this._subscriptions.push(...[
             events.addApartment.watch((shape) => {
                 this.executeCommand(new AddObjectCommand(
                     this,
-                    new Apartment(shape.points.map(mapPoint(Units.fromMm)), this._eventService)))
+                    new Apartment(this._eventService, shape.points.map(mapPoint(Units.fromMm)))))
             }),
             events.addLLU.watch(() => {
                 this.executeCommand(new AddObjectCommand(this, new GeometryBlock(this._eventService)))
@@ -148,7 +181,8 @@ export class Editor {
                 .watch(offset => this._sectionOutline?.setOffset(Units.fromMm(offset))),
             this._mouseEventProcessor.setupClickHandling(),
             events.populateWindows.watch((options) => {
-                const { points } = assertDefined(this._sectionOutline)
+                if (isNull(this._sectionOutline)) return
+                const { points } = this._sectionOutline
                 const windows = createWindowsAlongOutline(
                     points,
                     this._eventService,
@@ -161,6 +195,7 @@ export class Editor {
                 if (empty(selectedWindows)) return
                 this.executeCommand(new UpdateWindowPropertiesCommand(selectedWindows, properties))
             }),
+            events.setSection.watch(outline => this.setSectionOutline(outline))
         ])
     }
 
@@ -249,7 +284,7 @@ export class Editor {
 
     public onObjectSelected() {
         // TODO: придумать что-то для работы со всеми типами объектов: квартиры, ЛЛУ, окна
-        events.apartmentSelected([...this.selectedApartments.values().map(x => x.dto)])
+        events.apartmentSelected([...this.selectedApartments.values().map(x => x.serialize())])
     }
 
     private performDrag(dragConfig: DragConfig, pixiEvent: FederatedPointerEvent) {
@@ -355,7 +390,7 @@ export class Editor {
                 target,
                 startMousePos: aPoint(pixiEvent.global),
                 originalCenterPoint: aPoint(target.position),
-                sectionOutlinePoints: assertDefined(this._sectionOutline).points,
+                sectionOutlinePoints: this._sectionOutline?.points ?? [],
                 dragOutline,
             }
             return dragConfig
@@ -421,8 +456,9 @@ export class Editor {
             if (o instanceof WindowObj) return []
             throw new Error('Unknown object type')
         }
+        const { _sectionOutline } = this
         return [
-            ...pointsToLines(assertDefined(this._sectionOutline).globalPoints),
+            ...(_sectionOutline ? pointsToLines(_sectionOutline.globalPoints) : []),
             ...this._editorObjects
                 .values()
                 .filter(x => x !== options?.exclude)
@@ -438,8 +474,9 @@ export class Editor {
             if (o instanceof WindowObj) return []
             throw new Error('Unknown object type')
         }
+        const { _sectionOutline } = this
         return [
-            ...assertDefined(this._sectionOutline).globalPoints,
+            ...(_sectionOutline ? _sectionOutline.globalPoints : []),
             ...this._editorObjects
                 .values()
                 .filter(x => x !== options?.exclude)
@@ -477,13 +514,23 @@ export class Editor {
      * Задать контур секции
      * @param points Координаты точек в миллиметрах
      */
-    public setSectionOutline(points: APoint[]) {
-        assert(this._sectionOutline === null)
-        this._sectionOutline = new SectionOutline(
-            points.map(mapPoint(Units.fromMm)),
-            Units.fromMm(events.sectionSettings.getState().offset)
-        )
-        this.stage.addChild(this._sectionOutline.container)
+    public setSectionOutline(points: APoint[] | null) {
+        if (isNull(points)) {
+            const { _sectionOutline } = this
+            if (notNull(_sectionOutline)) {
+                this.stage.removeChild(_sectionOutline.container)
+                _sectionOutline.dispose()
+                this._sectionOutline = null
+            }
+        } else {
+            assert(isNull(this._sectionOutline))
+            this._sectionOutline = new SectionOutline(
+                points.map(mapPoint(Units.fromMm)),
+                Units.fromMm(events.sectionSettings.getState().offset)
+            )
+            this.stage.addChild(this._sectionOutline.container)
+        }
+        events.setSectionSelected(notNull(this._sectionOutline))
     }
 
     public addObject(o: EditorObject) {

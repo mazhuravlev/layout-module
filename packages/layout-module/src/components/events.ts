@@ -1,8 +1,8 @@
 import { createEvent, createStore } from 'effector'
-import { ApartmentTemplate } from '../types'
-import { returnSecondArg } from '../func'
+import { ApartmentTemplate, APoint } from '../types'
+import { notNull, returnSecondArg } from '../func'
 import persist from 'effector-localstorage'
-import { ApartmentDto } from '../entities/ApartmentDto'
+import { ApartmentDto } from '../Editor/dto'
 import { ApartmentProperties } from '../entities/ApartmentProperties'
 import { WindowProperties } from '../entities/Window'
 
@@ -77,3 +77,12 @@ export const populateWindows = createEvent<{
     spacing: number // интервал между окнами в мм 
 }>()
 export const setWindowProperties = createEvent<Partial<WindowProperties>>()
+
+interface SectionStore {
+    outlineSelected: boolean
+}
+export const setSection = createEvent<APoint[] | null>()
+export const setSectionSelected = createEvent<boolean>()
+export const $section = createStore<SectionStore>({ outlineSelected: false })
+$section.on(setSection, (state, outline) => ({ ...state, outlineSelected: notNull(outline) }))
+$section.on(setSectionSelected, (state, selected) => ({ ...state, outlineSelected: selected }))

@@ -5,6 +5,7 @@ import { EditorObject } from './EditorObject'
 import { OutlineFilter, GlowFilter } from 'pixi-filters'
 import { pointsToLines, getLineLength, interpolatePoint, projectPointOnLine, getPointDistance } from '../geometryFunc'
 import { Units } from '../Units'
+import { WindowDto } from '../Editor/dto'
 
 const outlineFilter = new OutlineFilter({
     thickness: 2,
@@ -27,12 +28,6 @@ export const defaultWindowProperties: WindowProperties = {
     size: 900
 }
 
-export interface WindowDto {
-    id: string
-    position: APoint
-    properties: WindowProperties
-}
-
 export class WindowObj extends EditorObject {
     private _container = new Container()
     private _graphics = new Graphics()
@@ -44,21 +39,17 @@ export class WindowObj extends EditorObject {
     public get properties() { return this._properties }
     public get position() { return this._container.position }
 
-    public get dto(): WindowDto {
-        return {
-            id: this._id,
-            position: this.position,
-            properties: this._properties
-        }
-    }
-
     constructor(
+        eventService: EventService,
         position: APoint,
-        _eventService: EventService,
-        properties: WindowProperties = defaultWindowProperties
+        options?: {
+            properties?: WindowProperties
+            id?: string
+        }
     ) {
-        super(_eventService)
-        this._properties = properties
+        super(eventService)
+        if (options?.id) this._id = options.id
+        this._properties = options?.properties ? options.properties : defaultWindowProperties
         this.init(position)
     }
 
@@ -102,7 +93,7 @@ export class WindowObj extends EditorObject {
         this.render()
     }
 
-    render() {
+    public render() {
         const { _graphics, _sizeLabel, _isHovered, _isSelected, _container } = this
 
         this._graphics.filters = [
@@ -126,11 +117,25 @@ export class WindowObj extends EditorObject {
         }
     }
 
+    public serialize(): WindowDto {
+        return {
+            type: 'window',
+            id: this._id,
+            position: aPoint(this.position),
+            properties: this.properties
+        }
+    }
+
+    public static deserialize(eventService: EventService, dto: WindowDto): WindowObj {
+        return new WindowObj(eventService, dto.position,
+            { id: dto.id, properties: dto.properties })
+    }
+
     public clone(): WindowObj {
         return new WindowObj(
-            aPoint(this._container.position),
             this._eventService,
-            { ...this._properties }
+            aPoint(this._container.position),
+            { properties: this._properties }
         )
     }
 
@@ -192,7 +197,7 @@ export function createWindowsAlongOutline(
             const centerPoint = interpolatePoint(line.start, line.end, t)
 
             const windowProperties: WindowProperties = { size: windowSize }
-            const window = new WindowObj(centerPoint, eventService, windowProperties)
+            const window = new WindowObj(eventService, centerPoint, { properties: windowProperties })
             windows.push(window)
         }
     })

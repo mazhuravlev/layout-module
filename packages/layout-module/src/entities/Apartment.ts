@@ -1,11 +1,11 @@
 import { Container, Graphics, Matrix, Text } from 'pixi.js'
 import { assert, degreesToRadians, pairwise } from '../func'
 import { getPolygonCenter, getPolygonArea, formatArea, findCircularAdjacentElements, closePolygon, ensureClockwisePolygon, filterZeroLengthWalls, joinCollinearWalls } from '../geometryFunc'
-import { APoint, TPoints, CoordType, ALine } from '../types'
+import { APoint, TPoints, CoordType, ALine, aPoint } from '../types'
 import { EventService } from '../EventService/EventService'
 import { Wall } from './Wall'
 import { ApartmentProperties, defaultApartmentProperties } from './ApartmentProperties'
-import { ApartmentDto } from './ApartmentDto'
+import { ApartmentDto } from '../Editor/dto'
 import { calculateApartmentType, exampleFlatmix } from '../Editor/flatMix'
 import { EditorObject } from './EditorObject'
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -67,27 +67,39 @@ export class Apartment extends EditorObject {
 
     public get properties(): ApartmentProperties { return this._properties }
 
-    public get dto(): ApartmentDto {
+    public serialize(): ApartmentDto {
         return {
+            type: 'apartment',
             id: this._id,
             points: this.points,
-            position: this.position,
+            position: aPoint(this.position),
             properties: this._properties
         }
+    }
+
+    public static deserialize(eventService: EventService, dto: ApartmentDto) {
+        return new Apartment(eventService, dto.points,
+            { id: dto.id, position: dto.position })
     }
 
     /**
      * 
      * @param _points Координаты точек во внутренних координатах {@link Units}
-     * @param _eventService 
+     * @param eventService 
      * @param config 
      */
     constructor(
+        eventService: EventService,
         points: APoint[],
-        _eventService: EventService,
+        options?: {
+            id?: string
+            position?: APoint
+        }
     ) {
-        super(_eventService)
+        super(eventService)
+        if (options?.id) this._id = options.id
         this.init(ensureClockwisePolygon(points))
+        if (options?.position) this._container.position.copyFrom(options.position)
     }
 
     public setProperties(properties: Partial<ApartmentProperties>) {
@@ -154,7 +166,7 @@ export class Apartment extends EditorObject {
     }
 
     public clone(): Apartment {
-        return new Apartment(this.points, this._eventService)
+        return new Apartment(this._eventService, this.points)
     }
 
     private setupWalls(points: APoint[]) {

@@ -30,6 +30,10 @@ export abstract class EditorObject implements IDisposable {
         this.render()
     }
 
+    public serialize(): object | null {
+        return null
+    }
+
     protected abstract render(): void
 
     public abstract dispose(): void
