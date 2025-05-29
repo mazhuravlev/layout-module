@@ -1,5 +1,5 @@
 import { Container, Graphics } from 'pixi.js'
-import { APoint, ALine, IDisposable, TPoints, ASubscription, unsubscribe } from '../types'
+import { APoint, ALine, IDisposable, ASubscription, unsubscribe } from '../types'
 import { $debugConfig, $snapConfig, SnapConfig } from '../components/events'
 import { areLinesCollinear, getPointDistance, getSlope, pointsToLines, projectPointOnLine } from '../geometryFunc'
 import { Units } from '../Units'
@@ -75,9 +75,10 @@ export class SnapService implements IDisposable {
     /**
      * Проверяет привязку линии к статическим элементам
      */
-    public checkLineSnap([start, end]: TPoints): SnapResult {
+    public checkLineSnap(line: ALine): SnapResult {
         if (this._disposed) return emptyResult
         if (not(this._config.enable)) return emptyResult
+        const { start, end } = line
 
         // 3. Проверка привязки к статическим линиям (коллинеарность)
         if (this._config.enableLine) {
@@ -131,8 +132,8 @@ export class SnapService implements IDisposable {
 
         if (this._config.enableLine) {
             const lines = pointsToLines(points)
-            for (const { start, end } of lines) {
-                const result = this.checkLineSnap([start, end])
+            for (const line of lines) {
+                const result = this.checkLineSnap(line)
                 if (result.snapped) return result
             }
         }

@@ -1,6 +1,6 @@
 import { Apartment } from '../entities/Apartment'
 import { SnapService } from './SnapService'
-import { APoint, TPoints } from '../types'
+import { ALine, APoint } from '../types'
 import { Wall } from '../entities/Wall'
 import { EditorObject } from '../entities/EditorObject'
 import { GeometryBlock } from '../entities/GeometryBlock'
@@ -40,7 +40,7 @@ export interface BlockDragConfig extends DragConfigType {
 export interface WallDragConfig extends DragConfigType {
     type: 'dragWall'
     target: Wall
-    originalWallGlobalPoints: TPoints
+    originalWallGlobalLine: ALine
     originalApartmentPoints: APoint[]
 }
 

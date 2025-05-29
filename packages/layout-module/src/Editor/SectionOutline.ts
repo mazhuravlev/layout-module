@@ -1,5 +1,6 @@
 import { Container, Graphics } from 'pixi.js'
-import { APoint, IDisposable, mapPoint } from '../types'
+import { APoint, IDisposable } from '../types'
+import { mapPoint } from '../geometryFunc'
 import { offsetPolygon } from '../geometryFunc'
 
 import { Units } from '../Units'

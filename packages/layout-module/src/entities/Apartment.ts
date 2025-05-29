@@ -1,7 +1,8 @@
 import { Container, Graphics, Matrix, Text } from 'pixi.js'
 import { assert, degreesToRadians, pairwise } from '../func'
 import * as geometryFunc from '../geometryFunc'
-import { APoint, TPoints, CoordType, ALine, aPoint } from '../types'
+import { APoint, CoordType, ALine } from '../types'
+import { aPoint } from '../geometryFunc'
 import { EventService } from '../EventService/EventService'
 import { Wall } from './Wall'
 import { ApartmentProperties, defaultApartmentProperties } from './ApartmentProperties'
@@ -43,7 +44,7 @@ export class Apartment extends EditorObject {
      * Точки в локальных координатах
      */
     public get points(): APoint[] {
-        return this._walls.map(x => x.points[0])
+        return this._walls.map(x => x.line.start)
     }
 
     public get position() { return this.container.position }
@@ -53,8 +54,7 @@ export class Apartment extends EditorObject {
      */
     public get wallLines(): ALine[] {
         return this._walls
-            .map(x => x.points)
-            .map(([start, end]) => ({ start, end }))
+            .map(x => x.line)
     }
 
     public get globalPoints() {
@@ -173,7 +173,7 @@ export class Apartment extends EditorObject {
         assert(this._walls.length === 0)
         const { _container, _eventService } = this
         this._walls = pairwise(points)
-            .map(points => new Wall(_eventService, this, points))
+            .map(([start, end]) => new Wall(_eventService, this, { start, end }))
         this._walls.forEach(wall => _container.addChild(wall.container))
     }
 
@@ -217,11 +217,11 @@ export class Apartment extends EditorObject {
         _container.addChild(_euroLabel)
     }
 
-    public updateWall(wall: Wall, newLine: TPoints, coordType: CoordType) {
+    public updateWall(wall: Wall, newLine: ALine, coordType: CoordType) {
         wall.update(newLine, coordType)
         const { left, right } = geometryFunc.findCircularAdjacentElements(this._walls, wall)
-        left.updateEnd(newLine[0], coordType)
-        right.updateStart(newLine[1], coordType)
+        left.updateEnd(newLine.start, coordType)
+        right.updateStart(newLine.end, coordType)
         this.render()
     }
 

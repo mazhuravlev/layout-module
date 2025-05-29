@@ -1,7 +1,8 @@
 import { Application, FederatedPointerEvent } from 'pixi.js'
 import { distanceFromPointToLine, getLineLength, pointsToLines, shiftLine } from '../geometryFunc'
 import { Logger } from '../logger'
-import { addVectors, ALine, aPoint, APoint, ASubscription, LogicError, mapLine, mapPoint, multiplyVector, subtractVectors, unsubscribe } from '../types'
+import { ALine, APoint, ASubscription, LogicError, unsubscribe } from '../types'
+import { addVectors, aPoint, mapLine, mapPoint, multiplyVector, subtractVectors } from '../geometryFunc'
 import { BlockDragConfig, DragConfig, WallDragConfig, WindowDragConfig, withDragOutline } from './dragConfig'
 import { Apartment } from '../entities/Apartment'
 import { EventService } from '../EventService/EventService'
@@ -329,13 +330,13 @@ export class Editor {
 
     private dragWall(_dragConfig: WallDragConfig, pixiEvent: FederatedPointerEvent) {
         const { target: wall, snapService } = _dragConfig
-        const distance = distanceFromPointToLine(_dragConfig.originalWallGlobalPoints, pixiEvent.global)
-        const newLine = shiftLine(_dragConfig.originalWallGlobalPoints, -1 * snapService.applyGridSnap(distance))
+        const distance = distanceFromPointToLine(_dragConfig.originalWallGlobalLine, pixiEvent.global)
+        const newLine = shiftLine(_dragConfig.originalWallGlobalLine, -1 * snapService.applyGridSnap(distance))
         const snapResult = snapService.checkLineSnap(newLine)
         snapService.showSnapIndicator(snapResult)
         if (snapResult.snapped) {
-            const snapDistance = distanceFromPointToLine(_dragConfig.originalWallGlobalPoints, snapResult.snapPoint)
-            const snapLine = shiftLine(_dragConfig.originalWallGlobalPoints, -snapDistance)
+            const snapDistance = distanceFromPointToLine(_dragConfig.originalWallGlobalLine, snapResult.snapPoint)
+            const snapLine = shiftLine(_dragConfig.originalWallGlobalLine, -snapDistance)
             wall.apartment.updateWall(wall, snapLine, 'global')
         } else {
             snapService.hideSnapIndicator()
@@ -375,7 +376,7 @@ export class Editor {
                     this.getSnapPoints({ exclude: target.apartment }),
                     this.getSnapLines()),
                 target,
-                originalWallGlobalPoints: target.globalPoints,
+                originalWallGlobalLine: target.globalPoints,
                 originalApartmentPoints: target.apartment.points
             }
             return dragConfig

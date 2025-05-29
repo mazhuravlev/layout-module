@@ -1,5 +1,6 @@
 import { Container, Graphics, Text } from 'pixi.js'
-import { aPoint, APoint } from '../types'
+import { APoint } from '../types'
+import { aPoint } from '../geometryFunc'
 import { EventService } from '../EventService/EventService'
 import { EditorObject } from './EditorObject'
 import { OutlineFilter, GlowFilter } from 'pixi-filters'

@@ -1,5 +1,5 @@
 import { Polygon } from 'pixi.js'
-import { ALine, APoint, TPoints } from './types'
+import { ALine, APoint } from './types'
 import { pairwise } from './func'
 
 /**
@@ -150,24 +150,24 @@ export function makeLineHitbox(
  * @param point Точка, для которой вычисляется расстояние
  * @returns Расстояние от точки до линии
  */
-export function distanceFromPointToLine([linePoint1, linePoint2]: TPoints, point: APoint): number {
+export function distanceFromPointToLine({ start, end }: ALine, point: APoint): number {
   // Если точки линии совпадают, возвращаем расстояние между точками
-  if (linePoint1.x === linePoint2.x && linePoint1.y === linePoint2.y) {
-    return Math.sqrt((point.x - linePoint1.x) ** 2 + (point.y - linePoint1.y) ** 2)
+  if (start.x === end.x && start.y === end.y) {
+    return Math.sqrt((point.x - start.x) ** 2 + (point.y - start.y) ** 2)
   }
 
   // Числитель формулы расстояния от точки до прямой
   const numerator = (
-    (linePoint2.y - linePoint1.y) * point.x -
-    (linePoint2.x - linePoint1.x) * point.y +
-    linePoint2.x * linePoint1.y -
-    linePoint2.y * linePoint1.x
+    (end.y - start.y) * point.x -
+    (end.x - start.x) * point.y +
+    end.x * start.y -
+    end.y * start.x
   )
 
   // Знаменатель формулы
   const denominator = Math.sqrt(
-    (linePoint2.y - linePoint1.y) ** 2 +
-    (linePoint2.x - linePoint1.x) ** 2
+    (end.y - start.y) ** 2 +
+    (end.x - start.x) ** 2
   )
 
   return numerator / denominator
@@ -179,16 +179,16 @@ export function distanceFromPointToLine([linePoint1, linePoint2]: TPoints, point
  * @param distance Расстояние для смещения (может быть отрицательным)
  * @returns Новый отрезок, смещенный параллельно исходному
  */
-export function shiftLine(line: TPoints, distance: number): TPoints {
-  const [p1, p2] = line
+export function shiftLine(line: ALine, distance: number): ALine {
+  const { start, end } = line
 
   // Вычисляем вектор направления отрезка
-  const dx = p2.x - p1.x
-  const dy = p2.y - p1.y
+  const dx = end.x - start.x
+  const dy = end.y - start.y
 
   // Если отрезок вырожден (точки совпадают), возвращаем исходный отрезок
   if (dx === 0 && dy === 0) {
-    return [p1, p2]
+    return { start, end }
   }
 
   // Вычисляем длину отрезка
@@ -200,16 +200,16 @@ export function shiftLine(line: TPoints, distance: number): TPoints {
 
   // Смещаем обе точки на перпендикулярный вектор
   const newP1 = {
-    x: p1.x + perpX,
-    y: p1.y + perpY
+    x: start.x + perpX,
+    y: start.y + perpY
   }
 
   const newP2 = {
-    x: p2.x + perpX,
-    y: p2.y + perpY
+    x: end.x + perpX,
+    y: end.y + perpY
   }
 
-  return [newP1, newP2]
+  return { start: newP1, end: newP2 }
 }
 
 /**
@@ -329,18 +329,18 @@ export const filterZeroLengthWalls = (points: APoint[], e = 0.001): APoint[] => 
   return filtered
 }
 
-export const lineCenter = (line: TPoints): APoint => {
-  const [p1, p2] = line
+export const lineCenter = (line: ALine): APoint => {
+  const { start, end } = line
   return {
-    x: (p1.x + p2.x) / 2,
-    y: (p1.y + p2.y) / 2
+    x: (start.x + end.x) / 2,
+    y: (start.y + end.y) / 2
   }
 }
 
-export const isVerticalLine = (line: TPoints): 1 | -1 | false => {
-  const [p1, p2] = line
-  if (Math.abs(p1.x - p2.x) < 1e-10) {
-    return p1.y > p2.y ? 1 : -1
+export const isVerticalLine = (line: ALine): 1 | -1 | false => {
+  const { start, end } = line
+  if (Math.abs(start.x - end.x) < 1e-10) {
+    return start.y > end.y ? 1 : -1
   }
   return false
 }
@@ -365,9 +365,9 @@ export function getSlope(start: APoint, end: APoint): number | null {
   return (end.y - start.y) / deltaX
 }
 
-export const lineLength = (line: TPoints): number => {
-  const [p1, p2] = line
-  return Math.sqrt((p1.x - p2.x) ** 2 + (p1.y - p2.y) ** 2)
+export const lineLength = (line: ALine): number => {
+  const { start, end } = line
+  return Math.sqrt((start.x - end.x) ** 2 + (start.y - end.y) ** 2)
 }
 
 export function getLineLength(line: ALine): number {
@@ -452,4 +452,20 @@ export function offsetPolygon(points: APoint[], offset: number, closed: boolean 
 export function normalize(v: APoint): APoint {
   const length = Math.sqrt(v.x ** 2 + v.y ** 2)
   return length > 0 ? { x: v.x / length, y: v.y / length } : { x: 0, y: 0 }
+} export function aPoint(point: APoint): APoint
+export function aPoint(coords: [number, number]): APoint
+export function aPoint(arg: APoint | [number, number]): APoint {
+  if (Array.isArray(arg)) {
+    return { x: arg[0], y: arg[1] }
+  } else {
+    return { x: arg.x, y: arg.y }
+  }
 }
+export const mapPoint = (mapFn: (x: number) => number) => (a: APoint): APoint => ({ x: mapFn(a.x), y: mapFn(a.y) })
+
+export const subtractVectors = (a: APoint, b: APoint): APoint => ({ x: a.x - b.x, y: a.y - b.y })
+export const addVectors = (a: APoint, b: APoint): APoint => ({ x: a.x + b.x, y: a.y + b.y })
+export const multiplyVector = ({ x, y }: APoint, v: number): APoint => ({ x: x * v, y: y * v })
+
+export const mapLine = (mapFn: (x: APoint) => APoint) => (a: ALine): ALine => ({ start: mapFn(a.start), end: mapFn(a.end) })
+

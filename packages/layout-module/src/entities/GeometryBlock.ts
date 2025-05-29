@@ -3,7 +3,8 @@ import data from './llu.json'
 import { EventService } from '../EventService/EventService'
 import { EditorObject } from './EditorObject'
 import { identity, pairwise, splitIntoPairs } from '../func'
-import { ALine, APoint, aPoint, NotImplemented } from '../types'
+import { ALine, APoint, NotImplemented } from '../types'
+import { aPoint } from '../geometryFunc'
 import { OutlineFilter, GlowFilter } from 'pixi-filters'
 
 const outlineFilter = new OutlineFilter({
