@@ -49,28 +49,26 @@ export class GeometryBlock extends EditorObject {
 
     private init() {
         const { _container, _outline, _lines } = this
-        _container.addChild(this._outline)
-        _container.addChild(this._lines)
         _container.eventMode = 'static'
         _container.cursor = 'pointer'
-
-        const outlinePointdata = this._data.outline.flatMap(identity)
         _container.hitArea = new Polygon(this.outlinePointdata)
+        _container
+            .on('mouseenter', e => this.emit(e, 'mouseenter'))
+            .on('mouseleave', e => this.emit(e, 'mouseleave'))
+            .on('mousedown', e => this.emit(e, 'mousedown'))
+            .on('mouseup', e => this.emit(e, 'mouseup'))
 
-        _container.on('mouseenter', e => this.emit(e, 'mouseenter'))
-        _container.on('mouseleave', e => this.emit(e, 'mouseleave'))
-        _container.on('mousedown', e => this.emit(e, 'mousedown'))
-        _container.on('mouseup', e => this.emit(e, 'mouseup'))
-
-        _outline.poly(outlinePointdata)
 
         this._data.lines.forEach(line => {
             _lines.poly(line.flatMap(identity), false)
         })
         _lines.stroke({ color: 0, width: 1, pixelLine: true })
+        _container.addChild(_lines)
 
-        _outline.poly(this.outlinePointdata)
-        _outline.fill({ color: 0xffffff })
+        _outline
+            .poly(this.outlinePointdata)
+            .fill({ color: 0xffffff })
+        _container.addChild(_outline)
 
         this.render()
     }
@@ -86,10 +84,9 @@ export class GeometryBlock extends EditorObject {
     public createDragOutline(): Container {
         const outline = new Container()
         const graphics = new Graphics()
-
-        graphics.rect(0, 0, 50, 50)
-        graphics.stroke({ color: 0x999999, width: 1, alpha: 0.6 })
-
+        graphics
+            .poly(this.outlinePointdata)
+            .stroke({ color: 0x666666, pixelLine: true, alpha: 0.6 })
         outline.addChild(graphics)
         return outline
     }
