@@ -1,7 +1,6 @@
 import { Container, Graphics } from 'pixi.js'
 import { APoint, IDisposable, mapPoint } from '../types'
-import { drawOutline } from '../geometryFunc'
-import { offsetPolygon } from '../func'
+import { offsetPolygon } from '../geometryFunc'
 
 import { Units } from '../Units'
 import { SectionOutlineDto } from './SectionOutlineDto'
@@ -41,9 +40,13 @@ export class SectionOutline implements IDisposable {
     }
 
     private render() {
-        const { _graphics, _points, _offsetGraphics, _offset } = this
-        drawOutline(_graphics, _points, undefined, { color: 0xaaaaaa })
-        drawOutline(_offsetGraphics, this.offsetPoints)
+        const { _graphics, _points, _offsetGraphics, offsetPoints } = this
+        _graphics
+            .poly(_points)
+            .stroke({ color: 0xaaaaaa, pixelLine: true })
+        _offsetGraphics
+            .poly(offsetPoints)
+            .stroke({ color: 0, pixelLine: true })
     }
 
     /**

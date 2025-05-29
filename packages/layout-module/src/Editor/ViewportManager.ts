@@ -3,7 +3,7 @@ import { EDITOR_CONFIG } from './editorConfig'
 import { Viewport } from 'pixi-viewport'
 import { ASubscription, IDisposable, unsubscribe } from '../types'
 import { filter, fromEvent } from 'rxjs'
-import { fromPixiEvent } from '../geometryFunc'
+import { fromPixiEvent } from '../func'
 import { assert } from '../func'
 
 export class ViewportManager implements IDisposable {
@@ -47,7 +47,14 @@ export class ViewportManager implements IDisposable {
     }
 
     public zoomToExtents() {
-        this._viewport.fit()
+        const { _app, _viewport } = this
+        const { centerX, scale, centerY } = calculateZoomToExtents(
+            _app,
+            EDITOR_CONFIG.VISUAL.ZOOM_TO_EXTENTS_PADDING,
+            _viewport.children
+        )
+        _viewport.setZoom(scale)
+        _viewport.moveCenter(centerX, centerY)
     }
 
     public dispose(): void {
@@ -56,4 +63,26 @@ export class ViewportManager implements IDisposable {
         _app.stage.removeChild(_viewport)
         _viewport.destroy()
     }
+}
+
+export function calculateZoomToExtents(app: Application, padding: number, objects: Container[]) {
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity
+
+    objects.forEach((child) => {
+        const bounds = child.getBounds(false)
+        minX = Math.min(minX, bounds.x)
+        minY = Math.min(minY, bounds.y)
+        maxX = Math.max(maxX, bounds.x + bounds.width)
+        maxY = Math.max(maxY, bounds.y + bounds.height)
+    })
+
+    const centerX = (minX + maxX) / 2
+    const centerY = (minY + maxY) / 2
+    const width = maxX - minX
+    const height = maxY - minY
+
+    const scaleX = (app.screen.width - padding) / width
+    const scaleY = (app.screen.height - padding) / height
+    const scale = Math.min(scaleX, scaleY)
+    return { centerX, scale, centerY }
 }

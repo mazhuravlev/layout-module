@@ -1,6 +1,6 @@
 import { Container, Graphics, Matrix, Text } from 'pixi.js'
 import { assert, degreesToRadians, pairwise } from '../func'
-import { getPolygonCenter, getPolygonArea, formatArea, findCircularAdjacentElements, closePolygon, ensureClockwisePolygon, filterZeroLengthWalls, joinCollinearWalls } from '../geometryFunc'
+import * as geometryFunc from '../geometryFunc'
 import { APoint, TPoints, CoordType, ALine, aPoint } from '../types'
 import { EventService } from '../EventService/EventService'
 import { Wall } from './Wall'
@@ -98,7 +98,7 @@ export class Apartment extends EditorObject {
     ) {
         super(eventService)
         if (options?.id) this._id = options.id
-        this.init(ensureClockwisePolygon(points))
+        this.init(geometryFunc.ensureClockwisePolygon(points))
         if (options?.position) this._container.position.copyFrom(options.position)
     }
 
@@ -132,7 +132,7 @@ export class Apartment extends EditorObject {
 
     private applyMatrix(matrix: Matrix) {
         this.updatePoints(
-            ensureClockwisePolygon(
+            geometryFunc.ensureClockwisePolygon(
                 this.points.map(point => matrix.apply(point))))
         this.render()
     }
@@ -145,9 +145,9 @@ export class Apartment extends EditorObject {
         this.setupWalls(
             R.pipe(
                 points,
-                closePolygon,
-                filterZeroLengthWalls,
-                joinCollinearWalls))
+                geometryFunc.closePolygon,
+                geometryFunc.filterZeroLengthWalls,
+                geometryFunc.joinCollinearWalls))
         this.render()
     }
 
@@ -219,14 +219,14 @@ export class Apartment extends EditorObject {
 
     public updateWall(wall: Wall, newLine: TPoints, coordType: CoordType) {
         wall.update(newLine, coordType)
-        const { left, right } = findCircularAdjacentElements(this._walls, wall)
+        const { left, right } = geometryFunc.findCircularAdjacentElements(this._walls, wall)
         left.updateEnd(newLine[0], coordType)
         right.updateStart(newLine[1], coordType)
         this.render()
     }
 
     public calculateArea() {
-        const area = getPolygonArea(this.points)
+        const area = geometryFunc.getPolygonArea(this.points)
         return area / 100
     }
 
@@ -238,13 +238,14 @@ export class Apartment extends EditorObject {
             ...(_isSelected ? [outlineFilter] : []),
         ]
 
-        _areaGraphics.clear()
-        _areaGraphics.poly(this.points)
-        _areaGraphics.fill({ color: this.getFillColor() })
+        _areaGraphics
+            .clear()
+            .poly(this.points)
+            .fill({ color: this.getFillColor() })
 
         const center = this.getCenter()
         const area = this.calculateArea()
-        _areaLabel.text = formatArea(area)
+        _areaLabel.text = `${Math.round(area)} м²`
         _areaLabel.position.set(center.x, center.y)
         const flatmixType = calculateApartmentType(exampleFlatmix, {
             area,
@@ -261,19 +262,15 @@ export class Apartment extends EditorObject {
         const outline = new Container()
         outline.position.copyFrom(this._container.position)
         const graphics = new Graphics()
-
-        this.wallLines.forEach(({ start, end }) => {
-            graphics.moveTo(start.x, start.y)
-            graphics.lineTo(end.x, end.y)
-        })
-
-        graphics.stroke({ color: 0x666666, pixelLine: true, alpha: 0.6 })
+        graphics
+            .poly(this.points)
+            .stroke({ color: 0x666666, pixelLine: true, alpha: 0.6 })
         outline.addChild(graphics)
         return outline
     }
 
     private getCenter() {
-        return getPolygonCenter(this.points)
+        return geometryFunc.getPolygonCenter(this.points)
     }
 
     private getFillColor() {

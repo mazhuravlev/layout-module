@@ -1,40 +1,6 @@
-import { Application, Container, FederatedEventMap, Graphics, Polygon } from 'pixi.js'
+import { Polygon } from 'pixi.js'
 import { ALine, APoint, TPoints } from './types'
-import { fromEventPattern, Observable } from 'rxjs'
 import { pairwise } from './func'
-
-export function calculateZoomToExtents(app: Application, padding: number, objects: Container[]) {
-  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity
-
-  objects.forEach((child) => {
-    const bounds = child.getBounds(false)
-    minX = Math.min(minX, bounds.x)
-    minY = Math.min(minY, bounds.y)
-    maxX = Math.max(maxX, bounds.x + bounds.width)
-    maxY = Math.max(maxY, bounds.y + bounds.height)
-  })
-
-  const centerX = (minX + maxX) / 2
-  const centerY = (minY + maxY) / 2
-  const width = maxX - minX
-  const height = maxY - minY
-
-  const scaleX = (app.screen.width - padding) / width
-  const scaleY = (app.screen.height - padding) / height
-  const scale = Math.min(scaleX, scaleY)
-  return { centerX, scale, centerY }
-}
-
-export const drawOutline = (graphics: Graphics, points: APoint[], fillStyle?: { color: number }, strokeStyle?: { color: number }) => {
-  graphics.clear()
-  graphics.moveTo(points[0].x, points[0].y)
-  for (let i = 1; i < points.length; i++) {
-    graphics.lineTo(points[i].x, points[i].y)
-  }
-  graphics.lineTo(points[0].x, points[0].y)
-  graphics.stroke({ color: strokeStyle?.color ?? 0, width: 1, pixelLine: true })
-  if (fillStyle) graphics.fill({ color: fillStyle.color })
-}
 
 /**
  * Вычисляет центр (центроид) многоугольника
@@ -104,24 +70,6 @@ export function getPolygonArea(points: APoint[]): number {
   }
 
   return Math.abs(area / 2) // Берем модуль для всегда положительной площади
-}
-
-export const formatArea = (area: number) => {
-  return `${Math.round(area)} м²`
-}
-
-export function fromPixiEvent<T extends Container, K extends keyof FederatedEventMap>(
-  target: T,
-  eventName: K
-): Observable<FederatedEventMap[K]> {
-  return fromEventPattern<FederatedEventMap[K]>(
-    (handler: (event: FederatedEventMap[K]) => void) =>
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      target.on(eventName, handler as any),
-    (handler: (event: FederatedEventMap[K]) => void) =>
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      target.off(eventName, handler as any)
-  )
 }
 
 /**
@@ -451,4 +399,57 @@ export function projectPointOnLine(point: APoint, line: ALine): APoint {
 
 export function getPointDistance(p1: APoint, p2: APoint): number {
   return Math.sqrt(Math.pow(p2.x - p1.x, 2) + Math.pow(p2.y - p1.y, 2))
+}
+/**
+ * Создаёт offset (смещённый) многоугольник.
+ * @param points Исходные точки многоугольника.
+ * @param offset Величина смещения (>0 наружу, <0 внутрь).
+ * @param closed Замкнут ли многоугольник (true по умолчанию).
+ * @returns Новый массив точек смещённого многоугольника.
+ */
+
+export function offsetPolygon(points: APoint[], offset: number, closed: boolean = true): APoint[] {
+  if (points.length < 3 && closed) {
+    throw new Error('Для замкнутого многоугольника нужно минимум 3 точки.')
+  }
+
+  const newPoints: APoint[] = []
+  const n = points.length
+
+  for (let i = 0; i < n; i++) {
+    const prev = points[(i - 1 + n) % n]
+    const curr = points[i]
+    const next = points[(i + 1) % n]
+
+    // Векторы рёбер
+    const edge1 = { x: curr.x - prev.x, y: curr.y - prev.y }
+    const edge2 = { x: next.x - curr.x, y: next.y - curr.y }
+
+    // Нормали к рёбрам (перпендикуляр, нормализованный)
+    const norm1 = normalize({ x: -edge1.y, y: edge1.x })
+    const norm2 = normalize({ x: -edge2.y, y: edge2.x })
+
+    // Усреднённая нормаль (для внутренних углов)
+    const avgNorm = normalize({
+      x: (norm1.x + norm2.x),
+      y: (norm1.y + norm2.y),
+    })
+
+    // Коррекция для острых углов (чтобы избежать "всплесков")
+    const miterLength = 1 / Math.sqrt(avgNorm.x ** 2 + avgNorm.y ** 2)
+    const limitedMiterLength = Math.min(miterLength, 2) // Ограничение, чтобы избежать артефактов
+
+    newPoints.push({
+      x: curr.x + avgNorm.x * offset * limitedMiterLength,
+      y: curr.y + avgNorm.y * offset * limitedMiterLength,
+    })
+  }
+
+  return newPoints
+}
+/** Нормализует вектор (делает длину = 1). */
+
+export function normalize(v: APoint): APoint {
+  const length = Math.sqrt(v.x ** 2 + v.y ** 2)
+  return length > 0 ? { x: v.x / length, y: v.y / length } : { x: 0, y: 0 }
 }
