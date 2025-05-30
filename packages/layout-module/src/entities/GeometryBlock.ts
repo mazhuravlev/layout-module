@@ -59,17 +59,16 @@ export class GeometryBlock extends EditorObject {
             .on('mousedown', e => this.emit(e, 'mousedown'))
             .on('mouseup', e => this.emit(e, 'mouseup'))
 
+        _outline
+            .poly(this.outlinePointdata)
+            .fill({ color: 0xffffff })
+        _container.addChild(_outline)
 
         this._data.lines.forEach(line => {
             _lines.poly(line.flatMap(identity), false)
         })
         _lines.stroke({ color: 0, width: 1, pixelLine: true })
         _container.addChild(_lines)
-
-        _outline
-            .poly(this.outlinePointdata)
-            .fill({ color: 0xffffff })
-        _container.addChild(_outline)
 
         this.render()
     }

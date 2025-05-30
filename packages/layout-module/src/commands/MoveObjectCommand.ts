@@ -5,6 +5,8 @@ import { EditorObject } from '../entities/EditorObject'
 
 export class MoveObjectCommand implements EditorCommand {
 
+    public get description() { return 'Переместить' }
+
     constructor(
         private _editor: Editor,
         private _object: EditorObject,

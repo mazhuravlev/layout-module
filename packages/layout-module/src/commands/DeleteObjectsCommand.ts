@@ -4,6 +4,8 @@ import { EditorObject } from '../entities/EditorObject'
 
 export class DeleteObjectsCommand implements EditorCommand {
 
+    public get description() { return 'Удалить' }
+
     constructor(
         private _editor: Editor,
         private _objects: EditorObject[]) {

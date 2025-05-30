@@ -5,6 +5,8 @@ import { EditorObject } from '../entities/EditorObject'
 export class AddObjectCommand implements EditorCommand {
     private _objects: EditorObject[]
 
+    public get description() { return 'Добавить' }
+
     constructor(
         private _editor: Editor,
         object: EditorObject | EditorObject[]

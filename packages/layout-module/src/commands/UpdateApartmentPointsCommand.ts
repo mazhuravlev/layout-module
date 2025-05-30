@@ -4,6 +4,8 @@ import { EditorCommand } from './EditorCommand'
 
 export class UpdateApartmentPointsCommand implements EditorCommand {
 
+    public get description() { return 'Изменить контур' }
+
     constructor(
         private _apartment: Apartment,
         private _config: {

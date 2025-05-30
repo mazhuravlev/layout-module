@@ -7,6 +7,8 @@ import { assertDefined } from '../func'
 export class UpdateApartmentPropertiesCommand implements EditorCommand {
     private _savedProperties = new Map<string, ApartmentProperties>()
 
+    public get description() { return 'Изменить свойство' }
+
     constructor(
         private _editor: Editor,
         private _apartments: Apartment[],

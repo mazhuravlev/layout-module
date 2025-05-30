@@ -532,6 +532,7 @@ export class Editor {
             this.stage.addChild(this._sectionOutline.container)
         }
         events.setSectionSelected(notNull(this._sectionOutline))
+        this.zoomToExtents()
     }
 
     public addObject(o: EditorObject) {
@@ -545,14 +546,7 @@ export class Editor {
     }
 
     public getObject(id: string) {
-        const o = assertDefined(this._editorObjects.get(id))
-        return o
-    }
-
-    public getApartment(id: string) {
-        const o = this.getObject(id)
-        if (o instanceof Apartment) return o
-        throw new Error('Object is not an Apartment')
+        return assertDefined(this._editorObjects.get(id))
     }
 
     public deleteSelected() {

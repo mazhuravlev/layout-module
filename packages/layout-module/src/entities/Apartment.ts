@@ -57,6 +57,10 @@ export class Apartment extends EditorObject {
             .map(x => x.line)
     }
 
+    public get walls(): Readonly<Wall[]> {
+        return this._walls
+    }
+
     public get globalPoints() {
         return this.points.map((point) => this._container.toGlobal(point))
     }

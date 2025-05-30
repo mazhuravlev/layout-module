@@ -5,6 +5,8 @@ import { EditorCommand } from './EditorCommand'
 export class UpdateWindowPropertiesCommand implements EditorCommand {
     private _oldProperties: Map<WindowObj, WindowProperties>
 
+    public get description() { return 'Изменить свойство окна' }
+
     constructor(
         private _windows: WindowObj[],
         private _newProperties: Partial<WindowProperties>

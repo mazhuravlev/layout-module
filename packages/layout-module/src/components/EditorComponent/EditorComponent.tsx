@@ -22,7 +22,6 @@ export const EditorComponent: React.FC<EditorProps> = (_props) => {
           const { success, data, error } = StateTypeSchema.safeParse(JSON.parse(stateData))
           if (success && data) {
             editor.restoreState(data)
-            editor.zoomToExtents()
           } else {
             logger.warn(`parse state failed: ${error.message}`)
           }
