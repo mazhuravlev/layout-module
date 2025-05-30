@@ -9,7 +9,7 @@ import { EventService } from '../EventService/EventService'
 import * as events from '../components/events'
 import { assert, assertDefined, assertUnreachable, empty, isNull, not, notNull, toError, withNullable, fromPixiEvent } from '../func'
 import { MouseDownEvent, MouseUpEvent } from '../EventService/eventTypes'
-import { EMPTY, filter, finalize, map, mergeMap, of, take, takeUntil, tap } from 'rxjs'
+import { debounceTime, EMPTY, filter, finalize, map, mergeMap, of, take, takeUntil, tap } from 'rxjs'
 import { SnapService } from './SnapService'
 import { EditorCommand } from '../commands/EditorCommand'
 import { AddObjectCommand } from '../commands/AddObjectCommand'
@@ -105,8 +105,7 @@ export class Editor {
 
     private executeCommand(command: EditorCommand) {
         this._commandManager.execute(command)
-        const state = this.getState()
-        localStorage.setItem('state', JSON.stringify(state))
+        this._eventService.emit({ type: 'documentUpdate' })
     }
 
     public undo() { return this._commandManager.undo() }
@@ -138,11 +137,13 @@ export class Editor {
                     return Apartment.deserialize(this.eventService, x)
                 case 'window':
                     return WindowObj.deserialize(this.eventService, x)
+                case 'geometryBlock':
+                    return GeometryBlock.deserialize(this.eventService, x)
                 default:
                     throw assertUnreachable(x)
             }
         })
-        this.executeCommand(new AddObjectCommand(this, editorObjects))
+        new AddObjectCommand(this, editorObjects).execute()
     }
 
     private setupEvents() {
@@ -196,7 +197,16 @@ export class Editor {
                 if (empty(selectedWindows)) return
                 this.executeCommand(new UpdateWindowPropertiesCommand(selectedWindows, properties))
             }),
-            events.setSection.watch(outline => this.setSectionOutline(outline))
+            events.setSection.watch(outline => this.setSectionOutline(outline)),
+            this._eventService.events$
+                .pipe(
+                    filter(e => e.type === 'documentUpdate'),
+                    debounceTime(500)
+                )
+                .subscribe(() => {
+                    const state = this.getState()
+                    localStorage.setItem('state', JSON.stringify(state))
+                }),
         ])
     }
 

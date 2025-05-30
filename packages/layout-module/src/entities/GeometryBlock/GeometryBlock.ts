@@ -1,11 +1,12 @@
 import { Container, Graphics, Matrix, Polygon } from 'pixi.js'
 import { EventService } from '../../EventService/EventService'
 import { EditorObject } from '../EditorObject'
-import { degreesToRadians, pairwise } from '../../func'
-import { ALine, APoint, NotImplemented } from '../../types'
+import { degreesToRadians, deserializeMatrix, pairwise, serializeMatrix, withNullable } from '../../func'
+import { ALine, APoint } from '../../types'
 import { OutlineFilter, GlowFilter } from 'pixi-filters'
 import { GeometryBlockData } from './GeometryBlockData'
 import { getPolygonCenter } from '../../geometryFunc'
+import { GeometryBlockDto } from '../../Editor/dto'
 
 const outlineFilter = new OutlineFilter({
     thickness: 2,
@@ -29,6 +30,14 @@ export class GeometryBlock extends EditorObject {
 
     public get isSelectable() { return true }
 
+    public get position() { return this.container.position }
+
+    public get transform() { return this.container.localTransform }
+
+    public get globalPosition() {
+        return this.container.parent.toGlobal(this.container.position)
+    }
+
     public get globalPoints() {
         return this._data.outline.map((point) => this._container.toGlobal(point))
     }
@@ -38,12 +47,38 @@ export class GeometryBlock extends EditorObject {
         return pairwise(globalPoints).map(([start, end]) => ({ start, end }))
     }
 
+    public get data(): GeometryBlockData {
+        return this._data
+    }
+
     constructor(
         _eventService: EventService,
         private _data: GeometryBlockData,
+        options?: {
+            id?: string
+            transform?: Matrix
+        }
     ) {
         super(_eventService)
+        withNullable(options?.id, id => this._id = id)
+        withNullable(options?.transform, t => this._container.setFromMatrix(t))
         this.init()
+    }
+
+    public serialize(): GeometryBlockDto {
+        return {
+            type: 'geometryBlock',
+            id: this._id,
+            data: this._data,
+            transform: serializeMatrix(this.transform),
+        }
+    }
+
+    public static deserialize(eventService: EventService, dto: GeometryBlockDto): GeometryBlock {
+        return new GeometryBlock(eventService, dto.data, {
+            id: dto.id,
+            transform: deserializeMatrix(dto.transform),
+        })
     }
 
     private init() {
@@ -86,33 +121,32 @@ export class GeometryBlock extends EditorObject {
             .poly(this._data.outline)
             .stroke({ color: 0x666666, pixelLine: true, alpha: 0.6 })
         outline.addChild(graphics)
+        outline.setFromMatrix(this.transform)
         return outline
     }
 
     public rotate(angle: number) {
-        const center = this.getCenter()
+        const { x, y } = this.getCenter()
         this.applyMatrix(
             new Matrix()
-                .translate(-center.x, -center.y)
+                .translate(-x, -y)
                 .rotate(degreesToRadians(angle))
-                .translate(center.x, center.y))
+                .translate(x, y))
     }
 
     public flip(type: 'horizontal' | 'vertical') {
-        const center = this.getCenter()
+        const { x, y } = this.getCenter()
         const scaleFactor = type === 'vertical' ? -1 : 1
         this.applyMatrix(
             new Matrix()
-                .translate(-center.x, -center.y)
+                .translate(-x, -y)
                 .scale(-1 * scaleFactor, 1 * scaleFactor)
-                .translate(center.x, center.y))
+                .translate(x, y))
     }
 
     private applyMatrix(matrix: Matrix) {
-        const { _container } = this
-        const currentMatrix = _container.localTransform
-        currentMatrix.append(matrix)
-        _container.setFromMatrix(currentMatrix)
+        this.transform.append(matrix)
+        this._container.setFromMatrix(this.transform)
     }
 
     private getCenter(): APoint {
@@ -125,18 +159,23 @@ export class GeometryBlock extends EditorObject {
     }
 
     public clone(): GeometryBlock {
-        throw new NotImplemented()
+        return new GeometryBlock(
+            this._eventService,
+            this._data,
+            { transform: this.transform.clone() })
     }
 
     public dispose(): void {
-        this._container.removeAllListeners()
-        this._container.removeChildren()
-        this._container.destroy()
+        this._container
+            .removeAllListeners()
+            .destroy()
 
-        this._outline.removeAllListeners()
-        this._outline.destroy()
+        this._outline
+            .removeAllListeners()
+            .destroy()
 
-        this._lines.removeAllListeners()
-        this._lines.destroy()
+        this._lines
+            .removeAllListeners()
+            .destroy()
     }
 }

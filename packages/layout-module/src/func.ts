@@ -1,7 +1,8 @@
 import { Store } from 'effector'
 import { fromEventPattern, Observable } from 'rxjs'
 import { v4 as uuid } from 'uuid'
-import { Container, FederatedEventMap } from 'pixi.js'
+import { Container, FederatedEventMap, Matrix } from 'pixi.js'
+import { MatrixDto } from './Editor/dto'
 
 export const assertDefined = <T>(value: T | null | undefined, cause?: string): T => {
   if (value === null || value === undefined) {
@@ -137,4 +138,14 @@ export function fromEffectorStore<T, U>(store: Store<T>, mapFn: (s: T) => U): Ob
     })
     return () => unsubscribe()
   })
+}
+
+export const serializeMatrix = (matrix: Matrix): MatrixDto => {
+  const { a, b, c, d, tx, ty } = matrix
+  return { a, b, c, d, tx, ty }
+}
+
+export const deserializeMatrix = (dto: MatrixDto): Matrix => {
+  const { a, b, c, d, tx, ty } = dto
+  return new Matrix(a, b, c, d, tx, ty)
 }

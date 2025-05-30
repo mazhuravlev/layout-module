@@ -1,8 +1,7 @@
 import { Container, Graphics, Matrix, Text } from 'pixi.js'
-import { assert, degreesToRadians, pairwise } from '../func'
+import { assert, degreesToRadians, deserializeMatrix, pairwise, serializeMatrix, withNullable } from '../func'
 import * as geometryFunc from '../geometryFunc'
 import { APoint, CoordType, ALine } from '../types'
-import { aPoint } from '../geometryFunc'
 import { EventService } from '../EventService/EventService'
 import { Wall } from './Wall'
 import { ApartmentProperties, defaultApartmentProperties } from './ApartmentProperties'
@@ -49,6 +48,8 @@ export class Apartment extends EditorObject {
 
     public get position() { return this.container.position }
 
+    public get transform() { return this.container.localTransform }
+
     /** 
      * Стены в локальных координатах
      */
@@ -76,14 +77,14 @@ export class Apartment extends EditorObject {
             type: 'apartment',
             id: this._id,
             points: this.points,
-            position: aPoint(this.position),
+            transform: serializeMatrix(this.transform),
             properties: this._properties
         }
     }
 
     public static deserialize(eventService: EventService, dto: ApartmentDto) {
         return new Apartment(eventService, dto.points,
-            { id: dto.id, position: dto.position })
+            { id: dto.id, transform: deserializeMatrix(dto.transform) })
     }
 
     /**
@@ -97,13 +98,13 @@ export class Apartment extends EditorObject {
         points: APoint[],
         options?: {
             id?: string
-            position?: APoint
+            transform?: Matrix
         }
     ) {
         super(eventService)
-        if (options?.id) this._id = options.id
+        withNullable(options?.id, id => this._id = id)
+        withNullable(options?.transform, t => this._container.setFromMatrix(t))
         this.init(geometryFunc.ensureClockwisePolygon(points))
-        if (options?.position) this._container.position.copyFrom(options.position)
     }
 
     public setProperties(properties: Partial<ApartmentProperties>) {

@@ -38,9 +38,14 @@ export interface MouseMoveEvent extends BaseEvent {
     pixiEvent: FederatedPointerEvent
 }
 
+export interface DocumentUpdateEvent {
+    type: 'documentUpdate'
+}
+
 export type AppEvent =
     | MouseDownEvent
     | MouseUpEvent
     | MouseMoveEvent
     | MouseEnterEvent
     | MouseLeaveEvent
+    | DocumentUpdateEvent
