@@ -19,7 +19,7 @@ import { UpdateApartmentPointsCommand } from '../commands/UpdateApartmentPointsC
 import { initDevtools } from '@pixi/devtools'
 import { Wall } from '../entities/Wall'
 import { UpdateApartmentPropertiesCommand } from '../commands/UpdateApartmentPropertiesCommand'
-import { GeometryBlock } from '../entities/GeometryBlock'
+import { GeometryBlock } from '../entities/GeometryBlock/GeometryBlock'
 import { EditorObject } from '../entities/EditorObject'
 import { Units } from '../Units'
 import { SimpleCommand } from '../commands/SimpleCommand'
@@ -34,6 +34,7 @@ import { MoveWindowCommand } from '../commands/MoveWindowCommand'
 import { EDITOR_CONFIG } from './editorConfig'
 import { KeyboardState } from './KeyboardState'
 import { StateType } from './dtoSchema'
+import lluData from '../entities/GeometryBlock/llu'
 
 export class Editor {
     private _app = new Application()
@@ -114,10 +115,6 @@ export class Editor {
     public selectObjects(objects: EditorObject[]) { this._selectionManager.selectObjects(objects) }
     public zoomToExtents() { this._viewportManager?.zoomToExtents() }
 
-    private get selectedApartments() {
-        return this._selectionManager.selectedApartments as Apartment[]
-    }
-
     private getState() {
         const objects = [...this._editorObjects.values()
             .map(x => x.serialize())
@@ -156,25 +153,28 @@ export class Editor {
                     new Apartment(this._eventService, shape.points.map(mapPoint(Units.fromMm)))))
             }),
             events.addLLU.watch(() => {
-                this.executeCommand(new AddObjectCommand(this, new GeometryBlock(this._eventService)))
+                this.executeCommand(new AddObjectCommand(this, new GeometryBlock(this._eventService, lluData)))
             }),
             events.deleteSelected.watch(() => this.deleteSelected()),
             events.zoomToExtents.watch(() => this.zoomToExtents()),
             events.undo.watch(() => this.undo()),
             events.redo.watch(() => this.redo()),
             events.setApartmentProperties.watch((properties) => {
-                if (empty(this.selectedApartments)) return
-                this.executeCommand(new UpdateApartmentPropertiesCommand(this, this.selectedApartments, properties))
+                const { selectedApartments } = this._selectionManager
+                if (empty(selectedApartments)) return
+                this.executeCommand(new UpdateApartmentPropertiesCommand(this, selectedApartments, properties))
             }),
             events.rotateSelected.watch(angle => {
-                if (empty(this.selectedApartments)) return
+                const { selectedObjects } = this._selectionManager
+                if (empty(selectedObjects)) return
                 this.executeCommand(new SimpleCommand(
-                    () => this.selectedApartments.forEach(x => x.rotate(angle)),
-                    () => this.selectedApartments.forEach(x => x.rotate(-angle))))
+                    () => selectedObjects.forEach(x => x.rotate(angle)),
+                    () => selectedObjects.forEach(x => x.rotate(-angle))))
             }),
             events.flipSelected.watch(t => {
-                if (empty(this.selectedApartments)) return
-                const fn = () => this.selectedApartments.forEach(x => x.flip(t))
+                const { selectedObjects } = this._selectionManager
+                if (empty(selectedObjects)) return
+                const fn = () => selectedObjects.forEach(x => x.flip(t))
                 this.executeCommand(new SimpleCommand(fn, fn))
             }),
             events.sectionSettings
@@ -285,7 +285,7 @@ export class Editor {
 
     public onObjectSelected() {
         // TODO: придумать что-то для работы со всеми типами объектов: квартиры, ЛЛУ, окна
-        events.apartmentSelected([...this.selectedApartments.values().map(x => x.serialize())])
+        // events.apartmentSelected([...this.selectedApartments.values().map(x => x.serialize())])
     }
 
     private performDrag(dragConfig: DragConfig, pixiEvent: FederatedPointerEvent) {

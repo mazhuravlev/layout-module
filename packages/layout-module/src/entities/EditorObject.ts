@@ -34,6 +34,17 @@ export abstract class EditorObject implements IDisposable {
         return null
     }
 
+    /**
+     * @param angle Угол в градусах
+     */
+    public rotate(_angle: number): void {
+        return
+    }
+
+    public flip(_type: 'horizontal' | 'vertical'): void {
+        return
+    }
+
     protected abstract render(): void
 
     public abstract dispose(): void

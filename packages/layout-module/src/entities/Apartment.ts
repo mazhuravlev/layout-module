@@ -111,10 +111,6 @@ export class Apartment extends EditorObject {
         this.render()
     }
 
-    /**
-     * 
-     * @param angle Угол в градусах
-     */
     public rotate(angle: number) {
         const center = this.getCenter()
         this.applyMatrix(

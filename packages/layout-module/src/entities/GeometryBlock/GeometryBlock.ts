@@ -1,11 +1,11 @@
-import { Container, Graphics, Polygon } from 'pixi.js'
-import data from './llu.json'
-import { EventService } from '../EventService/EventService'
-import { EditorObject } from './EditorObject'
-import { identity, pairwise, splitIntoPairs } from '../func'
-import { ALine, APoint, NotImplemented } from '../types'
-import { aPoint } from '../geometryFunc'
+import { Container, Graphics, Matrix, Polygon } from 'pixi.js'
+import { EventService } from '../../EventService/EventService'
+import { EditorObject } from '../EditorObject'
+import { degreesToRadians, pairwise } from '../../func'
+import { ALine, APoint, NotImplemented } from '../../types'
 import { OutlineFilter, GlowFilter } from 'pixi-filters'
+import { GeometryBlockData } from './GeometryBlockData'
+import { getPolygonCenter } from '../../geometryFunc'
 
 const outlineFilter = new OutlineFilter({
     thickness: 2,
@@ -24,14 +24,13 @@ export class GeometryBlock extends EditorObject {
     private _outline = new Graphics()
     private _lines = new Graphics()
     private _container = new Container()
-    private _data = data
 
     public get container() { return this._container }
 
     public get isSelectable() { return true }
 
     public get globalPoints() {
-        return splitIntoPairs(this.outlinePointdata).map((point) => this._container.toGlobal(aPoint(point)))
+        return this._data.outline.map((point) => this._container.toGlobal(point))
     }
 
     public get globalLines(): ALine[] {
@@ -39,10 +38,9 @@ export class GeometryBlock extends EditorObject {
         return pairwise(globalPoints).map(([start, end]) => ({ start, end }))
     }
 
-    private get outlinePointdata() { return this._data.outline.flatMap(identity) }
-
     constructor(
         _eventService: EventService,
+        private _data: GeometryBlockData,
     ) {
         super(_eventService)
         this.init()
@@ -52,7 +50,7 @@ export class GeometryBlock extends EditorObject {
         const { _container, _outline, _lines } = this
         _container.eventMode = 'static'
         _container.cursor = 'pointer'
-        _container.hitArea = new Polygon(this.outlinePointdata)
+        _container.hitArea = new Polygon(this._data.outline)
         _container
             .on('mouseenter', e => this.emit(e, 'mouseenter'))
             .on('mouseleave', e => this.emit(e, 'mouseleave'))
@@ -60,12 +58,12 @@ export class GeometryBlock extends EditorObject {
             .on('mouseup', e => this.emit(e, 'mouseup'))
 
         _outline
-            .poly(this.outlinePointdata)
+            .poly(this._data.outline)
             .fill({ color: 0xffffff })
         _container.addChild(_outline)
 
-        this._data.lines.forEach(line => {
-            _lines.poly(line.flatMap(identity), false)
+        this._data.geometry.forEach(line => {
+            _lines.poly(line, false)
         })
         _lines.stroke({ color: 0, width: 1, pixelLine: true })
         _container.addChild(_lines)
@@ -85,10 +83,40 @@ export class GeometryBlock extends EditorObject {
         const outline = new Container()
         const graphics = new Graphics()
         graphics
-            .poly(this.outlinePointdata)
+            .poly(this._data.outline)
             .stroke({ color: 0x666666, pixelLine: true, alpha: 0.6 })
         outline.addChild(graphics)
         return outline
+    }
+
+    public rotate(angle: number) {
+        const center = this.getCenter()
+        this.applyMatrix(
+            new Matrix()
+                .translate(-center.x, -center.y)
+                .rotate(degreesToRadians(angle))
+                .translate(center.x, center.y))
+    }
+
+    public flip(type: 'horizontal' | 'vertical') {
+        const center = this.getCenter()
+        const scaleFactor = type === 'vertical' ? -1 : 1
+        this.applyMatrix(
+            new Matrix()
+                .translate(-center.x, -center.y)
+                .scale(-1 * scaleFactor, 1 * scaleFactor)
+                .translate(center.x, center.y))
+    }
+
+    private applyMatrix(matrix: Matrix) {
+        const { _container } = this
+        const currentMatrix = _container.localTransform
+        currentMatrix.append(matrix)
+        _container.setFromMatrix(currentMatrix)
+    }
+
+    private getCenter(): APoint {
+        return getPolygonCenter(this._data.outline)
     }
 
     public updatePosition(point: APoint) {
