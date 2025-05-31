@@ -29,6 +29,8 @@ export abstract class EditorObject implements IDisposable {
         this.render()
     }
 
+    public get serializable() { return false }
+
     public serialize(): object | null {
         return null
     }

@@ -65,6 +65,8 @@ export class GeometryBlock extends EditorObject {
         this.init()
     }
 
+    public get serializable() { return true }
+
     public serialize(): GeometryBlockDto {
         return {
             type: 'geometryBlock',

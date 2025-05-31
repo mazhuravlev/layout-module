@@ -125,6 +125,8 @@ export class WindowObj extends EditorObject {
         return frame.containsPoint(x, y)
     }
 
+    public get serializable() { return true }
+
     public serialize(): WindowDto {
         return {
             type: 'window',

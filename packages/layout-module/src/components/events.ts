@@ -2,7 +2,7 @@ import { createEvent, createStore } from 'effector'
 import { ApartmentTemplate, APoint } from '../types'
 import { notNull, returnSecondArg } from '../func'
 import persist from 'effector-localstorage'
-import { ApartmentDto } from '../Editor/dto'
+import { EditorObjectDto } from '../Editor/dto'
 import { ApartmentProperties } from '../entities/ApartmentProperties'
 import { WindowProperties } from '../entities/Window'
 
@@ -17,9 +17,9 @@ export const addLLU = createEvent<void>()
 export const rotateSelected = createEvent<number>()
 export const flipSelected = createEvent<'horizontal' | 'vertical'>()
 
-export const apartmentSelected = createEvent<ApartmentDto[]>()
-export const $selectedApartments = createStore<ApartmentDto[]>([])
-$selectedApartments.on(apartmentSelected, returnPayload)
+export const selectionChanged = createEvent<EditorObjectDto[]>()
+export const $selectedObjects = createStore<EditorObjectDto[]>([])
+$selectedObjects.on(selectionChanged, returnPayload)
 export const setApartmentProperties = createEvent<Partial<ApartmentProperties>>()
 
 interface DebugConfig {

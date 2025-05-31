@@ -55,6 +55,10 @@ export class SelectionManager implements IDisposable {
         return this.selectedObjects.filter(obj => obj instanceof WindowObj)
     }
 
+    public update() {
+        this.emitSelectionChanged()
+    }
+
     private emitSelectionChanged() {
         this._eventService.emit({
             type: 'selectionChanged',

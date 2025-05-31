@@ -1,5 +1,4 @@
 import { Apartment } from '../entities/Apartment'
-import { Editor } from '../Editor/Editor'
 import { EditorCommand } from './EditorCommand'
 import { ApartmentProperties } from '../entities/ApartmentProperties'
 import { assertDefined } from '../func'
@@ -10,7 +9,6 @@ export class UpdateApartmentPropertiesCommand implements EditorCommand {
     public get description() { return 'Изменить свойство' }
 
     constructor(
-        private _editor: Editor,
         private _apartments: Apartment[],
         private _properties: Partial<ApartmentProperties>,
     ) {
@@ -21,7 +19,6 @@ export class UpdateApartmentPropertiesCommand implements EditorCommand {
             this._savedProperties.set(apartment.id, { ...apartment.properties })
             apartment.setProperties(this._properties)
         })
-        this._editor.onObjectSelected()
     }
 
     undo(): void {
@@ -29,7 +26,6 @@ export class UpdateApartmentPropertiesCommand implements EditorCommand {
             const savedProperties = assertDefined(this._savedProperties.get(apartment.id))
             apartment.setProperties(savedProperties)
         })
-        this._editor.onObjectSelected()
     }
 
     dispose(): void {

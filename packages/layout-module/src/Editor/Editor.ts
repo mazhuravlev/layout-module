@@ -35,6 +35,7 @@ import { EDITOR_CONFIG } from './editorConfig'
 import { KeyboardState } from './KeyboardState'
 import { StateType } from './dtoSchema'
 import lluData from '../entities/GeometryBlock/llu'
+import { serializeEditorObject } from './dto'
 
 export class Editor {
     private _app = new Application()
@@ -162,7 +163,8 @@ export class Editor {
             events.setApartmentProperties.watch((properties) => {
                 const { selectedApartments } = this._selectionManager
                 if (empty(selectedApartments)) return
-                this.executeCommand(new UpdateApartmentPropertiesCommand(this, selectedApartments, properties))
+                this.executeCommand(new UpdateApartmentPropertiesCommand(selectedApartments, properties))
+                this._selectionManager.update()
             }),
             events.rotateSelected.watch(angle => {
                 const { selectedObjects } = this._selectionManager
@@ -196,6 +198,7 @@ export class Editor {
                 const { selectedWindows } = this._selectionManager
                 if (empty(selectedWindows)) return
                 this.executeCommand(new UpdateWindowPropertiesCommand(selectedWindows, properties))
+                this._selectionManager.update()
             }),
             events.setSection.watch(outline => this.setSectionOutline(outline)),
             this._eventService.events$
@@ -225,6 +228,13 @@ export class Editor {
                 e.target.setHovered(false)
             }))
         }
+
+        this._subscriptions.push(this._eventService.events$
+            .pipe(filter(e => e.type === 'selectionChanged'))
+            .subscribe(e => {
+                events.selectionChanged(e.selectedObjects.map(serializeEditorObject).filter(notNull))
+            })
+        )
 
         // Drag sequence: mousedown -> mousemove (with threshold) -> drag operations -> mouseup
         const dragSequence$ = this._eventService.mousedown$.pipe(
@@ -293,11 +303,6 @@ export class Editor {
                 map((pixiEvent): MouseDownEvent => ({ type: 'mousedown', pixiEvent })),
             )
             .subscribe(event => this._eventService.emit(event)))
-    }
-
-    public onObjectSelected() {
-        // TODO: придумать что-то для работы со всеми типами объектов: квартиры, ЛЛУ, окна
-        // events.apartmentSelected([...this.selectedApartments.values().map(x => x.serialize())])
     }
 
     private performDrag(dragConfig: DragConfig, pixiEvent: FederatedPointerEvent) {

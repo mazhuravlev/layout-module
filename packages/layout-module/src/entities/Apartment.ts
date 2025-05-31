@@ -72,20 +72,7 @@ export class Apartment extends EditorObject {
 
     public get properties(): ApartmentProperties { return this._properties }
 
-    public serialize(): ApartmentDto {
-        return {
-            type: 'apartment',
-            id: this._id,
-            points: this.points,
-            transform: serializeMatrix(this.transform),
-            properties: this._properties
-        }
-    }
-
-    public static deserialize(eventService: EventService, dto: ApartmentDto) {
-        return new Apartment(eventService, dto.points,
-            { id: dto.id, transform: deserializeMatrix(dto.transform) })
-    }
+    public get serializable() { return true }
 
     /**
      * 
@@ -99,11 +86,13 @@ export class Apartment extends EditorObject {
         options?: {
             id?: string
             transform?: Matrix
+            properties?: ApartmentProperties
         }
     ) {
         super(eventService)
         withNullable(options?.id, id => this._id = id)
         withNullable(options?.transform, t => this._container.setFromMatrix(t))
+        withNullable(options?.properties, properties => this._properties = properties)
         this.init(geometryFunc.ensureClockwisePolygon(points))
     }
 
@@ -168,6 +157,27 @@ export class Apartment extends EditorObject {
 
     public clone(): Apartment {
         return new Apartment(this._eventService, this.points)
+    }
+
+    public serialize(): ApartmentDto {
+        return {
+            type: 'apartment',
+            id: this._id,
+            points: this.points,
+            transform: serializeMatrix(this.transform),
+            properties: this._properties
+        }
+    }
+
+    public static deserialize(eventService: EventService, dto: ApartmentDto) {
+        return new Apartment(
+            eventService,
+            dto.points,
+            {
+                id: dto.id,
+                transform: deserializeMatrix(dto.transform),
+                properties: dto.properties,
+            })
     }
 
     private setupWalls(points: APoint[]) {
