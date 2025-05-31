@@ -43,9 +43,11 @@ export class SectionOutline implements IDisposable {
     private render() {
         const { _graphics, _points, _offsetGraphics, offsetPoints } = this
         _graphics
+            .clear()
             .poly(_points)
             .stroke({ color: 0xaaaaaa, pixelLine: true })
         _offsetGraphics
+            .clear()
             .poly(offsetPoints)
             .stroke({ color: 0, pixelLine: true })
     }
