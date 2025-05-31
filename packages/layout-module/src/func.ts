@@ -34,6 +34,10 @@ export const pairwise = <T>(array: T[]): [T, T][] => {
   return result
 }
 
+export const wrapArray = <T>(x: T | T[]): T[] => {
+  return x instanceof Array ? x : [x]
+}
+
 export const first = <T>(array: T[]): T => {
   if (array.length === 0) throw new Error('Array is empty')
   return array[0]

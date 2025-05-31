@@ -2,7 +2,6 @@ import { switchMap, filter, take, timeout, map, catchError, of } from 'rxjs'
 import { EditorObject } from '../entities/EditorObject'
 import { EventService } from '../EventService/EventService'
 import { MouseDownEvent } from '../EventService/eventTypes'
-import { SelectionManager } from './SelectionManager'
 import { EDITOR_CONFIG } from './editorConfig'
 import { not } from '../func'
 import { mergeMap, takeUntil, tap, finalize } from 'rxjs'
@@ -22,7 +21,6 @@ interface FrameSelectionConfig {
 export class MouseEventProcessor {
     constructor(
         private _eventService: EventService,
-        private _selectionManager: SelectionManager,
         private _getStage: () => Container,
     ) { }
 
@@ -58,25 +56,12 @@ export class MouseEventProcessor {
         if (!(target instanceof EditorObject)) return
         if (not(target.isSelectable)) return
 
-        if (ctrlKey || shiftKey) {
-            this.handleMultiSelect(target)
-        } else {
-            this.handleSingleSelect(target)
-        }
-    }
-
-    private handleSingleSelect(target: EditorObject) {
-        this._selectionManager.deselectAll()
-        this._selectionManager.selectObject(target)
-        target.container.parent.addChild(target.container) // bring to front
-    }
-
-    private handleMultiSelect(target: EditorObject) {
-        if (this._selectionManager.has(target)) {
-            this._selectionManager.deselectObject(target)
-        } else {
-            this._selectionManager.selectObject(target)
-        }
+        this._eventService.emit({
+            type: 'selectionClick',
+            ctrlKey,
+            shiftKey,
+            target,
+        })
     }
 
     public setupFrameSelection() {
@@ -136,7 +121,7 @@ export class MouseEventProcessor {
                             this._eventService.mouseup$.pipe(
                                 tap(() => {
                                     // Выполняем deselectAll когда mouseup происходит до достижения threshold
-                                    this._selectionManager.deselectAll()
+                                    this._eventService.emit({ type: 'deselectAll' })
                                 })
                             )
                         )

@@ -5,6 +5,7 @@ import { WindowObj } from '../entities/Window'
 import { EventService } from '../EventService/EventService'
 import { ASubscription, IDisposable, unsubscribe } from '../types'
 import { Bounds } from 'pixi.js'
+import { wrapArray } from '../func'
 
 export class SelectionManager implements IDisposable {
     private _selectedObjects = new Set<EditorObject>()
@@ -15,9 +16,33 @@ export class SelectionManager implements IDisposable {
         private _eventService: EventService,
         private _getObjects: () => EditorObject[],
     ) {
-        this._subscriptions.push(_eventService.events$
-            .pipe(filter(e => e.type === 'selectionFrame'))
-            .subscribe(e => this.handleSelectionFrame(e.bounds, e.selectionType)))
+        this.init()
+    }
+
+    private init() {
+        const { _eventService } = this
+        this._subscriptions.push(...[
+            _eventService.events$
+                .pipe(filter(e => e.type === 'selectionFrame'))
+                .subscribe(e => this.handleSelectionFrame(e.bounds, e.selectionType)),
+            _eventService.events$
+                .pipe(filter(e => e.type === 'deselectAll'))
+                .subscribe(() => this.deselectAll()),
+            _eventService.events$
+                .pipe(filter(e => e.type === 'selectionClick'))
+                .subscribe(({ target, ctrlKey, shiftKey }) => {
+                    if (ctrlKey || shiftKey) {
+                        if (this.has(target)) {
+                            this.deselectObjects(target)
+                        } else {
+                            this.selectObjects(target)
+                        }
+                    } else {
+                        this.deselectAll()
+                        this.selectObjects(target)
+                    }
+                }),
+        ])
     }
 
     public get selectedObjects() { return [...this._selectedObjects] }
@@ -30,6 +55,13 @@ export class SelectionManager implements IDisposable {
         return this.selectedObjects.filter(obj => obj instanceof WindowObj)
     }
 
+    private emitSelectionChanged() {
+        this._eventService.emit({
+            type: 'selectionChanged',
+            selectedObjects: this.selectedObjects,
+        })
+    }
+
     private handleSelectionFrame(bounds: Bounds, selectionType: 'window' | 'crossing') {
         const selected = this._getObjects()
             .filter(x => x.intersectFrame(bounds, selectionType))
@@ -37,25 +69,28 @@ export class SelectionManager implements IDisposable {
         this.selectObjects(selected)
     }
 
-
-    public selectObject(object: EditorObject) {
-        this._selectedObjects.add(object)
-        object.setSelected(true)
-    }
-
-    public deselectObject(object: EditorObject) {
-        this._selectedObjects.delete(object)
-        object.setSelected(false)
+    public deselectObjects(object: EditorObject | EditorObject[]) {
+        const objects = wrapArray(object)
+        objects.forEach(o => {
+            this._selectedObjects.delete(o)
+            o.setSelected(false)
+        })
+        this.emitSelectionChanged()
     }
 
     public deselectAll() {
         this._selectedObjects.forEach(x => x.setSelected(false))
         this._selectedObjects.clear()
+        this.emitSelectionChanged()
     }
 
-    public selectObjects(objects: EditorObject[]) {
-        this.deselectAll()
-        objects.forEach(this.selectObject.bind(this))
+    public selectObjects(object: EditorObject | EditorObject[]) {
+        const objects = wrapArray(object)
+        objects.forEach(o => {
+            this._selectedObjects.add(o)
+            o.setSelected(true)
+        })
+        this.emitSelectionChanged()
     }
 
     public has(object: EditorObject): boolean {

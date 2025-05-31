@@ -65,7 +65,6 @@ export class Editor {
         )
         this._mouseEventProcessor = new MouseEventProcessor(
             this._eventService,
-            this._selectionManager,
             () => this.stage,
         )
     }

@@ -48,6 +48,22 @@ export interface SelectionFrameEvent {
     selectionType: 'window' | 'crossing'
 }
 
+export interface SelectionClickEvent {
+    type: 'selectionClick'
+    target: EditorObject
+    ctrlKey: boolean
+    shiftKey: boolean
+}
+
+export interface DeselectAllEvent {
+    type: 'deselectAll'
+}
+
+export interface SelectionChangedEvent {
+    type: 'selectionChanged'
+    selectedObjects: EditorObject[]
+}
+
 export type AppEvent =
     | MouseDownEvent
     | MouseUpEvent
@@ -56,3 +72,6 @@ export type AppEvent =
     | MouseLeaveEvent
     | DocumentUpdateEvent
     | SelectionFrameEvent
+    | SelectionClickEvent
+    | DeselectAllEvent
+    | SelectionChangedEvent
