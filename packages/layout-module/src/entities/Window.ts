@@ -1,4 +1,4 @@
-import { Container, Graphics, Text } from 'pixi.js'
+import { Bounds, Container, Graphics, Text } from 'pixi.js'
 import { APoint } from '../types'
 import { aPoint } from '../geometryFunc'
 import { EventService } from '../EventService/EventService'
@@ -38,7 +38,8 @@ export class WindowObj extends EditorObject {
     public get container() { return this._container }
     public get isSelectable() { return true }
     public get properties() { return this._properties }
-    public get position() { return this._container.position }
+    public get globalPosition() { return this._container.getGlobalPosition() }
+    public get localPosition() { return this._container.position }
 
     constructor(
         eventService: EventService,
@@ -55,9 +56,10 @@ export class WindowObj extends EditorObject {
     }
 
     private init(position: APoint) {
-        this._container.position.copyFrom(position)
-        this._container.addChild(this._graphics)
-        this._container.addChild(this._sizeLabel)
+        const { container } = this
+        container.position.copyFrom(position)
+        container.addChild(this._graphics)
+        container.addChild(this._sizeLabel)
         this.setupGraphics()
         this.setupLabel()
         this.render()
@@ -118,11 +120,16 @@ export class WindowObj extends EditorObject {
         }
     }
 
+    public intersectFrame(frame: Bounds, _type: 'window' | 'crossing'): boolean {
+        const { x, y } = this.globalPosition
+        return frame.containsPoint(x, y)
+    }
+
     public serialize(): WindowDto {
         return {
             type: 'window',
             id: this._id,
-            position: aPoint(this.position),
+            position: aPoint(this.localPosition),
             properties: this.properties
         }
     }

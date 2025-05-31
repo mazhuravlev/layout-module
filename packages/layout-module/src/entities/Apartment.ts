@@ -1,5 +1,5 @@
-import { Container, Graphics, Matrix, Text } from 'pixi.js'
-import { assert, degreesToRadians, deserializeMatrix, pairwise, serializeMatrix, withNullable } from '../func'
+import { Bounds, Container, Graphics, Matrix, Text } from 'pixi.js'
+import { assert, assertUnreachable, degreesToRadians, deserializeMatrix, pairwise, serializeMatrix, withNullable } from '../func'
 import * as geometryFunc from '../geometryFunc'
 import { APoint, CoordType, ALine } from '../types'
 import { EventService } from '../EventService/EventService'
@@ -281,6 +281,15 @@ export class Apartment extends EditorObject {
             case 2: return 0xfbefc9
             case 3: return 0xa9e2c1
             default: return 0xFFFFFF
+        }
+    }
+
+    public intersectFrame(frame: Bounds, type: 'window' | 'crossing'): boolean {
+        const p = ({ x, y }: APoint) => frame.containsPoint(x, y)
+        switch (type) {
+            case 'crossing': return this.globalPoints.some(p)
+            case 'window': return this.globalPoints.every(p)
+            default: throw assertUnreachable(type)
         }
     }
 

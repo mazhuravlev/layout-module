@@ -1,4 +1,4 @@
-import { FederatedPointerEvent } from 'pixi.js'
+import { Bounds, FederatedPointerEvent } from 'pixi.js'
 import { EditorObject } from '../entities/EditorObject'
 
 interface BaseEvent {
@@ -13,7 +13,7 @@ interface OptionalTargetEvent {
     target?: EditorObject
 }
 
-export interface MouseDownEvent extends BaseEvent, TargetEvent {
+export interface MouseDownEvent extends BaseEvent, OptionalTargetEvent {
     type: 'mousedown'
     pixiEvent: FederatedPointerEvent
 }
@@ -42,6 +42,12 @@ export interface DocumentUpdateEvent {
     type: 'documentUpdate'
 }
 
+export interface SelectionFrameEvent {
+    type: 'selectionFrame'
+    bounds: Bounds
+    selectionType: 'window' | 'crossing'
+}
+
 export type AppEvent =
     | MouseDownEvent
     | MouseUpEvent
@@ -49,3 +55,4 @@ export type AppEvent =
     | MouseEnterEvent
     | MouseLeaveEvent
     | DocumentUpdateEvent
+    | SelectionFrameEvent

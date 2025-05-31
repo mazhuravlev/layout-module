@@ -1,7 +1,7 @@
-import { Container, Graphics, Matrix, Polygon } from 'pixi.js'
+import { Bounds, Container, Graphics, Matrix, Polygon } from 'pixi.js'
 import { EventService } from '../../EventService/EventService'
 import { EditorObject } from '../EditorObject'
-import { degreesToRadians, deserializeMatrix, pairwise, serializeMatrix, withNullable } from '../../func'
+import { assertUnreachable, degreesToRadians, deserializeMatrix, pairwise, serializeMatrix, withNullable } from '../../func'
 import { ALine, APoint } from '../../types'
 import { OutlineFilter, GlowFilter } from 'pixi-filters'
 import { GeometryBlockData } from './GeometryBlockData'
@@ -156,6 +156,15 @@ export class GeometryBlock extends EditorObject {
     public updatePosition(point: APoint) {
         this._container.position.copyFrom(point)
         this.render()
+    }
+
+    public intersectFrame(frame: Bounds, type: 'window' | 'crossing'): boolean {
+        const p = ({ x, y }: APoint) => frame.containsPoint(x, y)
+        switch (type) {
+            case 'crossing': return this.globalPoints.some(p)
+            case 'window': return this.globalPoints.every(p)
+            default: throw assertUnreachable(type)
+        }
     }
 
     public clone(): GeometryBlock {

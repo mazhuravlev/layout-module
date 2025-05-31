@@ -1,6 +1,5 @@
-import { Container, FederatedPointerEvent } from 'pixi.js'
+import { Bounds, Container, FederatedPointerEvent } from 'pixi.js'
 import { IDisposable } from '../types'
-import { AppEvent } from '../EventService/eventTypes'
 import { EventService } from '../EventService/EventService'
 import { makeUuid } from '../func'
 
@@ -45,6 +44,10 @@ export abstract class EditorObject implements IDisposable {
         return
     }
 
+    public intersectFrame(_frame: Bounds, _type: 'window' | 'crossing'): boolean {
+        return false
+    }
+
     protected abstract render(): void
 
     public abstract dispose(): void
@@ -53,7 +56,11 @@ export abstract class EditorObject implements IDisposable {
 
     public abstract createDragOutline(): Container
 
-    protected emit(pixiEvent: FederatedPointerEvent, type: AppEvent['type'], stopEvent = true) {
+    protected emit(
+        pixiEvent: FederatedPointerEvent,
+        type: 'mouseup' | 'mousedown' | 'mousemove' | 'mouseenter' | 'mouseleave',
+        stopEvent = true
+    ) {
         if (stopEvent) {
             pixiEvent.preventDefault()
             pixiEvent.stopPropagation()

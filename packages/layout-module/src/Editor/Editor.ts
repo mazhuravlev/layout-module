@@ -7,7 +7,7 @@ import { BlockDragConfig, DragConfig, WallDragConfig, WindowDragConfig, withDrag
 import { Apartment } from '../entities/Apartment'
 import { EventService } from '../EventService/EventService'
 import * as events from '../components/events'
-import { assert, assertDefined, assertUnreachable, empty, isNull, not, notNull, toError, withNullable, fromPixiEvent } from '../func'
+import { assert, assertDefined, assertUnreachable, empty, isNull, not, notNull, toError, withNullable, fromPixiEvent, isDefined, isUndefined } from '../func'
 import { MouseDownEvent, MouseUpEvent } from '../EventService/eventTypes'
 import { debounceTime, EMPTY, filter, finalize, map, mergeMap, of, take, takeUntil, tap } from 'rxjs'
 import { SnapService } from './SnapService'
@@ -45,7 +45,7 @@ export class Editor {
     private _editorObjects = new Map<string, EditorObject>()
     private _isDragging = false
 
-    private _selectionManager = new SelectionManager()
+    private _selectionManager: SelectionManager
     private _commandManager = new CommandManager()
     private _viewportManager: ViewportManager | null = null
     private _mouseEventProcessor: MouseEventProcessor
@@ -59,10 +59,14 @@ export class Editor {
     private _subscriptions: ASubscription[] = []
 
     constructor(private _container: HTMLDivElement) {
+        this._selectionManager = new SelectionManager(
+            this._eventService,
+            () => [...this._editorObjects.values()]
+        )
         this._mouseEventProcessor = new MouseEventProcessor(
             this._eventService,
             this._selectionManager,
-            () => this.onObjectSelected()
+            () => this.stage,
         )
     }
 
@@ -94,10 +98,6 @@ export class Editor {
         this._viewportManager = new ViewportManager(
             app,
             this._container,
-            () => {
-                this.deselectAll()
-                this.onObjectSelected()
-            }
         )
         this.setupObjectEvents()
         this.setupEvents()
@@ -182,6 +182,7 @@ export class Editor {
                 .map(x => x.offset)
                 .watch(offset => this._sectionOutline?.setOffset(Units.fromMm(offset))),
             this._mouseEventProcessor.setupClickHandling(),
+            this._mouseEventProcessor.setupFrameSelection(),
             events.populateWindows.watch((options) => {
                 if (isNull(this._sectionOutline)) return
                 const { points } = this._sectionOutline
@@ -229,11 +230,9 @@ export class Editor {
         // Drag sequence: mousedown -> mousemove (with threshold) -> drag operations -> mouseup
         const dragSequence$ = this._eventService.mousedown$.pipe(
             mergeMap(mouseDownEvent => {
+                if (isUndefined(mouseDownEvent.target)) return EMPTY
                 const startPos = aPoint(mouseDownEvent.pixiEvent.global)
-
-                // Create drag config immediately but don't activate drag yet
                 const dragConfig = this.createDragConfig(mouseDownEvent)
-                if (!dragConfig) return EMPTY
 
                 return this._eventService.mousemoves$.pipe(
                     // Calculate distance from start position
@@ -288,9 +287,13 @@ export class Editor {
                     return of<MouseUpEvent>({ type: 'mouseup', pixiEvent: e })
                 }
             }))
-            .subscribe(event => {
-                this._eventService.emit(event)
-            }))
+            .subscribe(event => this._eventService.emit(event)))
+
+        this._subscriptions.push(fromPixiEvent(assertDefined(this._viewportManager).viewport, 'mousedown')
+            .pipe(
+                map((pixiEvent): MouseDownEvent => ({ type: 'mousedown', pixiEvent })),
+            )
+            .subscribe(event => this._eventService.emit(event)))
     }
 
     public onObjectSelected() {
@@ -363,49 +366,51 @@ export class Editor {
     }
 
     private createDragConfig({ pixiEvent, target }: MouseDownEvent): DragConfig {
-        if (target instanceof Apartment || target instanceof GeometryBlock) {
-            const dragOutline = target.createDragOutline()
-            const dragConfig: BlockDragConfig = {
-                type: 'dragBlock',
-                snapService: new SnapService(
-                    this.stage,
-                    this.getSnapPoints(),
-                    this.getSnapLines()),
-                target,
-                startPos: aPoint(target.container.position),
-                startMousePos: aPoint(pixiEvent.global),
-                originalGlobalPoints: target.globalPoints.map(aPoint),
-                dragOutline,
+        assert(isDefined(target))
+        if (target)
+            if (target instanceof Apartment || target instanceof GeometryBlock) {
+                const dragOutline = target.createDragOutline()
+                const dragConfig: BlockDragConfig = {
+                    type: 'dragBlock',
+                    snapService: new SnapService(
+                        this.stage,
+                        this.getSnapPoints(),
+                        this.getSnapLines()),
+                    target,
+                    startPos: aPoint(target.container.position),
+                    startMousePos: aPoint(pixiEvent.global),
+                    originalGlobalPoints: target.globalPoints.map(aPoint),
+                    dragOutline,
+                }
+                return dragConfig
+            } else if (target instanceof Wall) {
+                const dragConfig: WallDragConfig = {
+                    type: 'dragWall',
+                    snapService: new SnapService(
+                        this.stage,
+                        this.getSnapPoints({ exclude: target.apartment }),
+                        this.getSnapLines()),
+                    target,
+                    originalWallGlobalLine: target.globalPoints,
+                    originalApartmentPoints: target.apartment.points
+                }
+                return dragConfig
+            } else if (target instanceof WindowObj) {
+                const dragOutline = target.createDragOutline()
+                const dragConfig: WindowDragConfig = {
+                    type: 'dragWindow',
+                    snapService: new SnapService(
+                        this.stage,
+                        [],
+                        []),
+                    target,
+                    startMousePos: aPoint(pixiEvent.global),
+                    originalCenterPoint: aPoint(target.localPosition),
+                    sectionOutlinePoints: this._sectionOutline?.points ?? [],
+                    dragOutline,
+                }
+                return dragConfig
             }
-            return dragConfig
-        } else if (target instanceof Wall) {
-            const dragConfig: WallDragConfig = {
-                type: 'dragWall',
-                snapService: new SnapService(
-                    this.stage,
-                    this.getSnapPoints({ exclude: target.apartment }),
-                    this.getSnapLines()),
-                target,
-                originalWallGlobalLine: target.globalPoints,
-                originalApartmentPoints: target.apartment.points
-            }
-            return dragConfig
-        } else if (target instanceof WindowObj) {
-            const dragOutline = target.createDragOutline()
-            const dragConfig: WindowDragConfig = {
-                type: 'dragWindow',
-                snapService: new SnapService(
-                    this.stage,
-                    [],
-                    []),
-                target,
-                startMousePos: aPoint(pixiEvent.global),
-                originalCenterPoint: aPoint(target.position),
-                sectionOutlinePoints: this._sectionOutline?.points ?? [],
-                dragOutline,
-            }
-            return dragConfig
-        }
         throw new LogicError('Didn\'t expect to get here')
     }
 
@@ -497,6 +502,7 @@ export class Editor {
 
     public async dispose(): Promise<void> {
         this._logger.debug('dispose')
+        this._selectionManager.dispose()
         this._keyboardState.dispose()
         this._subscriptions.forEach(unsubscribe)
         this.stage.removeAllListeners()

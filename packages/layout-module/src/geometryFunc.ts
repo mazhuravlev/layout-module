@@ -1,4 +1,4 @@
-import { Polygon } from 'pixi.js'
+import { Bounds, Polygon } from 'pixi.js'
 import { ALine, APoint } from './types'
 import { pairwise } from './func'
 
@@ -469,3 +469,11 @@ export const multiplyVector = ({ x, y }: APoint, v: number): APoint => ({ x: x *
 
 export const mapLine = (mapFn: (x: APoint) => APoint) => (a: ALine): ALine => ({ start: mapFn(a.start), end: mapFn(a.end) })
 
+export const makeBounds = (p1: APoint, p2: APoint) => {
+  const minX = Math.min(p1.x, p2.x)
+  const minY = Math.min(p1.y, p2.y)
+  const maxX = Math.max(p1.x, p2.x)
+  const maxY = Math.max(p1.y, p2.y)
+
+  return new Bounds(minX, minY, maxX, maxY)
+}

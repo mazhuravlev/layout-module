@@ -14,6 +14,8 @@ export class ViewportManager implements IDisposable {
         return this._viewport
     }
 
+    public get viewport() { return this._viewport }
+
     public get scale() {
         const { x, y } = this._viewport.scale
         assert(x === y)
@@ -23,7 +25,6 @@ export class ViewportManager implements IDisposable {
     constructor(
         private _app: Application,
         container: HTMLDivElement,
-        onStageClick: () => void,
     ) {
         this._viewport = new Viewport({
             screenWidth: container.clientWidth,
@@ -35,14 +36,11 @@ export class ViewportManager implements IDisposable {
             .wheel()
             .clampZoom({
                 minScale: EDITOR_CONFIG.ZOOM.MIN,
-                maxScale: EDITOR_CONFIG.ZOOM.MAX
+                maxScale: EDITOR_CONFIG.ZOOM.MAX,
             })
             .decelerate()
         this._subscriptions.push(fromEvent(container, 'resize')
             .subscribe(() => this._viewport.resize(container.clientWidth, container.clientHeight)))
-        this._subscriptions.push(fromPixiEvent(this.stage, 'click')
-            .pipe(filter(e => e.target === this._viewport))
-            .subscribe(onStageClick))
         _app.stage.addChild(this._viewport)
     }
 
