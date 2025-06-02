@@ -1,6 +1,6 @@
 import { createEvent, createStore } from 'effector'
-import { ApartmentTemplate, APoint } from '../types'
-import { notNull, returnSecondArg } from '../func'
+import { ApartmentTemplate } from '../types'
+import { returnSecondArg } from '../func'
 import persist from 'effector-localstorage'
 import { EditorObjectDto } from '../Editor/dto'
 import { ApartmentProperties } from '../entities/ApartmentProperties'
@@ -63,9 +63,9 @@ $snapConfig.on(toggleSnapLine, (state, _payload) => ({ ...state, enableLine: !st
 $snapConfig.on(setGridStep, (state, payload) => ({ ...state, gridStep: payload < 0 ? 1 : payload }))
 persist({ store: $snapConfig, key: 'snapConfig.v3' })
 
-export const sectionSettings = createStore({ offset: 500 })
+export const $sectionSettings = createStore({ offset: 500 })
 export const setSectionOffset = createEvent<number>()
-sectionSettings.on(setSectionOffset, (state, payload) => ({ ...state, offset: payload }))
+$sectionSettings.on(setSectionOffset, (state, payload) => ({ ...state, offset: payload }))
 
 export const $sizeConfig = createStore({ showWallSize: true })
 export const toggleShowWallSize = createEvent<void>()
@@ -79,10 +79,10 @@ export const populateWindows = createEvent<{
 export const setWindowProperties = createEvent<Partial<WindowProperties>>()
 
 interface SectionStore {
-    outlineSelected: boolean
+    id: string | null
 }
-export const setSection = createEvent<APoint[] | null>()
-export const setSectionSelected = createEvent<boolean>()
-export const $section = createStore<SectionStore>({ outlineSelected: false })
-$section.on(setSection, (state, outline) => ({ ...state, outlineSelected: notNull(outline) }))
-$section.on(setSectionSelected, (state, selected) => ({ ...state, outlineSelected: selected }))
+export const setSection = createEvent<string | null>()
+export const setSectionSelected = createEvent<string | null>()
+export const $section = createStore<SectionStore>({ id: null })
+$section.on(setSection, (state, id) => ({ ...state, id }))
+$section.on(setSectionSelected, (state, id) => ({ ...state, id }))

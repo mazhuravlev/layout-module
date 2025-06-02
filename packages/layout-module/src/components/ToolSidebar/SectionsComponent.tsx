@@ -1,34 +1,28 @@
+import React from 'react'
 import { List } from '../common/List'
 import { setSection } from '../events'
-
-const sections = [
-    {
-        name: 'section1',
-        outline: [
-            { x: 0, y: 0 },
-            { x: 0, y: 18000 },
-            { x: 36000, y: 18000 },
-            { x: 36000, y: 0 },
-        ]
-    },
-    {
-        name: 'section2',
-        outline: [
-            { x: 0, y: 0 },
-            { x: 0, y: 18000 },
-            { x: 18000, y: 18000 },
-            { x: 18000, y: 0 },
-        ]
-    }
-]
+import { useSections } from '../hooks'
 
 export const SectionsComponent: React.FC = () => {
-    return <div>
-        <List>
-            {sections.map(x => <li key={x.name}
-                onClick={() => setSection(x.outline)}
-            >
-                {x.name}</li>)}
-        </List>
-    </div>
+    const { data: sections, error, isLoading } = useSections()
+
+    if (isLoading) {
+        return <div>Loading sections...</div>
+    }
+
+    if (error) {
+        return <div>Failed to fetch sections</div>
+    }
+
+    return (
+        <div>
+            <List>
+                {sections?.map(section => (
+                    <li key={section.id} onClick={() => setSection(section.id)}>
+                        {section.name}
+                    </li>
+                ))}
+            </List>
+        </div>
+    )
 }

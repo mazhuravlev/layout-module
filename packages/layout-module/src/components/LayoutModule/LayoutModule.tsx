@@ -1,17 +1,24 @@
+import React from 'react'
+import { QueryClient, QueryClientProvider } from 'react-query'
 import styles from './LayoutModule.module.scss'
 import { LayoutModuleProps } from './LayoutModuleProps'
 import { ToolSidebar } from '../ToolSidebar/ToolSidebar'
 import { PropertySidebar } from '../PropertySidebar/PropertySidebar'
-import { EditorComponent } from '../EditorComponent/EditorComponent'
 import { useStoreMap } from 'effector-react'
 import { $section } from '../events'
 import { SectionsComponent } from '../ToolSidebar/SectionsComponent'
+import { AppContextProvider } from '../AppContext'
+import { DataAccess } from '../../dataAccess/DataAccess'
+import { EditorComponent } from '../EditorComponent/EditorComponent'
+
+const queryClient = new QueryClient()
+const dataAccess = new DataAccess()
 
 export const LayoutModule: React.FC<LayoutModuleProps> = (props) => {
-  const sectionOutlineSelected = useStoreMap($section, x => x.outlineSelected)
+  const sectionId = useStoreMap($section, x => x.id)
 
   const renderSidebar = () => {
-    if (sectionOutlineSelected) {
+    if (sectionId) {
       return <ToolSidebar apartmentTemplates={props.apartmentTemplates} />
     } else {
       return <SectionsComponent />
@@ -19,21 +26,25 @@ export const LayoutModule: React.FC<LayoutModuleProps> = (props) => {
   }
 
   return (
-    <div className={styles.root}>
-      <aside className={styles.leftSidebar}>
-        {renderSidebar()}
-      </aside>
-      <div className={styles.main}>
-        <header className={styles.header}>Типовой этаж</header>
-        <div className={styles.content}>
-          <div className={styles.editor}>
-            <EditorComponent />
-          </div>
-          <aside className={styles.rightSidebar}>
-            {<PropertySidebar />}
+    <AppContextProvider dataAccess={dataAccess}>
+      <QueryClientProvider client={queryClient}>
+        <div className={styles.root}>
+          <aside className={styles.leftSidebar}>
+            {renderSidebar()}
           </aside>
+          <div className={styles.main}>
+            <header className={styles.header}>Типовой этаж</header>
+            <div className={styles.content}>
+              <div className={styles.editor}>
+                <EditorComponent />
+              </div>
+              <aside className={styles.rightSidebar}>
+                {<PropertySidebar />}
+              </aside>
+            </div>
+          </div>
         </div>
-      </div>
-    </div>
+      </QueryClientProvider>
+    </AppContextProvider>
   )
 }

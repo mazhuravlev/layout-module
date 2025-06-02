@@ -41,7 +41,6 @@ export const WindowDtoSchema = z.object({
 export const SectionOutlineDtoSchema = z.object({
     type: z.literal('sectionOutline'),
     points: z.array(APointSchema),
-    offset: z.number()
 })
 
 export const GeometryBlockDataSchema = z.object({
@@ -62,8 +61,15 @@ export const EntityDtoSchema = z.discriminatedUnion('type', [
     GeometryBlockDtoSchema,
 ])
 
-export const StateTypeSchema = z.object({
+export const EntityDtoArray = z.array(EntityDtoSchema)
+
+export type EntityDto = z.infer<typeof EntityDtoSchema>
+export type EntityDtoArray = z.infer<typeof EntityDtoArray>
+
+export const DocumentSchema = z.object({
     objects: z.array(EntityDtoSchema),
     sectionOutline: SectionOutlineDtoSchema,
+    sectionId: z.string(),
+    sectionOffset: z.number()
 })
-export type StateType = z.infer<typeof StateTypeSchema>
+export type DocumentType = z.infer<typeof DocumentSchema>

@@ -3,23 +3,25 @@ import styles from './EditorComponent.module.scss'
 import { EditorProps } from './EditorProps'
 import { Editor } from '../../Editor/Editor'
 import { withNullable } from '../../func'
-import { StateTypeSchema } from '../../Editor/dtoSchema'
+import { DocumentSchema } from '../../Editor/dtoSchema'
 import { Logger } from '../../logger'
+import { useDataAccess } from '../hooks'
 
 const logger = new Logger('EditorComponent')
 
 export const EditorComponent: React.FC<EditorProps> = (_props) => {
   const containerRef = useRef<HTMLDivElement>(null)
   const editorRef = useRef<Editor | null>(null)
+  const dataAccess = useDataAccess()
 
   const initEditor = async (container: HTMLDivElement) => {
-    const editor = new Editor(container)
+    const editor = new Editor(container, dataAccess)
     editorRef.current = editor
     await Promise.resolve()
       .then(() => editor.init())
       .then(() => {
         withNullable(localStorage.getItem('state'), stateData => {
-          const { success, data, error } = StateTypeSchema.safeParse(JSON.parse(stateData))
+          const { success, data, error } = DocumentSchema.safeParse(JSON.parse(stateData))
           if (success && data) {
             editor.restoreState(data)
           } else {

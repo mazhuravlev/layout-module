@@ -7,9 +7,9 @@ import { BlockDragConfig, DragConfig, WallDragConfig, WindowDragConfig, withDrag
 import { Apartment } from '../entities/Apartment'
 import { EventService } from '../EventService/EventService'
 import * as events from '../components/events'
-import { assert, assertDefined, assertUnreachable, empty, isNull, not, notNull, toError, withNullable, fromPixiEvent, isDefined, isUndefined } from '../func'
-import { MouseDownEvent, MouseUpEvent } from '../EventService/eventTypes'
-import { debounceTime, EMPTY, filter, finalize, map, mergeMap, of, take, takeUntil, tap } from 'rxjs'
+import { assert, assertDefined, assertUnreachable, empty, isNull, notNull, toError, fromPixiEvent, isDefined, isUndefined } from '../func'
+import { MouseDownEvent } from '../EventService/eventTypes'
+import { debounceTime, EMPTY, filter, finalize, map, merge, mergeMap, take, takeUntil, tap } from 'rxjs'
 import { SnapService } from './SnapService'
 import { EditorCommand } from '../commands/EditorCommand'
 import { AddObjectCommand } from '../commands/AddObjectCommand'
@@ -33,9 +33,10 @@ import { UpdateWindowPropertiesCommand } from '../commands/UpdateWindowPropertie
 import { MoveWindowCommand } from '../commands/MoveWindowCommand'
 import { EDITOR_CONFIG } from './editorConfig'
 import { KeyboardState } from './KeyboardState'
-import { StateType } from './dtoSchema'
+import { DocumentType, EntityDtoArray } from './dtoSchema'
 import lluData from '../entities/GeometryBlock/llu'
 import { serializeEditorObject } from './dto'
+import { DataAccess } from '../dataAccess/DataAccess'
 
 export class Editor {
     private _app = new Application()
@@ -59,7 +60,10 @@ export class Editor {
 
     private _subscriptions: ASubscription[] = []
 
-    constructor(private _container: HTMLDivElement) {
+    constructor(
+        private _container: HTMLDivElement,
+        private _dataAccess: DataAccess,
+    ) {
         this._selectionManager = new SelectionManager(
             this._eventService,
             () => [...this._editorObjects.values()]
@@ -114,23 +118,24 @@ export class Editor {
     public selectObjects(objects: EditorObject[]) { this._selectionManager.selectObjects(objects) }
     public zoomToExtents() { this._viewportManager?.zoomToExtents() }
 
-    private getState() {
-        const objects = [...this._editorObjects.values()
+    private getState(): DocumentType {
+        const _objects = [...this._editorObjects.values()
             .map(x => x.serialize())
             .filter(notNull)]
+        const objects: EntityDtoArray = EntityDtoArray.parse(JSON.parse(JSON.stringify(_objects)))
         const sectionOutline = this._sectionOutline?.serialize()
         return {
             objects,
-            sectionOutline
+            sectionOutline: assertDefined(sectionOutline),
+            sectionId: assertDefined(events.$section.getState().id),
+            sectionOffset: events.$sectionSettings.getState().offset,
         }
     }
 
-    public restoreState(state: StateType) {
-        const { sectionOutline, objects } = state
-        withNullable(sectionOutline, ({ points, offset }) => {
-            events.setSectionOffset(offset)
-            this.setSectionOutline(points)
-        })
+    public async restoreState(state: DocumentType) {
+        const { sectionId, objects, sectionOffset } = state
+        events.setSectionOffset(sectionOffset)
+        this.loadSection(sectionId)
         const editorObjects = objects.map(x => {
             switch (x.type) {
                 case 'apartment':
@@ -179,7 +184,7 @@ export class Editor {
                 const fn = () => selectedObjects.forEach(x => x.flip(t))
                 this.executeCommand(new SimpleCommand(fn, fn))
             }),
-            events.sectionSettings
+            events.$sectionSettings
                 .map(x => x.offset)
                 .watch(offset => this._sectionOutline?.setOffset(Units.fromMm(offset))),
             this._mouseEventProcessor.setupClickHandling(),
@@ -200,7 +205,7 @@ export class Editor {
                 this.executeCommand(new UpdateWindowPropertiesCommand(selectedWindows, properties))
                 this._selectionManager.update()
             }),
-            events.setSection.watch(outline => this.setSectionOutline(outline)),
+            events.setSection.watch(outline => this.loadSection(outline)),
             this._eventService.events$
                 .pipe(
                     filter(e => e.type === 'documentUpdate'),
@@ -217,17 +222,17 @@ export class Editor {
      * @description Настройка событий редактора
      */
     private setupObjectEvents() {
-        {
-            // Hover
-            this._subscriptions.push(this._eventService.mouseenter$
-                .pipe(filter(() => not(this._isDragging)))
-                .subscribe(e => {
-                    e.target.setHovered(true)
-                }))
-            this._subscriptions.push(this._eventService.mouseleave$.subscribe(e => {
-                e.target.setHovered(false)
-            }))
-        }
+        this._subscriptions.push(
+            merge(
+                this._eventService.mouseenter$.pipe(
+                    filter(() => !this._isDragging),
+                    tap(e => e.target.setHovered(true))
+                ),
+                this._eventService.mouseleave$.pipe(
+                    tap(e => e.target.setHovered(false))
+                )
+            ).subscribe()
+        )
 
         this._subscriptions.push(this._eventService.events$
             .pipe(filter(e => e.type === 'selectionChanged'))
@@ -285,23 +290,18 @@ export class Editor {
         this._subscriptions.push(dragSequence$.subscribe())
 
         this._subscriptions.push(fromPixiEvent(this.stage, 'mousemove')
-            .pipe(filter(e => e instanceof FederatedPointerEvent))
-            .subscribe(event => this._eventService.emit({ type: 'mousemove', pixiEvent: event })))
+            .pipe(
+                filter(e => e instanceof FederatedPointerEvent),
+                map(pixiEvent => ({ type: 'mousemove', pixiEvent } as const))
+            )
+            .subscribe(e => this._eventService.emit(e)))
 
         this._subscriptions.push(fromPixiEvent(this.stage, 'mouseup')
-            .pipe(mergeMap(e => {
-                if (e.target instanceof EditorObject) {
-                    return of<MouseUpEvent>({ type: 'mouseup', pixiEvent: e, target: e.target })
-                } else {
-                    return of<MouseUpEvent>({ type: 'mouseup', pixiEvent: e })
-                }
-            }))
+            .pipe(map(e => ({ type: 'mouseup', pixiEvent: e } as const)))
             .subscribe(event => this._eventService.emit(event)))
 
         this._subscriptions.push(fromPixiEvent(assertDefined(this._viewportManager).viewport, 'mousedown')
-            .pipe(
-                map((pixiEvent): MouseDownEvent => ({ type: 'mousedown', pixiEvent })),
-            )
+            .pipe(map(pixiEvent => ({ type: 'mousedown', pixiEvent } as const)))
             .subscribe(event => this._eventService.emit(event)))
     }
 
@@ -532,11 +532,11 @@ export class Editor {
     }
 
     /**
-     * Задать контур секции
+     * Загрузить секцию
      * @param points Координаты точек в миллиметрах
      */
-    public setSectionOutline(points: APoint[] | null) {
-        if (isNull(points)) {
+    public async loadSection(id: string | null) {
+        if (isNull(id)) {
             const { _sectionOutline } = this
             if (notNull(_sectionOutline)) {
                 this.stage.removeChild(_sectionOutline.container)
@@ -544,14 +544,15 @@ export class Editor {
                 this._sectionOutline = null
             }
         } else {
+            const section = await this._dataAccess.getSection(id)
             assert(isNull(this._sectionOutline))
             this._sectionOutline = new SectionOutline(
-                points.map(mapPoint(Units.fromMm)),
-                Units.fromMm(events.sectionSettings.getState().offset)
+                section.outline.map(mapPoint(Units.fromMm)),
+                Units.fromMm(events.$sectionSettings.getState().offset)
             )
             this.stage.addChild(this._sectionOutline.container)
         }
-        events.setSectionSelected(notNull(this._sectionOutline))
+        events.setSectionSelected(id)
         this.zoomToExtents()
     }
 
