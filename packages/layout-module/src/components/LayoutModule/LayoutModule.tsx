@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useState } from 'react'
 import { QueryClient, QueryClientProvider } from 'react-query'
 import styles from './LayoutModule.module.scss'
 import { LayoutModuleProps } from './LayoutModuleProps'
@@ -10,18 +10,24 @@ import { SectionsComponent } from '../ToolSidebar/SectionsComponent'
 import { AppContextProvider } from '../AppContext'
 import { DataAccess } from '../../dataAccess/DataAccess'
 import { EditorComponent } from '../EditorComponent/EditorComponent'
+import { isNull } from '../../func'
+import { LayoutsComponent } from '../ToolSidebar/LayoutsComponent'
+import { SectionDto } from '../../dataAccess/types'
 
 const queryClient = new QueryClient()
 const dataAccess = new DataAccess()
 
 export const LayoutModule: React.FC<LayoutModuleProps> = (props) => {
   const sectionId = useStoreMap($section, x => x.id)
+  const [selectedSection, setSelectedSection] = useState<SectionDto | null>(null)
 
   const renderSidebar = () => {
     if (sectionId) {
       return <ToolSidebar apartmentTemplates={props.apartmentTemplates} />
+    } else if (isNull(selectedSection)) {
+      return <SectionsComponent onSelectSection={x => setSelectedSection(x)} />
     } else {
-      return <SectionsComponent />
+      return <LayoutsComponent section={selectedSection} />
     }
   }
 

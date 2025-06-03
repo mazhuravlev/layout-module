@@ -3,7 +3,7 @@ import { isNull } from '../func'
 import { LogicError } from '../types'
 import { SectionDto } from './types'
 
-const CURRENT_DOCUMENT_KEY = 'currentDocument.v1'
+export const CURRENT_DOCUMENT_KEY = 'currentDocument.v1'
 
 export class DataAccess {
     async getSections() {

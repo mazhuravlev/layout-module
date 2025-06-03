@@ -1,9 +1,13 @@
 import React from 'react'
 import { List } from '../common/List'
-import { setSection } from '../events'
 import { useSections } from '../hooks'
+import { SectionDto } from '../../dataAccess/types'
 
-export const SectionsComponent: React.FC = () => {
+interface SectionsComponentProps {
+    onSelectSection: (section: SectionDto) => void
+}
+
+export const SectionsComponent: React.FC<SectionsComponentProps> = props => {
     const { data: sections, error, isLoading } = useSections()
 
     if (isLoading) {
@@ -18,7 +22,7 @@ export const SectionsComponent: React.FC = () => {
         <div>
             <List>
                 {sections?.map(section => (
-                    <li key={section.id} onClick={() => setSection(section.id)}>
+                    <li key={section.id} onClick={() => props.onSelectSection(section)}>
                         {section.name}
                     </li>
                 ))}
