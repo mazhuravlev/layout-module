@@ -1,5 +1,9 @@
+import { ADocumentType, DocumentSchema } from '../Editor/dtoSchema'
+import { isNull } from '../func'
 import { LogicError } from '../types'
 import { SectionDto } from './types'
+
+const CURRENT_DOCUMENT_KEY = 'currentDocument.v1'
 
 export class DataAccess {
     async getSections() {
@@ -10,6 +14,16 @@ export class DataAccess {
         const section = sectionsData.find(x => x.id === sectionId)
         if (section) return section
         throw new LogicError(`Section ${sectionId} not found`)
+    }
+
+    async saveCurrentDocument(document: ADocumentType) {
+        localStorage.setItem(CURRENT_DOCUMENT_KEY, JSON.stringify(document))
+    }
+
+    async loadCurrentDocument() {
+        const data = localStorage.getItem(CURRENT_DOCUMENT_KEY)
+        if (isNull(data)) return null
+        return DocumentSchema.parseAsync(JSON.parse(data))
     }
 }
 

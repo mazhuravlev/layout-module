@@ -72,4 +72,4 @@ export const DocumentSchema = z.object({
     sectionId: z.string(),
     sectionOffset: z.number()
 })
-export type DocumentType = z.infer<typeof DocumentSchema>
+export type ADocumentType = z.infer<typeof DocumentSchema>

@@ -33,7 +33,7 @@ import { UpdateWindowPropertiesCommand } from '../commands/UpdateWindowPropertie
 import { MoveWindowCommand } from '../commands/MoveWindowCommand'
 import { EDITOR_CONFIG } from './editorConfig'
 import { KeyboardState } from './KeyboardState'
-import { DocumentType, EntityDtoArray } from './dtoSchema'
+import { ADocumentType, EntityDtoArray } from './dtoSchema'
 import lluData from '../entities/GeometryBlock/llu'
 import { serializeEditorObject } from './dto'
 import { DataAccess } from '../dataAccess/DataAccess'
@@ -118,21 +118,22 @@ export class Editor {
     public selectObjects(objects: EditorObject[]) { this._selectionManager.selectObjects(objects) }
     public zoomToExtents() { this._viewportManager?.zoomToExtents() }
 
-    private getState(): DocumentType {
+    private getDocument(): ADocumentType {
         const _objects = [...this._editorObjects.values()
             .map(x => x.serialize())
             .filter(notNull)]
         const objects: EntityDtoArray = EntityDtoArray.parse(JSON.parse(JSON.stringify(_objects)))
         const sectionOutline = this._sectionOutline?.serialize()
-        return {
+        const document: ADocumentType = {
             objects,
             sectionOutline: assertDefined(sectionOutline),
             sectionId: assertDefined(events.$section.getState().id),
             sectionOffset: events.$sectionSettings.getState().offset,
         }
+        return document
     }
 
-    public async restoreState(state: DocumentType) {
+    public async loadDocument(state: ADocumentType) {
         const { sectionId, objects, sectionOffset } = state
         events.setSectionOffset(sectionOffset)
         this.loadSection(sectionId)
@@ -212,8 +213,8 @@ export class Editor {
                     debounceTime(500)
                 )
                 .subscribe(() => {
-                    const state = this.getState()
-                    localStorage.setItem('state', JSON.stringify(state))
+                    const state = this.getDocument()
+                    this._dataAccess.saveCurrentDocument(state)
                 }),
         ])
     }

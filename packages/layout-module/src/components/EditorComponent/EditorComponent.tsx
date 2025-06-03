@@ -3,10 +3,10 @@ import styles from './EditorComponent.module.scss'
 import { EditorProps } from './EditorProps'
 import { Editor } from '../../Editor/Editor'
 import { withNullable } from '../../func'
-import { DocumentSchema } from '../../Editor/dtoSchema'
 import { Logger } from '../../logger'
 import { useDataAccess } from '../hooks'
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const logger = new Logger('EditorComponent')
 
 export const EditorComponent: React.FC<EditorProps> = (_props) => {
@@ -19,15 +19,8 @@ export const EditorComponent: React.FC<EditorProps> = (_props) => {
     editorRef.current = editor
     await Promise.resolve()
       .then(() => editor.init())
-      .then(() => {
-        withNullable(localStorage.getItem('state'), stateData => {
-          const { success, data, error } = DocumentSchema.safeParse(JSON.parse(stateData))
-          if (success && data) {
-            editor.restoreState(data)
-          } else {
-            logger.warn(`parse state failed: ${error.message}`)
-          }
-        })
+      .then(async () => {
+        withNullable(await dataAccess.loadCurrentDocument(), d => editor.loadDocument(d))
       })
   }
 
