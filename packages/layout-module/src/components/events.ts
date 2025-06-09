@@ -1,5 +1,5 @@
 import { createEvent, createStore } from 'effector'
-import { ApartmentTemplate } from '../types'
+import { ApartmentTemplate, FloorType } from '../types'
 import { returnSecondArg } from '../func'
 import persist from 'effector-localstorage'
 import { EditorObjectDto } from '../Editor/dto'
@@ -25,7 +25,7 @@ export const setApartmentProperties = createEvent<Partial<ApartmentProperties>>(
 interface DebugConfig {
     drawDebug: boolean
 }
-export const $debugConfig = createStore<DebugConfig>({ drawDebug: true })
+export const $debugConfig = createStore<DebugConfig>({ drawDebug: false })
 export const toggleDrawDebug = createEvent<void>()
 $debugConfig.on(toggleDrawDebug, (state, _payload) => ({ ...state, drawDebug: !state.drawDebug }))
 persist({ store: $debugConfig, key: 'debugConfig.v1' })
@@ -78,11 +78,26 @@ export const populateWindows = createEvent<{
 }>()
 export const setWindowProperties = createEvent<Partial<WindowProperties>>()
 
-interface SectionStore {
-    id: string | null
-}
-export const setSection = createEvent<string | null>()
-export const setSectionSelected = createEvent<string | null>()
-export const $section = createStore<SectionStore>({ id: null })
-$section.on(setSection, (state, id) => ({ ...state, id }))
-$section.on(setSectionSelected, (state, id) => ({ ...state, id }))
+// interface SectionStore {
+//     id: string | null
+// }
+// export const setSection = createEvent<string | null>()
+// export const setSectionSelected = createEvent<string | null>()
+// export const $section = createStore<SectionStore>({ id: null })
+// $section.on(setSection, (state, id) => ({ ...state, id }))
+// $section.on(setSectionSelected, (state, id) => ({ ...state, id }))
+
+export const createNewLayout = createEvent<{ sectionId: string }>()
+
+export const $editorState = createStore<{
+    ready: boolean
+    floorType: FloorType
+}>({
+    ready: false,
+    floorType: 'typical',
+})
+export const setEditorReady = createEvent<boolean>()
+$editorState.on(setEditorReady, (s, ready) => ({ ...s, ready }))
+export const selectFloorType = createEvent<FloorType>()
+export const setFloorType = createEvent<FloorType>()
+$editorState.on(setFloorType, (s, floorType) => ({ ...s, floorType }))

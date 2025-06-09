@@ -60,16 +60,9 @@ export const EntityDtoSchema = z.discriminatedUnion('type', [
     WindowDtoSchema,
     GeometryBlockDtoSchema,
 ])
+export type EntityDtoSchemaType = z.infer<typeof EntityDtoSchema>
 
 export const EntityDtoArray = z.array(EntityDtoSchema)
 
 export type EntityDto = z.infer<typeof EntityDtoSchema>
 export type EntityDtoArray = z.infer<typeof EntityDtoArray>
-
-export const DocumentSchema = z.object({
-    objects: z.array(EntityDtoSchema),
-    sectionOutline: SectionOutlineDtoSchema,
-    sectionId: z.string(),
-    sectionOffset: z.number()
-})
-export type ADocumentType = z.infer<typeof DocumentSchema>

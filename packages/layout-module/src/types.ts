@@ -28,3 +28,5 @@ export const unsubscribe = (s: ASubscription) => s.unsubscribe()
 export class NotImplemented extends Error { }
 export class InvalidOperation extends Error { }
 export class LogicError extends Error { }
+
+export type FloorType = 'first' | 'typical'

@@ -1,11 +1,36 @@
-import { ADocumentType, DocumentSchema } from '../Editor/dtoSchema'
-import { isNull } from '../func'
-import { LogicError } from '../types'
+import { FloorType, LogicError } from '../types'
 import { SectionDto } from './types'
 import { parseShapes } from './parseShapes'
 import rawShapesJson from './shapesData.json'
+import Dexie from 'dexie'
 
-export const CURRENT_DOCUMENT_KEY = 'currentDocument.v1'
+interface DocumentRecord {
+    id: string
+    layoutId: string
+    floorType: FloorType
+    data: string
+}
+
+interface LayoutRecord {
+    id: string
+    sectionId: string
+    name: string
+}
+
+class LayoutDb extends Dexie {
+    documents!: Dexie.Table<DocumentRecord, string>
+    layouts!: Dexie.Table<LayoutRecord, string>
+
+    constructor() {
+        super('layout-module')
+        this.version(1).stores({
+            documents: 'id, layoutId, floorType, data',
+            layouts: 'id, sectionId, name',
+        })
+    }
+}
+
+const db = new LayoutDb()
 
 export class DataAccess {
     async getSections() {
@@ -22,23 +47,23 @@ export class DataAccess {
         return []
     }
 
-    async saveSectionLayout(sectionId: string, layoutId: string) {
-
-    }
-
     async getApartmentTemplates() {
         return parseShapes(rawShapesJson)
     }
 
-    async saveCurrentDocument(document: ADocumentType) {
-        localStorage.setItem(CURRENT_DOCUMENT_KEY, JSON.stringify(document))
-    }
+    // saveLayout(data: { sectionId: string; layoutId: string, floorType: FloorType, document: EntityDtoArray }) {
+    //     db.documents.add({
+    //         id
+    //         layoutId: data.layoutId,
+    //         data: JSON.stringify(document),
+    //     })
+    // }
 
-    async loadCurrentDocument() {
-        const data = localStorage.getItem(CURRENT_DOCUMENT_KEY)
-        if (isNull(data)) return null
-        return DocumentSchema.parseAsync(JSON.parse(data))
-    }
+    // async loadCurrentDocument() {
+    //     const data = localStorage.getItem(CURRENT_DOCUMENT_KEY)
+    //     if (isNull(data)) return null
+    //     return DocumentSchema.parseAsync(JSON.parse(data))
+    // }
 }
 
 const sectionsData: SectionDto[] = [

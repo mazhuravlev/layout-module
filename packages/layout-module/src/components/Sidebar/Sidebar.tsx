@@ -9,7 +9,10 @@ export const Sidebar: React.FC = () => {
     const [selectedSection, setSelectedSection] = useState<SectionDto | null>(null)
 
     return <div className={styles.container}>
-        <div>Задание Редактирование</div>
+        <div className={styles.modeSwitch}>
+            <span>Задание</span>
+            <span style={{ fontWeight: 600 }}>Редактирование</span>
+        </div>
         <div>
             <header>Секции</header>
             <Sections selectedSection={selectedSection ?? undefined} onSelectSection={setSelectedSection} />

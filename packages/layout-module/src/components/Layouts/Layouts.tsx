@@ -1,6 +1,6 @@
 import { SectionDto } from '../../dataAccess/types'
 import { Button } from '../common/Button'
-import { setSection } from '../events'
+import { createNewLayout } from '../events'
 
 interface LayoutsComponentProps {
     section: SectionDto
@@ -8,6 +8,6 @@ interface LayoutsComponentProps {
 
 export const Layouts: React.FC<LayoutsComponentProps> = props => {
     return <div>
-        <Button onClick={() => setSection(props.section.id)}>Новый</Button>
+        <Button onClick={() => createNewLayout({ sectionId: props.section.id })}>Новый</Button>
     </div>
 }

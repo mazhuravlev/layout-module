@@ -72,6 +72,9 @@ importers:
       classnames:
         specifier: 2.5.1
         version: 2.5.1
+      dexie:
+        specifier: 4.0.11
+        version: 4.0.11
       effector:
         specifier: 23.3.0
         version: 23.3.0
@@ -1183,6 +1186,9 @@ packages:
 
   detect-node@2.1.0:
     resolution: {integrity: sha512-T0NIuQpnTvFDATNuHN5roPwSBG83rFsuO+MXXH9/3N1eFbn4wcPjttvjMLEPWJ0RGUYgQE7cGgS3tNxbqCGM7g==}
+
+  dexie@4.0.11:
+    resolution: {integrity: sha512-SOKO002EqlvBYYKQSew3iymBoN2EQ4BDw/3yprjh7kAfFzjBYkaMNa/pZvcA7HSWlcKSQb9XhPe3wKyQ0x4A8A==}
 
   doctrine@2.1.0:
     resolution: {integrity: sha512-35mSku4ZXK0vfCuHEDAwt55dg2jNajHZ1odvF+8SSr82EsZY4QmXfuWso8oEd8zRhVObSN18aM0CjSdoBX7zIw==}
@@ -3870,6 +3876,8 @@ snapshots:
     optional: true
 
   detect-node@2.1.0: {}
+
+  dexie@4.0.11: {}
 
   doctrine@2.1.0:
     dependencies:

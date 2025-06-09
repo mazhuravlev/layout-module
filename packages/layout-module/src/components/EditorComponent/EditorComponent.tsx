@@ -19,9 +19,6 @@ export const EditorComponent: React.FC<EditorProps> = (_props) => {
     editorRef.current = editor
     await Promise.resolve()
       .then(() => editor.init())
-      .then(async () => {
-        withNullable(await dataAccess.loadCurrentDocument(), d => editor.loadDocument(d))
-      })
   }
 
   useEffect(() => {

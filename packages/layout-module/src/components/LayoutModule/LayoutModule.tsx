@@ -10,6 +10,8 @@ import { Sidebar } from '../Sidebar/Sidebar'
 import { EditorButtons } from '../EditorButtons/EditorButtons'
 import { fromEvent } from 'rxjs'
 import * as events from '../events'
+import { useUnit } from 'effector-react'
+import { FloorType } from '../../types'
 
 const queryClient = new QueryClient()
 const dataAccess = new DataAccess()
@@ -27,6 +29,8 @@ const keyMap = [
 ]
 
 export const LayoutModule: React.FC<LayoutModuleProps> = (_props) => {
+  const editorState = useUnit(events.$editorState)
+
   useEffect(() => {
     const s = fromEvent<KeyboardEvent>(document, 'keydown', { passive: false })
       .subscribe(e => {
@@ -39,6 +43,26 @@ export const LayoutModule: React.FC<LayoutModuleProps> = (_props) => {
     return () => s.unsubscribe()
   }, [])
 
+  function renderHeader(floorType: FloorType): React.ReactNode {
+    const renderStyle = (x: FloorType) =>
+      floorType === x ? { color: '#24B3F2' } : { cursor: 'pointer' }
+    return (<header className={styles.header}>
+      {editorState.ready && <header>
+        <a
+          onClick={() => events.selectFloorType('first')}
+          style={renderStyle('first')}>
+          Первый этаж
+        </a>
+        &nbsp;/&nbsp;
+        <a
+          onClick={() => events.selectFloorType('typical')}
+          style={renderStyle('typical')}>
+          Типовой этаж
+        </a>
+        &nbsp;| X-Ray</header>}
+    </header>)
+  }
+
   return (
     <AppContextProvider dataAccess={dataAccess}>
       <QueryClientProvider client={queryClient}>
@@ -47,14 +71,12 @@ export const LayoutModule: React.FC<LayoutModuleProps> = (_props) => {
             <Sidebar />
           </aside>
           <div className={styles.main}>
-            <header className={styles.header}>
-              <a style={{ color: '#24B3F2' }}>Первый этаж</a>&nbsp;/ Типовой этаж | X-Ray
-            </header>
+            {renderHeader(editorState.floorType)}
             <div className={styles.content}>
               <div className={styles.editor}>
-                <div className={styles.editorButtons}>
+                {editorState.ready && <div className={styles.editorButtons}>
                   <EditorButtons />
-                </div>
+                </div>}
                 <EditorComponent />
               </div>
               <aside className={styles.rightSidebar}>

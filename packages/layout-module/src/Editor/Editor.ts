@@ -7,7 +7,7 @@ import { BlockDragConfig, DragConfig, WallDragConfig, WindowDragConfig, withDrag
 import { Apartment } from '../entities/Apartment'
 import { EventService } from '../EventService/EventService'
 import * as events from '../components/events'
-import { assert, assertDefined, assertUnreachable, empty, isNull, notNull, toError, fromPixiEvent, isDefined, isUndefined } from '../func'
+import { assert, assertDefined, assertUnreachable, empty, isNull, notNull, toError, fromPixiEvent, isDefined, isUndefined, makeUuid } from '../func'
 import { MouseDownEvent } from '../EventService/eventTypes'
 import { debounceTime, EMPTY, filter, finalize, map, merge, mergeMap, take, takeUntil, tap } from 'rxjs'
 import { SnapService } from './SnapService'
@@ -33,7 +33,7 @@ import { UpdateWindowPropertiesCommand } from '../commands/UpdateWindowPropertie
 import { MoveWindowCommand } from '../commands/MoveWindowCommand'
 import { EDITOR_CONFIG } from './editorConfig'
 import { KeyboardState } from './KeyboardState'
-import { ADocumentType, EntityDtoArray } from './dtoSchema'
+import { EntityDtoArray } from './dtoSchema'
 import lluData from '../entities/GeometryBlock/llu'
 import { serializeEditorObject } from './dto'
 import { DataAccess } from '../dataAccess/DataAccess'
@@ -52,6 +52,11 @@ export class Editor {
     private _viewportManager: ViewportManager | null = null
     private _mouseEventProcessor: MouseEventProcessor
     private _keyboardState = new KeyboardState()
+
+    private _currentLayout: {
+        sectionId: string
+        layoutId: string
+    } | null = null
 
     /**
      * @description Cleanup functions to be called on dispose
@@ -74,7 +79,7 @@ export class Editor {
         )
     }
 
-    public get stage() {
+    private get stage() {
         return assertDefined(this._viewportManager).stage
     }
 
@@ -84,6 +89,10 @@ export class Editor {
 
     public get eventService() {
         return this._eventService
+    }
+
+    private get currentLayout() {
+        return assertDefined(this._currentLayout)
     }
 
     public async init(): Promise<void> {
@@ -118,39 +127,32 @@ export class Editor {
     public selectObjects(objects: EditorObject[]) { this._selectionManager.selectObjects(objects) }
     public zoomToExtents() { this._viewportManager?.zoomToExtents() }
 
-    private getDocument(): ADocumentType {
+    private getDocument(): EntityDtoArray {
         const _objects = [...this._editorObjects.values()
             .map(x => x.serialize())
             .filter(notNull)]
         const objects: EntityDtoArray = EntityDtoArray.parse(JSON.parse(JSON.stringify(_objects)))
-        const sectionOutline = this._sectionOutline?.serialize()
-        const document: ADocumentType = {
-            objects,
-            sectionOutline: assertDefined(sectionOutline),
-            sectionId: assertDefined(events.$section.getState().id),
-            sectionOffset: events.$sectionSettings.getState().offset,
-        }
-        return document
+        return objects
     }
 
-    public async loadDocument(state: ADocumentType) {
-        const { sectionId, objects, sectionOffset } = state
-        events.setSectionOffset(sectionOffset)
-        this.loadSection(sectionId)
-        const editorObjects = objects.map(x => {
-            switch (x.type) {
-                case 'apartment':
-                    return Apartment.deserialize(this.eventService, x)
-                case 'window':
-                    return WindowObj.deserialize(this.eventService, x)
-                case 'geometryBlock':
-                    return GeometryBlock.deserialize(this.eventService, x)
-                default:
-                    throw assertUnreachable(x)
-            }
-        })
-        new AddObjectCommand(this, editorObjects).execute()
-    }
+    // public async loadDocument(state: ADocumentType) {
+    //     const { sectionId, objects, sectionOffset } = state
+    //     events.setSectionOffset(sectionOffset)
+    //     this.loadSection(sectionId)
+    //     const editorObjects = objects.map(x => {
+    //         switch (x.type) {
+    //             case 'apartment':
+    //                 return Apartment.deserialize(this.eventService, x)
+    //             case 'window':
+    //                 return WindowObj.deserialize(this.eventService, x)
+    //             case 'geometryBlock':
+    //                 return GeometryBlock.deserialize(this.eventService, x)
+    //             default:
+    //                 throw assertUnreachable(x)
+    //         }
+    //     })
+    //     new AddObjectCommand(this, editorObjects).execute()
+    // }
 
     private setupEvents() {
         this._subscriptions.push(...[
@@ -206,15 +208,31 @@ export class Editor {
                 this.executeCommand(new UpdateWindowPropertiesCommand(selectedWindows, properties))
                 this._selectionManager.update()
             }),
-            events.setSection.watch(outline => this.loadSection(outline)),
+            events.selectFloorType.watch(async (floorType) => {
+                this.unloadObjects()
+                events.setFloorType(floorType)
+            }),
+            events.createNewLayout.watch(async ({ sectionId }) => {
+                this._currentLayout = { sectionId, layoutId: makeUuid() }
+                this.unloadObjects()
+                await this.loadSection(null)
+                await this.loadSection(sectionId)
+                events.setEditorReady(true)
+            }),
             this._eventService.events$
                 .pipe(
                     filter(e => e.type === 'documentUpdate'),
                     debounceTime(500)
                 )
                 .subscribe(() => {
-                    const state = this.getDocument()
-                    this._dataAccess.saveCurrentDocument(state)
+                    const document = this.getDocument()
+                    const { layoutId, sectionId } = this.currentLayout
+                    // this._dataAccess.saveLayout({
+                    //     sectionId,
+                    //     layoutId,
+                    //     document,
+                    //     floorType: events.$editorState.getState().floorType,
+                    // })
                 }),
         ])
     }
@@ -304,6 +322,15 @@ export class Editor {
         this._subscriptions.push(fromPixiEvent(assertDefined(this._viewportManager).viewport, 'mousedown')
             .pipe(map(pixiEvent => ({ type: 'mousedown', pixiEvent } as const)))
             .subscribe(event => this._eventService.emit(event)))
+    }
+
+    private unloadObjects() {
+        const objects = [...this._editorObjects.values()]
+        objects.forEach(o => {
+            this.stage.removeChild(o.container)
+            o.dispose()
+        })
+        this._editorObjects.clear()
     }
 
     private performDrag(dragConfig: DragConfig, pixiEvent: FederatedPointerEvent) {
@@ -534,7 +561,6 @@ export class Editor {
 
     /**
      * Загрузить секцию
-     * @param points Координаты точек в миллиметрах
      */
     public async loadSection(id: string | null) {
         if (isNull(id)) {
@@ -553,7 +579,6 @@ export class Editor {
             )
             this.stage.addChild(this._sectionOutline.container)
         }
-        events.setSectionSelected(id)
         this.zoomToExtents()
     }
 
