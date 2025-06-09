@@ -1,26 +1,9 @@
-import { CURRENT_DOCUMENT_KEY, LayoutModule } from 'layout-module'
-import { parseShapes } from './data/parseShapes'
-import rawShapesJson from './data/shapesData.json'
-import { useState } from 'react'
-
-const apartmentTemplates = parseShapes(rawShapesJson)
+import { LayoutModule } from 'layout-module'
 
 function App() {
-  const [showModule, setShowModule] = useState(true)
-
-  return (
-    <div>
-      <button onClick={() => setShowModule(!showModule)}>Toggle module</button>
-      <button onClick={() => { localStorage.removeItem(CURRENT_DOCUMENT_KEY); window.location.reload() }}>Clear state</button>
-      <div style={{ height: '95vh', width: '98vw', border: '2px solid black' }}>
-        {showModule && <LayoutModule
-          units={'mm'}
-          apartmentTemplates={apartmentTemplates}
-        />
-        }
-      </div>
-    </div>
-  )
+  return <LayoutModule
+    units={'mm'}
+  />
 }
 
 export default App

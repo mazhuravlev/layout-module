@@ -6,9 +6,8 @@ export const SectionProperties: React.FC = () => {
     const offset = useStoreMap($sectionSettings, x => x.offset)
 
     return <div>
-        <p>Свойства секции</p>
         <NumberInput
-            label='Оффсет, мм'
+            label='Отступ, мм'
             step={100}
             value={offset}
             onChange={setSectionOffset}

@@ -6,9 +6,8 @@ interface LayoutsComponentProps {
     section: SectionDto
 }
 
-export const LayoutsComponent: React.FC<LayoutsComponentProps> = props => {
+export const Layouts: React.FC<LayoutsComponentProps> = props => {
     return <div>
-        <p>{props.section.name}</p>
         <Button onClick={() => setSection(props.section.id)}>Новый</Button>
     </div>
 }

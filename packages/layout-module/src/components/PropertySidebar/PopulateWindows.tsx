@@ -6,8 +6,9 @@ import { useState } from 'react'
 
 export const PopulateWindows: React.FC = () => {
     const [windowSize, setWindowSize] = useState(1800)
-    const [spacing, setSpacing] = useState(3000)
+    const [spacing, setSpacing] = useState(6000)
     return <div>
+        Окна
         <List>
             <li>
                 <NumberInput
@@ -29,6 +30,7 @@ export const PopulateWindows: React.FC = () => {
             </li>
         </List>
         <Button
+            style={{ padding: 2 }}
             title='Добавить окна'
             onClick={() => populateWindows({ windowSize, spacing })}
         >Добавить окна</Button>

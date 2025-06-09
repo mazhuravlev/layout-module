@@ -1,0 +1,28 @@
+.container {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 0;
+    font-size: 14px;
+}
+
+.container>div:nth-child(1),
+.container>div:nth-child(4) {
+    flex: 0 0 auto;
+    /* первый и последний div занимают место по содержимому */
+}
+
+.container>div:nth-child(2),
+.container>div:nth-child(3) {
+    flex: 1 1 0;
+    /* Секции и Планировки делят оставшееся место поровну */
+    min-height: 0;
+    /* предотвращает переполнение */
+}
+
+.layoutButtons {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    align-items: center;
+}

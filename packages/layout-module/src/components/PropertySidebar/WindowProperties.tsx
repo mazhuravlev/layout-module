@@ -11,7 +11,6 @@ export const WindowProperties: React.FC<WindowPropertiesProps> = (props) => {
     const { windows } = props
 
     return <div>
-        <p> Выбрано окон: {windows.length} </p>
         <List>
             <li>
                 <NumberInput

@@ -19,3 +19,11 @@ export function useSections() {
         queryFn: () => dataAccess.getSections(),
     })
 }
+
+export function useApartmentTemplates() {
+    const dataAccess = useDataAccess()
+
+    return useQuery({
+        queryFn: () => dataAccess.getApartmentTemplates()
+    })
+}

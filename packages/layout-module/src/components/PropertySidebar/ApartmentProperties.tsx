@@ -1,4 +1,5 @@
 import { ApartmentDto } from '../../Editor/dto'
+import { List } from '../common/List'
 import { setApartmentProperties } from '../events'
 
 interface ApartmentPropertiesProps {
@@ -22,15 +23,13 @@ export const ApartmentProperties: React.FC<ApartmentPropertiesProps> = (props) =
     }
 
     return <div>
-        <p> Выбрано квартир: {selected.length} </p>
-        <ol>
-
+        <List>
             <li>
                 Евро {renderTypeButton()}
             </li>
             <li>
                 {renderRoomSelect(selected.map(x => x.properties.bedroomCount))}
             </li>
-        </ol>
+        </List>
     </div>
 }

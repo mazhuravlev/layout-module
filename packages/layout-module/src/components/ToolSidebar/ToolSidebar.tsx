@@ -1,42 +1,15 @@
-import { useEffect } from 'react'
 import { ToolSidebarProps } from './ToolSidebarProps'
 import * as events from '../events'
 import styles from './ToolSidebar.module.scss'
 import { Button } from '../common/Button'
 import { useStoreMap, useUnit } from 'effector-react'
-import { fromEvent } from 'rxjs'
 import { ApartmentTemplateComponent } from './ApartmentTemplateComponent'
-import { PopulateWindows } from './PopulateWindows'
 import { NumberInput } from '../common/inputs'
-
-const keyMap = [
-  { code: 'Delete', fn: () => events.deleteSelected() },
-  { code: 'KeyA', fn: () => events.toggleShowWallSize() },
-  { code: 'KeyS', fn: () => events.toggleSnap() },
-  { code: 'KeyD', fn: () => events.toggleDrawDebug() },
-  { code: 'KeyQ', fn: () => events.toggleSnapGrid() },
-  { code: 'KeyW', fn: () => events.toggleSnapPoint() },
-  { code: 'KeyE', fn: () => events.toggleSnapLine() },
-  { code: 'KeyZ', ctrl: true, preventDefault: true, fn: () => events.undo() },
-  { code: 'KeyR', ctrl: true, preventDefault: true, fn: () => events.redo() },
-]
 
 export const ToolSidebar: React.FC<ToolSidebarProps> = props => {
   const debugEnabled = useStoreMap({ store: events.$debugConfig, keys: ['drawDebug'], fn: x => x.drawDebug })
   const snapConfig = useUnit(events.$snapConfig)
   const sizeConfig = useUnit(events.$sizeConfig)
-
-  useEffect(() => {
-    const s = fromEvent<KeyboardEvent>(document, 'keydown', { passive: false })
-      .subscribe(e => {
-        const r = keyMap.find(x => x.code === e.code)
-        if (r && !!r.ctrl === e.ctrlKey) {
-          r.fn()
-          if (r.preventDefault) e.preventDefault()
-        }
-      })
-    return () => s.unsubscribe()
-  }, [])
 
   return (
     <div className={styles.container}>
@@ -115,10 +88,6 @@ export const ToolSidebar: React.FC<ToolSidebarProps> = props => {
             onChange={events.setGridStep}
           />
         </div>
-      </div>
-
-      <div className={styles.toolBlock}>
-        <PopulateWindows />
       </div>
 
       <ul className={styles.apartmentTemplates}>

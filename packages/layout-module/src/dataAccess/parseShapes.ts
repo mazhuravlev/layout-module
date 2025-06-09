@@ -1,4 +1,4 @@
-import type { ApartmentTemplate } from 'layout-module'
+import { ApartmentTemplate } from '../types'
 
 // Тип, соответствующий одному объекту из JSON
 interface RawShapeData {

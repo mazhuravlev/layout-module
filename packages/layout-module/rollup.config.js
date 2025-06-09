@@ -5,6 +5,7 @@ import dts from 'rollup-plugin-dts'
 import postcss from 'rollup-plugin-postcss'
 import autoprefixer from 'autoprefixer'
 import json from '@rollup/plugin-json'
+import image from '@rollup/plugin-image'
 
 export default [
   {
@@ -33,6 +34,7 @@ export default [
         plugins: [autoprefixer()],
       }),
       json(),
+      image(),
     ],
     external: ['react', 'react-dom'],
     watch: {

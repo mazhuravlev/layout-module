@@ -1,4 +1,4 @@
-import { Bounds, Container, Graphics, Text } from 'pixi.js'
+import { Bounds, ColorSource, Container, Graphics, Text } from 'pixi.js'
 import { APoint } from '../types'
 import { aPoint } from '../geometryFunc'
 import { EventService } from '../EventService/EventService'
@@ -165,7 +165,7 @@ export class WindowObj extends EditorObject {
         return outline
     }
 
-    private getFillColor() {
+    private getFillColor(): ColorSource {
         return 0x3399cc
     }
 

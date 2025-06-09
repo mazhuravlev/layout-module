@@ -38,4 +38,7 @@
   "[scss]": {
     "editor.defaultFormatter": "vscode.css-language-features"
   },
+  "[css]": {
+    "editor.defaultFormatter": "vscode.css-language-features"
+  },
 }
