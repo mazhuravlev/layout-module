@@ -1,1 +1,1 @@
-pnpm run lint:lib
+pnpm run lint

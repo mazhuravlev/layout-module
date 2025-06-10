@@ -3,31 +3,11 @@
   "private": true,
   "scripts": {
     "dev": "pnpm --parallel run start",
-    "dev:demo": "pnpm --filter demo start",
-    "dev:lib": "pnpm --filter layout-module start",
-    "build:lib": "pnpm --filter layout-module run build",
-    "build:demo": "pnpm --filter demo run build",
-    "pack": "pnpm --filter layout-module pack",
     "lint": "pnpm --parallel run lint",
-    "lint:lib": "pnpm --filter layout-module run lint",
-    "lint:fix:lib": "pnpm --filter layout-module run lint:fix",
-    "prepare": "husky",
-    "docker:dev": "docker compose up",
-    "docker:build": "docker compose build",
-    "docker:install": "docker compose run lib pnpm install"
+    "prepare": "husky"
   },
   "devDependencies": {
-    "@eslint/js": "9.26.0",
-    "@types/node": "22.15.14",
-    "@types/react": "19.1.3",
-    "@types/react-dom": "19.1.3",
-    "@typescript-eslint/eslint-plugin": "8.32.0",
-    "@typescript-eslint/parser": "8.32.0",
-    "eslint": "9.26.0",
-    "globals": "16.1.0",
-    "husky": "9.1.7",
-    "typescript": "5.8.3",
-    "typescript-eslint": "8.32.0"
+    "husky": "9.1.7"
   },
-  "packageManager": "pnpm@10.11.0+sha512.6540583f41cc5f628eb3d9773ecee802f4f9ef9923cc45b69890fb47991d4b092964694ec3a4f738a420c918a333062c8b925d312f42e4f0c263eb603551f977"
+  "packageManager": "pnpm@10.12.1"
 }
