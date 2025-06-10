@@ -33,7 +33,6 @@ import { UpdateWindowPropertiesCommand } from '../commands/UpdateWindowPropertie
 import { MoveWindowCommand } from '../commands/MoveWindowCommand'
 import { EDITOR_CONFIG } from './editorConfig'
 import { KeyboardState } from './KeyboardState'
-import { EntityDtoArray } from './dtoSchema'
 import lluData from '../entities/GeometryBlock/llu'
 import { serializeEditorObject } from './dto'
 import { DataAccess } from '../dataAccess/DataAccess'
@@ -209,8 +208,8 @@ export class Editor {
             this._eventService.events$
                 .pipe(
                     filter(e => e.type === 'documentUpdate'),
+                    debounceTime(300),
                     tap(() => this.updateDocument()),
-                    debounceTime(500),
                     map(() => this.currentLayout),
                 )
                 .subscribe(doc => {
@@ -253,19 +252,19 @@ export class Editor {
         this._currentLayout = layout
         this.populateEditorObjects(this.currentFloorType)
         events.setEditorReady(true)
+        events.setCurrentLayout({ sectionId: layout.sectionId, layoutId: layout.layoutId })
         // TODO: почему обьекты не добавлятюся синхронно, сразу?
         setTimeout(() => this.zoomToExtents(), 10)
     }
 
     private updateDocument(): void {
-        const _objects = [...this._editorObjects.values()
+        const objects = [...this._editorObjects.values()
             .map(x => x.serialize())
             .filter(notNull)]
-        // TODO: stringify -> parse нужен для типобезопасности при разработке, возможно стоит придумать получше
-        const objects: EntityDtoArray = EntityDtoArray.parse(JSON.parse(JSON.stringify(_objects)))
         const type = this.currentFloorType
         this._currentLayout = {
             ...this.currentLayout,
+            // TODO: на будущее! если будет несколько этажей с одинаковым типом, они станут одинаковые
             floors: this.currentLayout.floors
                 .map(x => x.type === type ? { type, objects } : x)
         }

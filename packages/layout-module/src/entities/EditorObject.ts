@@ -2,6 +2,7 @@ import { Bounds, Container, FederatedPointerEvent } from 'pixi.js'
 import { IDisposable } from '../types'
 import { EventService } from '../EventService/EventService'
 import { makeUuid } from '../func'
+import { EditorObjectDto } from '../Editor/dto'
 
 export abstract class EditorObject implements IDisposable {
     protected _id = makeUuid()
@@ -31,7 +32,7 @@ export abstract class EditorObject implements IDisposable {
 
     public get serializable() { return false }
 
-    public serialize(): object | null {
+    public serialize(): EditorObjectDto | null {
         return null
     }
 
