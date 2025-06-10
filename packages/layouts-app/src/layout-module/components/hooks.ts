@@ -1,7 +1,7 @@
 import { use } from 'react'
-import { useQuery } from 'react-query'
 import { AppContext } from './AppContext'
 import type { DataAccess } from '../DataAccess/DataAccess'
+import { useQuery } from '@tanstack/react-query'
 
 export function useDataAccess(): DataAccess {
     const context = use(AppContext)

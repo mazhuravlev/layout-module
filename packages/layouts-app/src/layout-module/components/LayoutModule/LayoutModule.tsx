@@ -1,5 +1,4 @@
 import React, { useEffect } from 'react'
-import { QueryClient, QueryClientProvider } from 'react-query'
 import styles from './LayoutModule.module.scss'
 import type { LayoutModuleProps } from './LayoutModuleProps'
 import { PropertySidebar } from '../PropertySidebar/PropertySidebar'
@@ -12,6 +11,7 @@ import { fromEvent } from 'rxjs'
 import * as events from '../../events'
 import { useUnit } from 'effector-react'
 import type { FloorType } from '../../types'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 
 const queryClient = new QueryClient()
 const dataAccess = new DataAccess()

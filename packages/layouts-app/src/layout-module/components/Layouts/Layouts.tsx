@@ -1,4 +1,4 @@
-import { useQueryClient } from 'react-query'
+import { useQueryClient } from '@tanstack/react-query'
 import type { SectionDto } from '../../Editor/dto'
 import { generateLayoutName, notEmpty, watchOnce } from '../../func'
 import { LogicError } from '../../types'
