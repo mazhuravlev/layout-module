@@ -1,7 +1,7 @@
 import { Application, FederatedPointerEvent } from 'pixi.js'
 import { distanceFromPointToLine, getLineLength, pointsToLines, shiftLine } from '../geometryFunc'
 import { Logger } from '../logger'
-import { ALine, APoint, ASubscription, LogicError, unsubscribe } from '../types'
+import { ALine, APoint, ASubscription, EditorDocument, FloorType, LogicError, unsubscribe } from '../types'
 import { addVectors, aPoint, mapLine, mapPoint, multiplyVector, subtractVectors } from '../geometryFunc'
 import { BlockDragConfig, DragConfig, WallDragConfig, WindowDragConfig, withDragOutline } from './dragConfig'
 import { Apartment } from '../entities/Apartment'
@@ -53,10 +53,7 @@ export class Editor {
     private _mouseEventProcessor: MouseEventProcessor
     private _keyboardState = new KeyboardState()
 
-    private _currentLayout: {
-        sectionId: string
-        layoutId: string
-    } | null = null
+    private _currentLayout: EditorDocument | null = null
 
     /**
      * @description Cleanup functions to be called on dispose
@@ -77,6 +74,10 @@ export class Editor {
             this._eventService,
             () => this.stage,
         )
+    }
+
+    public get currentFloorType(): FloorType {
+        return events.$editorState.getState().floorType
     }
 
     private get stage() {
@@ -127,32 +128,22 @@ export class Editor {
     public selectObjects(objects: EditorObject[]) { this._selectionManager.selectObjects(objects) }
     public zoomToExtents() { this._viewportManager?.zoomToExtents() }
 
-    private getDocument(): EntityDtoArray {
-        const _objects = [...this._editorObjects.values()
-            .map(x => x.serialize())
-            .filter(notNull)]
-        const objects: EntityDtoArray = EntityDtoArray.parse(JSON.parse(JSON.stringify(_objects)))
-        return objects
+    public async populateEditorObjects(floorType: FloorType) {
+        const floor = assertDefined(this.currentLayout.floors.find(x => x.type === floorType))
+        const editorObjects = floor.objects.map(x => {
+            switch (x.type) {
+                case 'apartment':
+                    return Apartment.deserialize(this.eventService, x)
+                case 'window':
+                    return WindowObj.deserialize(this.eventService, x)
+                case 'geometryBlock':
+                    return GeometryBlock.deserialize(this.eventService, x)
+                default:
+                    throw assertUnreachable(x)
+            }
+        })
+        new AddObjectCommand(this, editorObjects).execute()
     }
-
-    // public async loadDocument(state: ADocumentType) {
-    //     const { sectionId, objects, sectionOffset } = state
-    //     events.setSectionOffset(sectionOffset)
-    //     this.loadSection(sectionId)
-    //     const editorObjects = objects.map(x => {
-    //         switch (x.type) {
-    //             case 'apartment':
-    //                 return Apartment.deserialize(this.eventService, x)
-    //             case 'window':
-    //                 return WindowObj.deserialize(this.eventService, x)
-    //             case 'geometryBlock':
-    //                 return GeometryBlock.deserialize(this.eventService, x)
-    //             default:
-    //                 throw assertUnreachable(x)
-    //         }
-    //     })
-    //     new AddObjectCommand(this, editorObjects).execute()
-    // }
 
     private setupEvents() {
         this._subscriptions.push(...[
@@ -208,33 +199,76 @@ export class Editor {
                 this.executeCommand(new UpdateWindowPropertiesCommand(selectedWindows, properties))
                 this._selectionManager.update()
             }),
-            events.selectFloorType.watch(async (floorType) => {
-                this.unloadObjects()
-                events.setFloorType(floorType)
+            events.selectFloorType.watch((floorType) => {
+                this.switchFloorType(floorType)
             }),
-            events.createNewLayout.watch(async ({ sectionId }) => {
-                this._currentLayout = { sectionId, layoutId: makeUuid() }
-                this.unloadObjects()
-                await this.loadSection(null)
-                await this.loadSection(sectionId)
-                events.setEditorReady(true)
+            events.createNewLayout.watch(async ({ sectionId, name }) => {
+                await this.createNewLayout(sectionId, name)
             }),
+            events.loadLayout.watch(id => this.loadLayout(id)),
             this._eventService.events$
                 .pipe(
                     filter(e => e.type === 'documentUpdate'),
-                    debounceTime(500)
+                    tap(() => this.updateDocument()),
+                    debounceTime(500),
+                    map(() => this.currentLayout),
                 )
-                .subscribe(() => {
-                    const document = this.getDocument()
-                    const { layoutId, sectionId } = this.currentLayout
-                    // this._dataAccess.saveLayout({
-                    //     sectionId,
-                    //     layoutId,
-                    //     document,
-                    //     floorType: events.$editorState.getState().floorType,
-                    // })
+                .subscribe(doc => {
+                    this._dataAccess.saveLayout(doc)
                 }),
         ])
+    }
+
+    private async createNewLayout(sectionId: string, name: string) {
+        this._currentLayout = {
+            sectionId,
+            name,
+            layoutId: makeUuid(),
+            floors: [
+                { type: 'first', objects: [] },
+                { type: 'typical', objects: [] },
+            ],
+        }
+        this.unloadObjects()
+        await this.unloadSection()
+        await this.loadSection(sectionId)
+        events.setEditorReady(true)
+        this._eventService.emit({ type: 'documentUpdate' })
+    }
+
+    async switchFloorType(floorType: FloorType) {
+        events.setFloorType(floorType)
+        this.unloadObjects()
+        this.populateEditorObjects(floorType)
+        // TODO: почему обьекты не добавлятюся синхронно, сразу?
+        setTimeout(() => this.zoomToExtents(), 10)
+    }
+
+    private async loadLayout(id: string) {
+        events.setEditorReady(false)
+        this.unloadSection()
+        this.unloadObjects()
+        const layout = await this._dataAccess.getLayout(id)
+        await this.loadSection(layout.sectionId)
+        this._currentLayout = layout
+        this.populateEditorObjects(this.currentFloorType)
+        events.setEditorReady(true)
+        // TODO: почему обьекты не добавлятюся синхронно, сразу?
+        setTimeout(() => this.zoomToExtents(), 10)
+    }
+
+    private updateDocument(): void {
+        const _objects = [...this._editorObjects.values()
+            .map(x => x.serialize())
+            .filter(notNull)]
+        // TODO: stringify -> parse нужен для типобезопасности при разработке, возможно стоит придумать получше
+        const objects: EntityDtoArray = EntityDtoArray.parse(JSON.parse(JSON.stringify(_objects)))
+        const type = this.currentFloorType
+        this._currentLayout = {
+            ...this.currentLayout,
+            floors: this.currentLayout.floors
+                .map(x => x.type === type ? { type, objects } : x)
+        }
     }
 
     /**
@@ -562,24 +596,24 @@ export class Editor {
     /**
      * Загрузить секцию
      */
-    public async loadSection(id: string | null) {
-        if (isNull(id)) {
-            const { _sectionOutline } = this
-            if (notNull(_sectionOutline)) {
-                this.stage.removeChild(_sectionOutline.container)
-                _sectionOutline.dispose()
-                this._sectionOutline = null
-            }
-        } else {
-            const section = await this._dataAccess.getSection(id)
-            assert(isNull(this._sectionOutline))
-            this._sectionOutline = new SectionOutline(
-                section.outline.map(mapPoint(Units.fromMm)),
-                Units.fromMm(events.$sectionSettings.getState().offset)
-            )
-            this.stage.addChild(this._sectionOutline.container)
-        }
+    public async loadSection(id: string) {
+        const section = await this._dataAccess.getSection(id)
+        assert(isNull(this._sectionOutline))
+        this._sectionOutline = new SectionOutline(
+            section.outline.map(mapPoint(Units.fromMm)),
+            Units.fromMm(events.$sectionSettings.getState().offset)
+        )
+        this.stage.addChild(this._sectionOutline.container)
         this.zoomToExtents()
+    }
+
+    public async unloadSection() {
+        const { _sectionOutline } = this
+        if (notNull(_sectionOutline)) {
+            this.stage.removeChild(_sectionOutline.container)
+            _sectionOutline.dispose()
+            this._sectionOutline = null
+        }
     }
 
     public addObject(o: EditorObject) {

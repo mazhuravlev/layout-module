@@ -15,15 +15,15 @@ export const Sections: React.FC<SectionsComponentProps> = props => {
     const { data: sections, error, isLoading } = useSections()
 
     if (isLoading) {
-        return <div>Загрузка...</div>
+        return <>Загрузка...</>
     }
 
     if (error) {
-        return <div>Ошибка</div>
+        return <>Ошибка</>
     }
 
     return (
-        <div>
+        <>
             <List>
                 {assertDefined(sections).map(section => (
                     <li key={section.id} onClick={() => props.onSelectSection(section)}>
@@ -32,6 +32,6 @@ export const Sections: React.FC<SectionsComponentProps> = props => {
                     </li>
                 ))}
             </List>
-        </div>
+        </>
     )
 }

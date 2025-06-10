@@ -1,31 +1,23 @@
-import { FloorType, LogicError } from '../types'
+import { EditorDocument, LogicError, NotFoundError } from '../types'
 import { SectionDto } from './types'
 import { parseShapes } from './parseShapes'
 import rawShapesJson from './shapesData.json'
 import Dexie from 'dexie'
 
-interface DocumentRecord {
+export interface EditorDocumentRecord {
     id: string
-    layoutId: string
-    floorType: FloorType
+    sectionId: string
+    name: string,
     data: string
 }
 
-interface LayoutRecord {
-    id: string
-    sectionId: string
-    name: string
-}
-
 class LayoutDb extends Dexie {
-    documents!: Dexie.Table<DocumentRecord, string>
-    layouts!: Dexie.Table<LayoutRecord, string>
+    layouts!: Dexie.Table<EditorDocumentRecord, string>
 
     constructor() {
         super('layout-module')
         this.version(1).stores({
-            documents: 'id, layoutId, floorType, data',
-            layouts: 'id, sectionId, name',
+            layouts: 'id, sectionId, name, data',
         })
     }
 }
@@ -33,37 +25,49 @@ class LayoutDb extends Dexie {
 const db = new LayoutDb()
 
 export class DataAccess {
-    async getSections() {
+    public async getLayout(id: string) {
+        const layout = await db
+            .layouts
+            .where('id')
+            .equals(id)
+            .first()
+        if (layout === undefined) throw new NotFoundError()
+        const json = JSON.parse(layout.data)
+        // TODO: добавить валидацию
+        return json as EditorDocument
+    }
+
+    public async getSections() {
         return Promise.resolve(sectionsData)
     }
 
-    async getSection(sectionId: string) {
+    public async getSection(sectionId: string) {
         const section = sectionsData.find(x => x.id === sectionId)
         if (section) return section
         throw new LogicError(`Section ${sectionId} not found`)
     }
 
-    async getSectionLayouts(sectionId: string) {
-        return []
+    public async getSectionLayouts(sectionId: string) {
+        const layouts = await db
+            .layouts
+            .where('sectionId')
+            .equals(sectionId)
+            .toArray()
+        return layouts
     }
 
-    async getApartmentTemplates() {
+    public async getApartmentTemplates() {
         return parseShapes(rawShapesJson)
     }
 
-    // saveLayout(data: { sectionId: string; layoutId: string, floorType: FloorType, document: EntityDtoArray }) {
-    //     db.documents.add({
-    //         id
-    //         layoutId: data.layoutId,
-    //         data: JSON.stringify(document),
-    //     })
-    // }
-
-    // async loadCurrentDocument() {
-    //     const data = localStorage.getItem(CURRENT_DOCUMENT_KEY)
-    //     if (isNull(data)) return null
-    //     return DocumentSchema.parseAsync(JSON.parse(data))
-    // }
+    public async saveLayout(doc: EditorDocument) {
+        db.layouts.put({
+            id: doc.layoutId,
+            sectionId: doc.sectionId,
+            name: doc.name,
+            data: JSON.stringify(doc)
+        })
+    }
 }
 
 const sectionsData: SectionDto[] = [

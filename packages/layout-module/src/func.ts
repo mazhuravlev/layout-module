@@ -153,3 +153,24 @@ export const deserializeMatrix = (dto: MatrixDto): Matrix => {
   const { a, b, c, d, tx, ty } = dto
   return new Matrix(a, b, c, d, tx, ty)
 }
+
+
+export function generateName(): string {
+  const adjectives = ['Quantum', 'Neon', 'Luminous', 'Swift', 'Epic', 'Mystic']
+  const animals = ['Dragon', 'Phoenix', 'Unicorn', 'Griffin', 'Kraken', 'Yeti']
+
+  const adj = adjectives[Math.floor(Math.random() * adjectives.length)]
+  const animal = animals[Math.floor(Math.random() * animals.length)]
+  return `${adj} ${animal}`
+}
+
+/**
+ * Создает промис, который завершается через указанное время
+ * @param ms Время в миллисекундах, через которое промис будет разрешен
+ * @returns Промис, который разрешится через указанное время
+ */
+export function timeout(ms: number): Promise<void> {
+  return new Promise((resolve) => {
+    setTimeout(resolve, ms)
+  })
+}

@@ -1,5 +1,6 @@
 import { Subscription as RxSubscription } from 'rxjs'
 import { Subscription as EffectorSubscription } from 'effector'
+import { EditorObjectDto } from './Editor/dto'
 
 export type APoint = {
     x: number
@@ -28,5 +29,13 @@ export const unsubscribe = (s: ASubscription) => s.unsubscribe()
 export class NotImplemented extends Error { }
 export class InvalidOperation extends Error { }
 export class LogicError extends Error { }
+export class NotFoundError extends Error { }
 
 export type FloorType = 'first' | 'typical'
+
+export interface EditorDocument {
+    sectionId: string
+    layoutId: string
+    name: string
+    floors: { type: FloorType, objects: EditorObjectDto[] }[]
+}

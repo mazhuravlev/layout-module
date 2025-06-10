@@ -78,16 +78,7 @@ export const populateWindows = createEvent<{
 }>()
 export const setWindowProperties = createEvent<Partial<WindowProperties>>()
 
-// interface SectionStore {
-//     id: string | null
-// }
-// export const setSection = createEvent<string | null>()
-// export const setSectionSelected = createEvent<string | null>()
-// export const $section = createStore<SectionStore>({ id: null })
-// $section.on(setSection, (state, id) => ({ ...state, id }))
-// $section.on(setSectionSelected, (state, id) => ({ ...state, id }))
-
-export const createNewLayout = createEvent<{ sectionId: string }>()
+export const createNewLayout = createEvent<{ sectionId: string, name: string }>()
 
 export const $editorState = createStore<{
     ready: boolean
@@ -101,3 +92,4 @@ $editorState.on(setEditorReady, (s, ready) => ({ ...s, ready }))
 export const selectFloorType = createEvent<FloorType>()
 export const setFloorType = createEvent<FloorType>()
 $editorState.on(setFloorType, (s, floorType) => ({ ...s, floorType }))
+export const loadLayout = createEvent<string>()

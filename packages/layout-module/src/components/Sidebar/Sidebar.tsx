@@ -13,13 +13,17 @@ export const Sidebar: React.FC = () => {
             <span>Задание</span>
             <span style={{ fontWeight: 600 }}>Редактирование</span>
         </div>
-        <div>
+        <div className={styles.layouts}>
             <header>Секции</header>
-            <Sections selectedSection={selectedSection ?? undefined} onSelectSection={setSelectedSection} />
+            <div>
+                <Sections selectedSection={selectedSection ?? undefined} onSelectSection={setSelectedSection} />
+            </div>
         </div>
-        <div>
+        <div className={styles.layouts}>
             <header>Планировки</header>
-            {selectedSection && <Layouts section={selectedSection} />}
+            <div>
+                {selectedSection && <Layouts section={selectedSection} />}
+            </div>
         </div>
         <div className={styles.layoutButtons}>
             <Button>Загрузить из файла</Button>

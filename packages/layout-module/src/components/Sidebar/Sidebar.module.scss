@@ -33,3 +33,15 @@
     flex-direction: row;
     gap: 8px;
 }
+
+.layouts {
+    header {
+        font-weight: 600;
+        padding-left: 8px;
+        margin-bottom: 4px;
+    }
+
+    div {
+        padding-left: 16px;
+    }
+}
