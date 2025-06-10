@@ -1,5 +1,5 @@
 import { useQueryClient } from 'react-query'
-import { SectionDto } from '../../dataAccess/types'
+import { SectionDto } from '../../Editor/dto'
 import { generateLayoutName, notEmpty, watchOnce } from '../../func'
 import { LogicError } from '../../types'
 import { Button } from '../common/Button'

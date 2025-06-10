@@ -1,7 +1,7 @@
 import React from 'react'
 import { List } from '../common/List'
 import { useSections } from '../hooks'
-import { SectionDto } from '../../dataAccess/types'
+import { SectionDto } from '../../Editor/dto'
 import { assertDefined } from '../../func'
 import cn from 'classnames'
 import styles from './Sections.module.scss'

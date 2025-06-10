@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { SectionDto } from '../../dataAccess/types'
+import { SectionDto } from '../../Editor/dto'
 import { Button } from '../common/Button'
 import { Sections } from '../Sections/Sections'
 import styles from './Sidebar.module.scss'

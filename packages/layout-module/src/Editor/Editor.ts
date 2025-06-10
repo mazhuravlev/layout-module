@@ -34,7 +34,6 @@ import { MoveWindowCommand } from '../commands/MoveWindowCommand'
 import { EDITOR_CONFIG } from './editorConfig'
 import { KeyboardState } from './KeyboardState'
 import lluData from '../entities/GeometryBlock/llu'
-import { serializeEditorObject } from './dto'
 import { DataAccess } from '../dataAccess/DataAccess'
 
 export class Editor {
@@ -293,7 +292,10 @@ export class Editor {
         this._subscriptions.push(this._eventService.events$
             .pipe(filter(e => e.type === 'selectionChanged'))
             .subscribe(e => {
-                events.selectionChanged(e.selectedObjects.map(serializeEditorObject).filter(notNull))
+                const selection = e.selectedObjects
+                    .filter(x => x.serializable)
+                    .map(x => x.serialize()!)
+                events.selectionChanged(selection)
             })
         )
 

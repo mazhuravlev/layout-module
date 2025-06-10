@@ -1,5 +1,5 @@
 import { EditorDocument, LogicError, NotFoundError } from '../types'
-import { SectionDto } from './types'
+import { SectionDto } from '../Editor/dto'
 import { parseShapes } from './parseShapes'
 import rawShapesJson from './shapesData.json'
 import Dexie from 'dexie'
