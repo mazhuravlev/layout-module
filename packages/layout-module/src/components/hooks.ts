@@ -1,7 +1,7 @@
 import { use } from 'react'
 import { useQuery } from 'react-query'
 import { AppContext } from './AppContext'
-import { DataAccess } from '../dataAccess/DataAccess'
+import { DataAccess } from '../DataAccess/DataAccess'
 
 export function useDataAccess(): DataAccess {
     const context = use(AppContext)

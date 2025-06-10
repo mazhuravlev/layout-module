@@ -50,8 +50,6 @@ export const last = <T>(array: T[]): T => {
 
 export const makeUuid = () => uuid()
 
-export const returnSecondArg = <T>(_: unknown, x: T): T => x
-
 export const toError = (value: unknown): Error => {
   if (value instanceof Error) return value
   if (typeof value === 'string') return new Error(value)

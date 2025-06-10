@@ -4,7 +4,7 @@ import { generateLayoutName, notEmpty, watchOnce } from '../../func'
 import { LogicError } from '../../types'
 import { Button } from '../common/Button'
 import { List } from '../common/List'
-import { $editorState, createNewLayout, loadLayout, setEditorReady } from '../events'
+import { $editorState, createNewLayout, loadLayout, setEditorReady } from '../../events'
 import { useSectionLayouts } from '../hooks'
 import { useStoreMap } from 'effector-react'
 

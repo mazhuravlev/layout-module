@@ -1,7 +1,7 @@
 import { WindowDto } from '../../Editor/dto'
 import { NumberInput } from '../common/inputs'
 import { List } from '../common/List'
-import { setWindowProperties } from '../events'
+import { setWindowProperties } from '../../events'
 
 interface WindowPropertiesProps {
     windows: WindowDto[]

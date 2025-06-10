@@ -1,6 +1,6 @@
 import { Container, Graphics } from 'pixi.js'
 import { APoint, ALine, IDisposable, ASubscription, unsubscribe } from '../types'
-import { $debugConfig, $snapConfig, SnapConfig } from '../components/events'
+import { $debugConfig, $snapConfig, SnapConfig } from '../events'
 import { areLinesCollinear, getPointDistance, getSlope, pointsToLines, projectPointOnLine } from '../geometryFunc'
 import { Units } from '../Units'
 import { assertUnreachable, not } from '../func'

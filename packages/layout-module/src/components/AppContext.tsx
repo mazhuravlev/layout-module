@@ -1,5 +1,5 @@
 import React, { createContext, useMemo } from 'react'
-import { DataAccess } from '../dataAccess/DataAccess'
+import { DataAccess } from '../DataAccess/DataAccess'
 
 interface AppContextType {
     dataAccess: DataAccess

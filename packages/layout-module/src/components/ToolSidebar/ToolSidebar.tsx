@@ -1,5 +1,5 @@
 import { ToolSidebarProps } from './ToolSidebarProps'
-import * as events from '../events'
+import * as events from '../../events'
 import styles from './ToolSidebar.module.scss'
 import { Button } from '../common/Button'
 import { useStoreMap, useUnit } from 'effector-react'

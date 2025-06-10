@@ -1,5 +1,5 @@
 import { Button } from '../common/Button'
-import { populateWindows } from '../events'
+import { populateWindows } from '../../events'
 import { List } from '../common/List'
 import { NumberInput } from '../common/inputs'
 import { useState } from 'react'

@@ -1,5 +1,5 @@
 import { useStoreMap } from 'effector-react'
-import { $sectionSettings, setSectionOffset } from '../events'
+import { $sectionSettings, setSectionOffset } from '../../events'
 import { NumberInput } from '../common/inputs'
 
 export const SectionProperties: React.FC = () => {

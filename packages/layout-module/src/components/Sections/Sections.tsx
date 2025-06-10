@@ -6,7 +6,7 @@ import { assertDefined } from '../../func'
 import cn from 'classnames'
 import styles from './Sections.module.scss'
 import { useStoreMap } from 'effector-react'
-import { $editorState } from '../events'
+import { $editorState } from '../../events'
 
 interface SectionsComponentProps {
     selectedSection?: SectionDto

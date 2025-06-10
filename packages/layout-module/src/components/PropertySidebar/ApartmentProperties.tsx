@@ -1,6 +1,6 @@
 import { ApartmentDto } from '../../Editor/dto'
 import { List } from '../common/List'
-import { setApartmentProperties } from '../events'
+import { setApartmentProperties } from '../../events'
 
 interface ApartmentPropertiesProps {
     apartments: ApartmentDto[]

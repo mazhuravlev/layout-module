@@ -3,7 +3,7 @@ import rotateImg from './rotate.png'
 import zoomImg from './zoom.png'
 import flipVerticalImg from './flipVertical.png'
 import flipHorizontalImg from './flipHorizontal.png'
-import * as events from '../events'
+import * as events from '../../events'
 
 const buttonStyle = { padding: 0 }
 

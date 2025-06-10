@@ -1,5 +1,5 @@
 import { useStoreMap, useUnit } from 'effector-react'
-import { $editorState, $selectedObjects, addApartment } from '../events'
+import { $editorState, $selectedObjects, addApartment } from '../../events'
 import { List } from '../common/List'
 import { ApartmentTemplateComponent } from './ApartmentTemplateComponent'
 import { useApartmentTemplates } from '../hooks'
