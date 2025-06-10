@@ -35,6 +35,10 @@ import { EDITOR_CONFIG } from './editorConfig'
 import { KeyboardState } from './KeyboardState'
 import lluData from '../entities/GeometryBlock/llu'
 import { DataAccess } from '../dataAccess/DataAccess'
+import { EntityDtoArray } from './dtoSchema'
+import { EditorObjectDto } from './dto'
+
+const COPIED_OBJECTS_KEY = 'copiedObjects.v1'
 
 export class Editor {
     private _app = new Application()
@@ -126,20 +130,22 @@ export class Editor {
     public selectObjects(objects: EditorObject[]) { this._selectionManager.selectObjects(objects) }
     public zoomToExtents() { this._viewportManager?.zoomToExtents() }
 
+    private createEditorObjectFromDto(dto: EditorObjectDto): EditorObject {
+        switch (dto.type) {
+            case 'apartment':
+                return Apartment.deserialize(this.eventService, dto)
+            case 'window':
+                return WindowObj.deserialize(this.eventService, dto)
+            case 'geometryBlock':
+                return GeometryBlock.deserialize(this.eventService, dto)
+            default:
+                throw assertUnreachable(dto)
+        }
+    }
+
     public async populateEditorObjects(floorType: FloorType) {
         const floor = assertDefined(this.currentLayout.floors.find(x => x.type === floorType))
-        const editorObjects = floor.objects.map(x => {
-            switch (x.type) {
-                case 'apartment':
-                    return Apartment.deserialize(this.eventService, x)
-                case 'window':
-                    return WindowObj.deserialize(this.eventService, x)
-                case 'geometryBlock':
-                    return GeometryBlock.deserialize(this.eventService, x)
-                default:
-                    throw assertUnreachable(x)
-            }
-        })
+        const editorObjects = floor.objects.map(x => this.createEditorObjectFromDto(x))
         new AddObjectCommand(this, editorObjects).execute()
     }
 
@@ -204,6 +210,8 @@ export class Editor {
                 await this.createNewLayout(sectionId, name)
             }),
             events.loadLayout.watch(id => this.loadLayout(id)),
+            events.copySelected.watch(() => this.copySelected()),
+            events.pasteObjects.watch(() => this.pasteObjects()),
             this._eventService.events$
                 .pipe(
                     filter(e => e.type === 'documentUpdate'),
@@ -213,6 +221,25 @@ export class Editor {
                 )
                 .subscribe(doc => this.saveLayout(doc)),
         ])
+    }
+
+    private pasteObjects() {
+        const jsonString = localStorage.getItem(COPIED_OBJECTS_KEY)
+        if (jsonString === null) return
+        const { success, data } = EntityDtoArray.safeParse(JSON.parse(jsonString))
+        if (success && data) {
+            const objects = data.map(x => this.createEditorObjectFromDto({ ...x, id: makeUuid() }))
+            this.executeCommand(new AddObjectCommand(this, objects))
+        }
+    }
+
+    private copySelected() {
+        const { selectedObjects } = this._selectionManager
+        if (empty(selectedObjects)) return
+        const dto = selectedObjects
+            .filter(x => x.serializable)
+            .map(x => x.serialize())
+        localStorage.setItem(COPIED_OBJECTS_KEY, JSON.stringify(dto))
     }
 
     private async saveLayout(doc: EditorDocument) {
@@ -240,6 +267,7 @@ export class Editor {
 
     async switchFloorType(floorType: FloorType) {
         events.setFloorType(floorType)
+        this._selectionManager.deselectAll()
         this.unloadObjects()
         this.populateEditorObjects(floorType)
         // TODO: почему обьекты не добавлятюся синхронно, сразу?
@@ -248,6 +276,7 @@ export class Editor {
 
     private async loadLayout(id: string) {
         events.setEditorReady(false)
+        this._selectionManager.deselectAll()
         this.unloadSection()
         this.unloadObjects()
         const layout = await this._dataAccess.getLayout(id)

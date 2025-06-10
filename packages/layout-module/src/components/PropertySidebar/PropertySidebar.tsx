@@ -21,7 +21,7 @@ export const PropertySidebar: React.FC = () => {
         return <div className={styles.container}>Откройте планировку</div>
     }
     return <div className={styles.container}>
-        <PropertyBlock header='Типы планировок'>
+        <PropertyBlock header='Типы помещений'>
             <ApartmentTemplatesList />
         </PropertyBlock>
         <PropertyBlock header='Свойства проекта'>

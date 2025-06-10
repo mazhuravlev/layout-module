@@ -7,6 +7,7 @@ import { $debugConfig, $sizeConfig } from '../components/events'
 import { isVerticalLine, lineCenter, lineLength, makeLineHitbox, shiftLine } from '../geometryFunc'
 import { EditorObject } from './EditorObject'
 import { GlowFilter } from 'pixi-filters'
+import { EditorObjectDto } from '../Editor/dto'
 
 const wallSettings = {
     size: {
@@ -121,6 +122,10 @@ export class Wall extends EditorObject {
 
     public clone(): EditorObject {
         throw new InvalidOperation('Стену не надо копировать')
+    }
+
+    public serialize(): EditorObjectDto {
+        throw new InvalidOperation('Стену не надо сериализовать')
     }
 
     public dispose() {

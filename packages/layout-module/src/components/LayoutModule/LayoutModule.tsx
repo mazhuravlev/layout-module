@@ -17,6 +17,8 @@ const queryClient = new QueryClient()
 const dataAccess = new DataAccess()
 
 const keyMap = [
+  { code: 'KeyC', ctrl: true, fn: () => events.copySelected() },
+  { code: 'KeyV', ctrl: true, fn: () => events.pasteObjects() },
   { code: 'Delete', fn: () => events.deleteSelected() },
   { code: 'KeyA', fn: () => events.toggleShowWallSize() },
   { code: 'KeyS', fn: () => events.toggleSnap() },
@@ -35,7 +37,7 @@ export const LayoutModule: React.FC<LayoutModuleProps> = (_props) => {
     const s = fromEvent<KeyboardEvent>(document, 'keydown', { passive: false })
       .subscribe(e => {
         const r = keyMap.find(x => x.code === e.code)
-        if (r && !!r.ctrl === e.ctrlKey) {
+        if (r && r.ctrl === e.ctrlKey) {
           r.fn()
           if (r.preventDefault) e.preventDefault()
         }

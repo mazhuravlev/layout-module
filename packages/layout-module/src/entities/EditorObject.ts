@@ -32,9 +32,7 @@ export abstract class EditorObject implements IDisposable {
 
     public get serializable() { return false }
 
-    public serialize(): EditorObjectDto | null {
-        return null
-    }
+    public abstract serialize(): EditorObjectDto
 
     /**
      * @param angle Угол в градусах

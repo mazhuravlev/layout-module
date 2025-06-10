@@ -99,3 +99,6 @@ $editorState.on(setFloorType, (s, floorType) => ({ ...s, floorType }))
 export const loadLayout = createEvent<string>()
 export const setCurrentLayout = createEvent<{ sectionId: string, layoutId: string }>()
 $editorState.on(setCurrentLayout, (s, { sectionId, layoutId }) => ({ ...s, sectionId, layoutId }))
+
+export const copySelected = createEvent<void>()
+export const pasteObjects = createEvent<void>()
