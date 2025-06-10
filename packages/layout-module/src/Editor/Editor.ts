@@ -212,17 +212,20 @@ export class Editor {
                     tap(() => this.updateDocument()),
                     map(() => this.currentLayout),
                 )
-                .subscribe(doc => {
-                    this._dataAccess.saveLayout(doc)
-                }),
+                .subscribe(doc => this.saveLayout(doc)),
         ])
     }
 
+    private async saveLayout(doc: EditorDocument) {
+        await this._dataAccess.saveLayout(doc)
+    }
+
     private async createNewLayout(sectionId: string, name: string) {
+        const layoutId = makeUuid()
         this._currentLayout = {
             sectionId,
             name,
-            layoutId: makeUuid(),
+            layoutId,
             floors: [
                 { type: 'first', objects: [] },
                 { type: 'typical', objects: [] },
@@ -231,8 +234,9 @@ export class Editor {
         this.unloadObjects()
         await this.unloadSection()
         await this.loadSection(sectionId)
+        await this.saveLayout(this._currentLayout)
+        events.setCurrentLayout({ sectionId, layoutId })
         events.setEditorReady(true)
-        this._eventService.emit({ type: 'documentUpdate' })
     }
 
     async switchFloorType(floorType: FloorType) {

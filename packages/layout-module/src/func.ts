@@ -1,4 +1,4 @@
-import { Store } from 'effector'
+import { Event, Store, Subscription } from 'effector'
 import { fromEventPattern, Observable } from 'rxjs'
 import { v4 as uuid } from 'uuid'
 import { Container, FederatedEventMap, Matrix } from 'pixi.js'
@@ -155,13 +155,13 @@ export const deserializeMatrix = (dto: MatrixDto): Matrix => {
 }
 
 
-export function generateName(): string {
-  const adjectives = ['Quantum', 'Neon', 'Luminous', 'Swift', 'Epic', 'Mystic']
-  const animals = ['Dragon', 'Phoenix', 'Unicorn', 'Griffin', 'Kraken', 'Yeti']
+export function generateLayoutName(): string {
+  const styles = ['Современная', 'Классическая', 'Студийная', 'Открытая', 'Модульная', 'Европейская']
+  const layouts = ['галерея', 'лофт', 'терраса', 'анфилада', 'галерея']
 
-  const adj = adjectives[Math.floor(Math.random() * adjectives.length)]
-  const animal = animals[Math.floor(Math.random() * animals.length)]
-  return `${adj} ${animal}`
+  const style = styles[Math.floor(Math.random() * styles.length)]
+  const layout = layouts[Math.floor(Math.random() * layouts.length)]
+  return `${style} ${layout}`
 }
 
 /**
@@ -173,4 +173,16 @@ export function timeout(ms: number): Promise<void> {
   return new Promise((resolve) => {
     setTimeout(resolve, ms)
   })
+}
+
+export function watchOnce<T>(
+  unit: Event<T>,
+  handler: (payload: T) => void
+): Subscription {
+  let sub: Subscription | null = null
+  sub = unit.watch(payload => {
+    handler(payload)
+    sub?.unsubscribe()
+  })
+  return sub
 }

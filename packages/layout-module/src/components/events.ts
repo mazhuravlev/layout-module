@@ -78,7 +78,6 @@ export const populateWindows = createEvent<{
 }>()
 export const setWindowProperties = createEvent<Partial<WindowProperties>>()
 
-export const createNewLayout = createEvent<{ sectionId: string, name: string }>()
 
 export const $editorState = createStore<{
     ready: boolean
@@ -91,6 +90,7 @@ export const $editorState = createStore<{
     layoutId: null,
     sectionId: null,
 })
+export const createNewLayout = createEvent<{ sectionId: string, name: string }>()
 export const setEditorReady = createEvent<boolean>()
 $editorState.on(setEditorReady, (s, ready) => ({ ...s, ready }))
 export const selectFloorType = createEvent<FloorType>()

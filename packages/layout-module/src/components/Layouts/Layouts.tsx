@@ -1,10 +1,10 @@
 import { useQueryClient } from 'react-query'
 import { SectionDto } from '../../dataAccess/types'
-import { generateName, notEmpty, timeout } from '../../func'
+import { generateLayoutName, notEmpty, watchOnce } from '../../func'
 import { LogicError } from '../../types'
 import { Button } from '../common/Button'
 import { List } from '../common/List'
-import { $editorState, createNewLayout, loadLayout } from '../events'
+import { $editorState, createNewLayout, loadLayout, setEditorReady } from '../events'
 import { useSectionLayouts } from '../hooks'
 import { useStoreMap } from 'effector-react'
 
@@ -21,14 +21,17 @@ export const Layouts: React.FC<LayoutsComponentProps> = props => {
     if (layouts === undefined) throw new LogicError()
 
     const handleCreateNewLayout = async () => {
-        const name = prompt('Введите название', generateName())
-        if (name !== null) {
-            createNewLayout({ sectionId: props.section.id, name })
-            await timeout(1000) // TODO: сделать нормально
-            await queryClient.invalidateQueries({
-                queryKey: ['SectionLayouts', props.section.id]
-            })
-        }
+        const name = prompt('Введите название', generateLayoutName())
+        if (name === null) return
+        watchOnce(
+            setEditorReady.filter({ fn: x => x }),
+            () => {
+                queryClient.invalidateQueries({
+                    queryKey: ['SectionLayouts', props.section.id]
+                })
+            }
+        )
+        createNewLayout({ sectionId: props.section.id, name })
     }
 
     return <>
