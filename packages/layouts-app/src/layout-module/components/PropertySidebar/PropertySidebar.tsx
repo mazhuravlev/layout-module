@@ -1,7 +1,7 @@
 import { useStoreMap, useUnit } from 'effector-react'
-import { $editorState, $selectedObjects, addApartment } from '../../events'
-import { ApartmentTemplateComponent } from './ApartmentTemplateComponent'
-import { useApartmentTemplates } from '../hooks'
+import { $editorState, $selectedObjects, addApartment, addLLU } from '../../events'
+import { BlockOutline } from './BlockOutline'
+import { useApartmentTemplates, useLLU } from '../hooks/dataAccess'
 import { assertDefined, not, notEmpty } from '../../func'
 import { isApartmentDto, isWindowDto } from '../../Editor/dto'
 import { ApartmentProperties } from './ApartmentProperties'
@@ -9,6 +9,7 @@ import { WindowProperties } from './WindowProperties'
 import { SectionProperties } from './SectionProperties'
 import styles from './PropertySidebar.module.scss'
 import { PopulateWindows } from './PopulateWindows'
+import { PropertyBlock } from './PropertyBlock/PropertyBlock'
 
 
 export const PropertySidebar: React.FC = () => {
@@ -22,6 +23,9 @@ export const PropertySidebar: React.FC = () => {
     return <div className={styles.container}>
         <PropertyBlock header='Типы помещений'>
             <ApartmentTemplatesList />
+        </PropertyBlock>
+        <PropertyBlock header='Типы ЛЛУ'>
+            <LLUList />
         </PropertyBlock>
         <PropertyBlock header='Свойства проекта'>
             <PopulateWindows />
@@ -38,18 +42,6 @@ export const PropertySidebar: React.FC = () => {
     </div>
 }
 
-const PropertyBlock: React.FC<{
-    header: string
-    children: React.ReactNode
-}> = (props) => {
-    return <div style={{ borderBottom: '1px solid lightgrey' }}>
-        <header style={{ fontWeight: 500, marginBottom: 2 }}>{props.header}</header>
-        <div style={{ paddingLeft: 8, paddingBottom: 4 }}>
-            {props.children}
-        </div>
-    </div>
-}
-
 const ApartmentTemplatesList: React.FC = () => {
     const { data, isLoading, error } = useApartmentTemplates()
     if (isLoading) return 'Загрузка...'
@@ -60,8 +52,8 @@ const ApartmentTemplatesList: React.FC = () => {
             <tr
                 key={template.name}
                 onClick={() => addApartment(template)}>
-                <td>
-                    <ApartmentTemplateComponent template={template} />
+                <td width='30%'>
+                    <BlockOutline outline={template.points} />
                 </td>
                 <td>
                     {template.name}
@@ -69,5 +61,32 @@ const ApartmentTemplatesList: React.FC = () => {
             </tr>
         ))}
     </tbody>
+    </table>
+}
+
+const LLUList: React.FC = () => {
+    const currentLayout = useStoreMap($editorState, x => x.currentLayout)
+    const { data, isLoading, error } = useLLU(currentLayout ?? { minFloors: 0, maxFloors: 0 })
+    if (isLoading) return 'Загрузка...'
+    if (error) return 'Ошибка'
+    if (currentLayout === null) return 'Выберите планировку'
+
+    return <table
+        style={{ fontSize: 10 }}
+        className={styles.templatesTable} >
+        <tbody>
+            {assertDefined(data).map((template) => (
+                <tr
+                    key={template.name}
+                    onClick={() => addLLU(template)}>
+                    <td>
+                        <BlockOutline outline={template.outline} />
+                    </td>
+                    <td>
+                        {template.name}
+                    </td>
+                </tr>
+            ))}
+        </tbody>
     </table>
 }

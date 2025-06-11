@@ -166,9 +166,13 @@ export class Editor {
                     this,
                     new Apartment(this._eventService, shape.points.map(mapPoint(Units.fromMm)))))
             }),
-            events.addLLU.watch(() => {
-                // TODO ЛЛУ
-                //this.executeCommand(new AddObjectCommand(this, new GeometryBlock(this._eventService, lluData)))
+            events.addLLU.watch(llu => {
+                const template: GeometryBlockTemplate = {
+                    id: llu.id,
+                    outline: llu.outline.map(mapPoint(Units.fromMm)),
+                    geometry: llu.geometry.map(x => x.map(mapPoint(Units.fromMm))),
+                }
+                this.executeCommand(new AddObjectCommand(this, new GeometryBlock(this._eventService, template)))
             }),
             events.deleteSelected.watch(() => this.deleteSelected()),
             events.zoomToExtents.watch(() => this.zoomToExtents()),

@@ -1,7 +1,8 @@
 import { use } from 'react'
-import { AppContext } from './AppContext'
-import type { DataAccess } from '../DataAccess/DataAccess'
+import { AppContext } from '../AppContext'
+import type { DataAccess } from '../../DataAccess/DataAccess'
 import { useQuery } from '@tanstack/react-query'
+import type { FloorRange } from '../../types'
 
 export function useDataAccess(): DataAccess {
     const context = use(AppContext)
@@ -24,6 +25,14 @@ export function useApartmentTemplates() {
     return useQuery({
         queryKey: ['ApartmentTemplates'] as const,
         queryFn: () => dataAccess.getApartmentTemplates(),
+    })
+}
+
+export function useLLU(filter: FloorRange) {
+    const dataAccess = useDataAccess()
+    return useQuery({
+        queryKey: ['LLU'] as const,
+        queryFn: () => dataAccess.getLLUsFiltered(filter),
     })
 }
 

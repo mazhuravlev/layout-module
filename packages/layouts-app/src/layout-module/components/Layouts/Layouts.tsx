@@ -4,7 +4,7 @@ import { LogicError } from '../../types'
 import { Button } from '../common/Button'
 import { List } from '../common/List'
 import { $editorState, createNewLayout, loadLayout, setEditorReady } from '../../events'
-import { useSectionLayouts } from '../hooks'
+import { useSectionLayouts } from '../hooks/dataAccess'
 import { useStoreMap } from 'effector-react'
 
 interface LayoutsComponentProps {

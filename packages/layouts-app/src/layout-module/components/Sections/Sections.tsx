@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { List } from '../common/List'
-import { useSections } from '../hooks'
+import { useSections } from '../hooks/dataAccess'
 import { assertDefined } from '../../func'
 import cn from 'classnames'
 import styles from './Sections.module.scss'

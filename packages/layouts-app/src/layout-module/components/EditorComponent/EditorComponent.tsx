@@ -3,7 +3,7 @@ import styles from './EditorComponent.module.scss'
 import type { EditorProps } from './EditorProps'
 import { Editor } from '../../Editor/Editor'
 import { withNullable } from '../../func'
-import { useDataAccess } from '../hooks'
+import { useDataAccess } from '../hooks/dataAccess'
 import { $savedSelectedLayout, loadLayout } from '../../events'
 
 export const EditorComponent: React.FC<EditorProps> = (_props) => {

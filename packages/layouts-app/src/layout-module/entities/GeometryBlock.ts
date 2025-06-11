@@ -92,7 +92,7 @@ export class GeometryBlock extends EditorObject {
 
         _outline
             .poly(this._template.outline)
-            .fill({ color: 0xffffff })
+            .fill({ color: { r: 0xff, g: 0xff, b: 0xff, a: 0 } })
         _container.addChild(_outline)
 
         this._template.geometry.forEach(line => {

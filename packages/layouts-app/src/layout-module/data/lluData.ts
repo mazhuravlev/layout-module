@@ -13,6 +13,7 @@ export const lluData: LluData[] = lluDataJson.map(x => {
     const minXy = getMinXy(x.outline)
     const { minFloors, maxFloors } = parseFloorsRange(x.Properties.RangeFloor)
     const llu: LluData = {
+        id: x.id,
         name: x.name,
         outline: x.outline.map(p => subtractVectors(p, minXy)),
         geometry: x.geometry.map(g => g.polyline.map(p => subtractVectors(p, minXy))),

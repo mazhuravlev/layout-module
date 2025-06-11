@@ -42,6 +42,7 @@ export interface ApartmentTemplate {
 }
 
 export interface LluData {
+    id: string
     name: string
     outline: APoint[]
     geometry: APoint[][]

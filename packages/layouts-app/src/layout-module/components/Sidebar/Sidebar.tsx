@@ -24,9 +24,5 @@ export const Sidebar: React.FC = () => {
                 {selectedSectionId && <Layouts sectionId={selectedSectionId} />}
             </div>
         </div>
-        <div className={styles.layoutButtons}>
-            <Button>Загрузить из файла</Button>
-            <Button>Редактировать</Button>
-        </div>
     </div>
 }

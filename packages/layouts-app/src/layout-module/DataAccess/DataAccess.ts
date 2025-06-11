@@ -1,9 +1,9 @@
-import type { EditorDocument } from '../types'
+import type { EditorDocument, FloorRange } from '../types'
 import { LogicError, NotFoundError } from '../types'
 import Dexie from 'dexie'
 import { apartmentTemplates } from '../data/apartmentData'
 import { sectionsData } from '../data/sectionsData'
-import { lluData } from '../data/lluData'
+import { lluData as LLUData } from '../data/lluData'
 
 export interface EditorDocumentRecord {
     id: string
@@ -57,13 +57,13 @@ export class DataAccess {
         return layouts
     }
 
-    public async getLlu() {
-        return lluData
+    public async getLLUs() {
+        return LLUData
     }
 
-    public async getLluFiltered(options: { minFloors: number, maxFloors: number }) {
-        return lluData
-            .filter(x => x.minFloors >= options.minFloors && x.maxFloors <= options.maxFloors)
+    public async getLLUsFiltered(options: FloorRange) {
+        return LLUData
+            .filter(x => x.minFloors >= options.minFloors || x.maxFloors <= options.maxFloors)
     }
 
     public async getApartmentTemplates() {
