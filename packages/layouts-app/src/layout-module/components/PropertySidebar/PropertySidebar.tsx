@@ -3,7 +3,7 @@ import { $editorState, $selectedObjects, addApartment, addLLU } from '../../even
 import { BlockOutline } from './BlockOutline'
 import { useApartmentTemplates, useLLU } from '../hooks/dataAccess'
 import { assertDefined, not, notEmpty } from '../../func'
-import { isApartmentDto, isWindowDto } from '../../Editor/dto'
+import { isApartmentDto, isLLUDto, isWindowDto } from '../../Editor/dto'
 import { ApartmentProperties } from './ApartmentProperties'
 import { WindowProperties } from './WindowProperties'
 import { SectionProperties } from './SectionProperties'
@@ -16,6 +16,7 @@ export const PropertySidebar: React.FC = () => {
     const editorReady = useStoreMap($editorState, x => x.ready)
     const selectedObjects = useUnit($selectedObjects)
     const apartments = selectedObjects.filter(isApartmentDto)
+    const llus = selectedObjects.filter(isLLUDto)
     const windows = selectedObjects.filter(isWindowDto)
     if (not(editorReady)) {
         return <div className={styles.container}>Откройте планировку</div>
@@ -35,6 +36,9 @@ export const PropertySidebar: React.FC = () => {
         </PropertyBlock>
         {notEmpty(apartments) && <PropertyBlock header={`Свойства планировки: ${apartments.length}`}>
             <ApartmentProperties apartments={apartments} />
+        </PropertyBlock>}
+        {notEmpty(llus) && <PropertyBlock header={`Свойства ЛЛУ: ${llus.length}`}>
+            Свойства ЛЛУ
         </PropertyBlock>}
         {notEmpty(windows) && <PropertyBlock header={`Свойства окна: ${windows.length}`}>
             <WindowProperties windows={windows} />

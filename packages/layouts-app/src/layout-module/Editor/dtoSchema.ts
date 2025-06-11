@@ -43,8 +43,8 @@ export const SectionOutlineDtoSchema = z.object({
     points: z.array(APointSchema),
 })
 
-export const GeometryBlockDtoSchema = z.object({
-    type: z.literal('geometryBlock'),
+export const LLUDtoSchema = z.object({
+    type: z.literal('llu'),
     id: z.string(),
     templateId: z.string(),
     transform: TransformMatrixSchema,
@@ -53,7 +53,7 @@ export const GeometryBlockDtoSchema = z.object({
 export const EntityDtoSchema = z.discriminatedUnion('type', [
     ApartmentDtoSchema,
     WindowDtoSchema,
-    GeometryBlockDtoSchema,
+    LLUDtoSchema,
 ])
 export type EntityDtoSchemaType = z.infer<typeof EntityDtoSchema>
 

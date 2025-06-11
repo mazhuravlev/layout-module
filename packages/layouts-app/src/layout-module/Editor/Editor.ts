@@ -1,7 +1,7 @@
 import { Application, FederatedPointerEvent } from 'pixi.js'
 import { distanceFromPointToLine, getLineLength, pointsToLines, shiftLine } from '../geometryFunc'
 import { Logger } from '../logger'
-import type { ALine, APoint, ASubscription, EditorDocument, FloorType, GeometryBlockTemplate } from '../types'
+import type { ALine, APoint, ASubscription, EditorDocument, FloorType, LLUTemplate } from '../types'
 import { InvalidOperation, LogicError, unsubscribe } from '../types'
 import { addVectors, aPoint, mapLine, mapPoint, multiplyVector, subtractVectors } from '../geometryFunc'
 import type { BlockDragConfig, DragConfig, WallDragConfig, WindowDragConfig } from './dragConfig'
@@ -21,7 +21,7 @@ import { UpdateApartmentPointsCommand } from '../commands/UpdateApartmentPointsC
 import { initDevtools } from '@pixi/devtools'
 import { Wall } from '../entities/Wall'
 import { UpdateApartmentPropertiesCommand } from '../commands/UpdateApartmentPropertiesCommand'
-import { GeometryBlock } from '../entities/GeometryBlock'
+import { LLU } from '../entities/LLU'
 import type { EditorObject } from '../entities/EditorObject'
 import { Units } from '../Units'
 import { SimpleCommand } from '../commands/SimpleCommand'
@@ -58,7 +58,7 @@ export class Editor {
 
     private _currentLayout: EditorDocument | null = null
 
-    private _geometryBlockTemplates = new Map<string, GeometryBlockTemplate>()
+    private _LLUTemplates = new Map<string, LLUTemplate>()
 
     /**
      * @description Cleanup functions to be called on dispose
@@ -118,10 +118,10 @@ export class Editor {
             app,
             this._container,
         )
-        this._geometryBlockTemplates = new Map((await this._dataAccess.getLLUs())
+        this._LLUTemplates = new Map((await this._dataAccess.getLLUs())
             .map(llu => {
-                const template: GeometryBlockTemplate = {
-                    id: llu.id,
+                const template: LLUTemplate = {
+                    ...llu,
                     outline: llu.outline.map(mapPoint(Units.fromMm)),
                     geometry: llu.geometry.map(x => x.map(mapPoint(Units.fromMm))),
                 }
@@ -155,8 +155,8 @@ export class Editor {
                 return Apartment.deserialize(this.eventService, dto)
             case 'window':
                 return WindowObj.deserialize(this.eventService, dto)
-            case 'geometryBlock':
-                return GeometryBlock.deserialize(this.eventService, dto, assertDefined(this._geometryBlockTemplates.get(dto.templateId)))
+            case 'llu':
+                return LLU.deserialize(this.eventService, dto, assertDefined(this._LLUTemplates.get(dto.templateId)))
             default:
                 throw assertUnreachable(dto)
         }
@@ -176,8 +176,8 @@ export class Editor {
                     new Apartment(this._eventService, shape.points.map(mapPoint(Units.fromMm)))))
             }),
             events.addLLU.watch(id => {
-                const template = assertDefined(this._geometryBlockTemplates.get(id))
-                this.executeCommand(new AddObjectCommand(this, new GeometryBlock(this._eventService, template)))
+                const template = assertDefined(this._LLUTemplates.get(id))
+                this.executeCommand(new AddObjectCommand(this, new LLU(this._eventService, template)))
             }),
             events.deleteSelected.watch(() => this.deleteSelected()),
             events.zoomToExtents.watch(() => this.zoomToExtents()),
@@ -500,7 +500,7 @@ export class Editor {
     private createDragConfig({ pixiEvent, target }: MouseDownEvent): DragConfig {
         assert(isDefined(target))
         if (target)
-            if (target instanceof Apartment || target instanceof GeometryBlock) {
+            if (target instanceof Apartment || target instanceof LLU) {
                 const dragOutline = target.createDragOutline()
                 const dragConfig: BlockDragConfig = {
                     type: 'dragBlock',
@@ -552,7 +552,7 @@ export class Editor {
         switch (type) {
             case 'dragBlock':
                 if (this._keyboardState.shift) {
-                    const copy = this.cloneEditorObject(target) as (Apartment | GeometryBlock)
+                    const copy = this.cloneEditorObject(target) as (Apartment | LLU)
                     copy.updatePosition(dragConfig.dragOutline.position)
                     this.executeCommand(new AddObjectCommand(this, copy))
                 } else {
@@ -598,7 +598,7 @@ export class Editor {
     private getSnapLines(options?: { exclude?: EditorObject }): ALine[] {
         const getLines = (o: EditorObject) => {
             if (o instanceof Apartment) return o.wallLines.map(mapLine(x => o.container.toGlobal(x)))
-            if (o instanceof GeometryBlock) return o.globalLines
+            if (o instanceof LLU) return o.globalLines
             if (o instanceof Wall) return []
             if (o instanceof WindowObj) return []
             throw new Error('Unknown object type')
@@ -615,7 +615,7 @@ export class Editor {
     private getSnapPoints(options?: { exclude?: EditorObject }): APoint[] {
         const getPoints = (o: EditorObject) => {
             if (o instanceof Apartment) return o.globalPoints
-            if (o instanceof GeometryBlock) return o.globalPoints
+            if (o instanceof LLU) return o.globalPoints
             if (o instanceof Wall) return []
             if (o instanceof WindowObj) return []
             throw new Error('Unknown object type')

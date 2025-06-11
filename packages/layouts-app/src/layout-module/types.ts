@@ -41,7 +41,7 @@ export interface ApartmentTemplate {
     points: APoint[]
 }
 
-export interface LluData {
+export interface LLUTemplate {
     id: string
     name: string
     outline: APoint[]
@@ -49,12 +49,6 @@ export interface LluData {
     minFloors: number
     maxFloors: number
     sectionType: SectionType
-}
-
-export interface GeometryBlockTemplate {
-    id: string
-    outline: APoint[]
-    geometry: APoint[][]
 }
 
 export type LayoutAddress = { sectionId: string, layoutId: string }

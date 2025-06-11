@@ -1,5 +1,5 @@
 import { getMinXy, subtractVectors } from '../geometryFunc'
-import type { LluData } from '../types'
+import type { LLUTemplate } from '../types'
 import lluDataJson from './LLUs2.json'
 import z from 'zod'
 
@@ -9,10 +9,10 @@ const sectionTypeSchema = z.union([
     z.literal('corner'),
 ])
 
-export const lluData: LluData[] = lluDataJson.map(x => {
+export const lluData: LLUTemplate[] = lluDataJson.map(x => {
     const minXy = getMinXy(x.outline)
     const { minFloors, maxFloors } = parseFloorsRange(x.Properties.RangeFloor)
-    const llu: LluData = {
+    const llu: LLUTemplate = {
         id: x.id,
         name: x.name,
         outline: x.outline.map(p => subtractVectors(p, minXy)),

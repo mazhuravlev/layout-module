@@ -3,7 +3,7 @@ import type { SnapService } from './SnapService'
 import type { ALine, APoint } from '../types'
 import type { Wall } from '../entities/Wall'
 import type { EditorObject } from '../entities/EditorObject'
-import type { GeometryBlock } from '../entities/GeometryBlock'
+import type { LLU } from '../entities/LLU'
 import type { WindowObj } from '../entities/Window'
 import type { Container } from 'pixi.js'
 
@@ -15,7 +15,7 @@ interface DragConfigType {
 export interface BlockDragConfig extends DragConfigType {
     type: 'dragBlock'
 
-    target: Apartment | GeometryBlock
+    target: Apartment | LLU
 
     /**
      * Начальные собственные координаты квартиры.

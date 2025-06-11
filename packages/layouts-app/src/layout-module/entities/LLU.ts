@@ -3,10 +3,10 @@ import { Container, Graphics, Matrix, Polygon } from 'pixi.js'
 import type { EventService } from '../EventService/EventService'
 import { EditorObject } from './EditorObject'
 import { assertUnreachable, degreesToRadians, deserializeMatrix, pairwise, serializeMatrix, withNullable } from '../func'
-import type { ALine, APoint, GeometryBlockTemplate } from '../types'
+import type { ALine, APoint, LLUTemplate } from '../types'
 import { OutlineFilter, GlowFilter } from 'pixi-filters'
 import { getPolygonCenter } from '../geometryFunc'
-import type { GeometryBlockDto } from '../Editor/dto'
+import type { LLUDto } from '../Editor/dto'
 
 const outlineFilter = new OutlineFilter({
     thickness: 2,
@@ -21,7 +21,7 @@ const glowFilter = new GlowFilter({
     alpha: 0.5,
 })
 
-export class GeometryBlock extends EditorObject {
+export class LLU extends EditorObject {
     private _outline = new Graphics()
     private _lines = new Graphics()
     private _container = new Container()
@@ -49,7 +49,7 @@ export class GeometryBlock extends EditorObject {
 
     constructor(
         _eventService: EventService,
-        private _template: GeometryBlockTemplate,
+        private _template: LLUTemplate,
         options?: {
             id?: string
             transform?: Matrix
@@ -63,17 +63,17 @@ export class GeometryBlock extends EditorObject {
 
     public get serializable() { return true }
 
-    public serialize(): GeometryBlockDto {
+    public serialize(): LLUDto {
         return {
-            type: 'geometryBlock',
+            type: 'llu',
             id: this._id,
             templateId: this._template.id,
             transform: serializeMatrix(this.transform),
         }
     }
 
-    public static deserialize(eventService: EventService, dto: GeometryBlockDto, template: GeometryBlockTemplate): GeometryBlock {
-        return new GeometryBlock(eventService, template, {
+    public static deserialize(eventService: EventService, dto: LLUDto, template: LLUTemplate): LLU {
+        return new LLU(eventService, template, {
             id: dto.id,
             transform: deserializeMatrix(dto.transform),
         })
@@ -92,7 +92,7 @@ export class GeometryBlock extends EditorObject {
 
         _outline
             .poly(this._template.outline)
-            .fill({ color: { r: 0xff, g: 0xff, b: 0xff, a: 0 } })
+            .fill({ color: { r: 0xff, g: 0xff, b: 0xff, a: 0xff } })
         _container.addChild(_outline)
 
         this._template.geometry.forEach(line => {
@@ -165,8 +165,8 @@ export class GeometryBlock extends EditorObject {
         }
     }
 
-    public clone(): GeometryBlock {
-        return new GeometryBlock(
+    public clone(): LLU {
+        return new LLU(
             this._eventService,
             this._template,
             { transform: this.transform.clone() })

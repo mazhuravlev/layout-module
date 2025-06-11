@@ -26,8 +26,8 @@ export interface WindowDto {
     properties: WindowProperties
 }
 
-export interface GeometryBlockDto {
-    type: 'geometryBlock'
+export interface LLUDto {
+    type: 'llu'
     id: string
     templateId: string
     transform: MatrixDto
@@ -36,7 +36,7 @@ export interface GeometryBlockDto {
 export type EditorObjectDto =
     | ApartmentDto
     | WindowDto
-    | GeometryBlockDto
+    | LLUDto
 
 export interface SectionDto {
     id: string
@@ -55,7 +55,7 @@ export const isWindowDto = (obj: EditorObjectDto): obj is WindowDto => {
     return obj.type === 'window'
 }
 
-export const isGeometryBlockDto = (obj: EditorObjectDto): obj is GeometryBlockDto => {
-    return obj.type === 'geometryBlock'
+export const isLLUDto = (obj: EditorObjectDto): obj is LLUDto => {
+    return obj.type === 'llu'
 }
 
