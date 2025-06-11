@@ -56,14 +56,19 @@ const ApartmentTemplatesList: React.FC = () => {
     if (isLoading) return 'Загрузка...'
     if (error) return 'Ошибка'
 
-    return <List>
+    return <table className={styles.templatesTable} ><tbody>
         {assertDefined(data).map((template) => (
-            <li
+            <tr
                 key={template.name}
                 onClick={() => addApartment(template)}>
-                <ApartmentTemplateComponent template={template} />
-                {template.name}
-            </li>
+                <td>
+                    <ApartmentTemplateComponent template={template} />
+                </td>
+                <td>
+                    {template.name}
+                </td>
+            </tr>
         ))}
-    </List>
+    </tbody>
+    </table>
 }

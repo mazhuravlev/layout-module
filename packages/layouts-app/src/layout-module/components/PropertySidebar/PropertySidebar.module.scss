@@ -6,3 +6,11 @@
     gap: 8px;
     padding: 0;
 }
+
+.templatesTable {
+    width: 100%;
+
+    tr:hover {
+        background-color: #ededed;
+    }
+}
