@@ -2,14 +2,14 @@ import { Application, FederatedPointerEvent } from 'pixi.js'
 import { distanceFromPointToLine, getLineLength, pointsToLines, shiftLine } from '../geometryFunc'
 import { Logger } from '../logger'
 import type { ALine, APoint, ASubscription, EditorDocument, FloorType } from '../types'
-import { LogicError, unsubscribe } from '../types'
+import { InvalidOperation, LogicError, unsubscribe } from '../types'
 import { addVectors, aPoint, mapLine, mapPoint, multiplyVector, subtractVectors } from '../geometryFunc'
 import type { BlockDragConfig, DragConfig, WallDragConfig, WindowDragConfig } from './dragConfig'
 import { withDragOutline } from './dragConfig'
 import { Apartment } from '../entities/Apartment'
 import { EventService } from '../EventService/EventService'
 import * as events from '../events'
-import { assert, assertDefined, assertUnreachable, empty, isNull, notNull, toError, fromPixiEvent, isDefined, isUndefined, makeUuid } from '../func'
+import { assert, assertDefined, assertUnreachable, empty, isNull, notNull, toError, fromPixiEvent, isDefined, isUndefined, makeUuid, not } from '../func'
 import type { MouseDownEvent } from '../EventService/eventTypes'
 import { debounceTime, EMPTY, filter, finalize, map, merge, mergeMap, take, takeUntil, tap } from 'rxjs'
 import { SnapService } from './SnapService'
@@ -131,6 +131,13 @@ export class Editor {
     public deselectAll() { this._selectionManager.deselectAll() }
     public selectObjects(objects: EditorObject[]) { this._selectionManager.selectObjects(objects) }
     public zoomToExtents() { this._viewportManager?.zoomToExtents() }
+
+    private cloneEditorObject(object: EditorObject) {
+        if (not(object.serializable)) throw new InvalidOperation()
+        const data = object.serialize()
+        const clone = this.createEditorObjectFromDto({ ...data, id: makeUuid() })
+        return clone
+    }
 
     private createEditorObjectFromDto(dto: EditorObjectDto): EditorObject {
         switch (dto.type) {
@@ -522,7 +529,7 @@ export class Editor {
         switch (type) {
             case 'dragBlock':
                 if (this._keyboardState.shift) {
-                    const copy = target.clone()
+                    const copy = this.cloneEditorObject(target) as (Apartment | GeometryBlock)
                     copy.updatePosition(dragConfig.dragOutline.position)
                     this.executeCommand(new AddObjectCommand(this, copy))
                 } else {

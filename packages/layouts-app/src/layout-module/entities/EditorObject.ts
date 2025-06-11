@@ -53,8 +53,6 @@ export abstract class EditorObject implements IDisposable {
 
     public abstract dispose(): void
 
-    public abstract clone(): EditorObject
-
     public abstract createDragOutline(): Container
 
     protected emit(

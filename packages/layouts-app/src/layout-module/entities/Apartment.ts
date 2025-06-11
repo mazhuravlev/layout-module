@@ -1,11 +1,11 @@
-import type { Bounds} from 'pixi.js'
+import type { Bounds } from 'pixi.js'
 import { Container, Graphics, Matrix, Text } from 'pixi.js'
 import { assert, assertUnreachable, degreesToRadians, deserializeMatrix, pairwise, serializeMatrix, withNullable } from '../func'
 import * as geometryFunc from '../geometryFunc'
 import type { APoint, CoordType, ALine } from '../types'
 import type { EventService } from '../EventService/EventService'
 import { Wall } from './Wall'
-import type { ApartmentProperties} from './ApartmentProperties'
+import type { ApartmentProperties } from './ApartmentProperties'
 import { defaultApartmentProperties } from './ApartmentProperties'
 import type { ApartmentDto } from '../Editor/dto'
 import { calculateApartmentType, exampleFlatmix } from '../Editor/flatMix'
@@ -155,10 +155,6 @@ export class Apartment extends EditorObject {
     public updatePosition(point: APoint) {
         this._container.position.copyFrom(point)
         this.render()
-    }
-
-    public clone(): Apartment {
-        return new Apartment(this._eventService, this.points)
     }
 
     public serialize(): ApartmentDto {
