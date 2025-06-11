@@ -118,6 +118,15 @@ export class Editor {
             app,
             this._container,
         )
+        this._geometryBlockTemplates = new Map((await this._dataAccess.getLLUs())
+            .map(llu => {
+                const template: GeometryBlockTemplate = {
+                    id: llu.id,
+                    outline: llu.outline.map(mapPoint(Units.fromMm)),
+                    geometry: llu.geometry.map(x => x.map(mapPoint(Units.fromMm))),
+                }
+                return [llu.id, template] as const
+            }))
         this.setupObjectEvents()
         this.setupEvents()
     }
@@ -166,12 +175,8 @@ export class Editor {
                     this,
                     new Apartment(this._eventService, shape.points.map(mapPoint(Units.fromMm)))))
             }),
-            events.addLLU.watch(llu => {
-                const template: GeometryBlockTemplate = {
-                    id: llu.id,
-                    outline: llu.outline.map(mapPoint(Units.fromMm)),
-                    geometry: llu.geometry.map(x => x.map(mapPoint(Units.fromMm))),
-                }
+            events.addLLU.watch(id => {
+                const template = assertDefined(this._geometryBlockTemplates.get(id))
                 this.executeCommand(new AddObjectCommand(this, new GeometryBlock(this._eventService, template)))
             }),
             events.deleteSelected.watch(() => this.deleteSelected()),

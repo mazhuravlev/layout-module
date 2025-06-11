@@ -78,7 +78,7 @@ const LLUList: React.FC = () => {
             {assertDefined(data).map((template) => (
                 <tr
                     key={template.name}
-                    onClick={() => addLLU(template)}>
+                    onClick={() => addLLU(template.id)}>
                     <td>
                         <BlockOutline outline={template.outline} />
                     </td>

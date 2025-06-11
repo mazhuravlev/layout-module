@@ -100,10 +100,10 @@ export const ToolSidebar: React.FC<ToolSidebarProps> = props => {
         ))}
       </ul>
       <ul>
-        <li
+        {/* <li
           onClick={() => events.addLLU()}>
           ЛЛУ
-        </li>
+        </li> */}
       </ul>
     </div>
   )

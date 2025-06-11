@@ -1,5 +1,5 @@
 import { createEvent, createStore, sample } from 'effector'
-import type { ApartmentTemplate, FloorRange, FloorType, GeometryBlockTemplate, LayoutAddress } from './types'
+import type { ApartmentTemplate, FloorRange, FloorType, LayoutAddress } from './types'
 import persist from 'effector-localstorage'
 import type { EditorObjectDto } from './Editor/dto'
 import type { ApartmentProperties } from './entities/ApartmentProperties'
@@ -10,7 +10,7 @@ export const redo = createEvent<void>()
 export const addApartment = createEvent<ApartmentTemplate>()
 export const deleteSelected = createEvent<void>()
 export const zoomToExtents = createEvent<void>()
-export const addLLU = createEvent<GeometryBlockTemplate>()
+export const addLLU = createEvent<string>()
 export const rotateSelected = createEvent<number>()
 export const flipSelected = createEvent<'horizontal' | 'vertical'>()
 
