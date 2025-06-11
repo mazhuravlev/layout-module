@@ -1,5 +1,5 @@
 import { createEvent, createStore, sample } from 'effector'
-import type { ApartmentTemplate, FloorType } from './types'
+import type { ApartmentTemplate, FloorRange, FloorType, LayoutAddress } from './types'
 import persist from 'effector-localstorage'
 import type { EditorObjectDto } from './Editor/dto'
 import type { ApartmentProperties } from './entities/ApartmentProperties'
@@ -75,16 +75,10 @@ export const populateWindows = createEvent<{
 }>()
 export const setWindowProperties = createEvent<Partial<WindowProperties>>()
 
-
 export const $editorState = createStore<{
     ready: boolean
     floorType: FloorType
-    currentLayout:
-    | {
-        layoutId: string
-        sectionId: string
-    }
-    | null
+    currentLayout: LayoutAddress & FloorRange | null
 }>({
     ready: false,
     floorType: 'typical',
@@ -99,8 +93,8 @@ export const selectFloorType = createEvent<FloorType>()
 export const setFloorType = createEvent<FloorType>()
 $editorState.on(setFloorType, (s, floorType) => ({ ...s, floorType }))
 
-export const loadLayout = createEvent<{ sectionId: string, layoutId: string }>()
-export const setCurrentLayout = createEvent<{ sectionId: string, layoutId: string }>()
+export const loadLayout = createEvent<LayoutAddress>()
+export const setCurrentLayout = createEvent<LayoutAddress & FloorRange>()
 $editorState.on(setCurrentLayout, (s, currentLayout) => ({ ...s, currentLayout }))
 
 export const copySelected = createEvent<void>()
@@ -109,10 +103,7 @@ export const pasteObjects = createEvent<void>()
 /**
  * Сохранение выбранной планировки между перезагрузками
  */
-export const $savedSelectedLayout = createStore<{
-    layoutId: string
-    sectionId: string
-} | null>(null)
+export const $savedSelectedLayout = createStore<LayoutAddress | null>(null)
 persist({
     store: $savedSelectedLayout,
     key: 'savedSelectedLayout.v1',

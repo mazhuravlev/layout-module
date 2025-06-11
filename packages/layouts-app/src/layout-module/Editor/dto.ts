@@ -1,4 +1,4 @@
-import type { APoint, LluData } from '../types'
+import type { APoint } from '../types'
 import type { ApartmentProperties } from '../entities/ApartmentProperties'
 import type { WindowProperties } from '../entities/Window'
 
@@ -29,7 +29,7 @@ export interface WindowDto {
 export interface GeometryBlockDto {
     type: 'geometryBlock'
     id: string
-    data: LluData
+    templateId: string
     transform: MatrixDto
 }
 

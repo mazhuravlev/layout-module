@@ -477,3 +477,32 @@ export const makeBounds = (p1: APoint, p2: APoint) => {
 
   return new Bounds(minX, minY, maxX, maxY)
 }
+
+/**
+ * Нормализация точек, приведение начальной координаты к (0,0)
+ * @param points точки
+ * @returns 
+ */
+export function normalizePoints(points: APoint[]) {
+  if (points.length === 0) return []
+  const { x: minX, y: minY } = getMinXy(points)
+  return points.map((v) => {
+    const localX = (v.x - minX)
+    const localY = (v.y - minY)
+    return { x: localX, y: localY }
+  })
+}
+
+/**
+ * Нахождение минимальных координат среди точек
+ * @param points точки
+ * @returns 
+ */
+export function getMinXy(points: APoint[]): APoint {
+  let minX = Infinity, minY = Infinity
+  for (const { x, y } of points) {
+    if (x < minX) minX = x
+    if (y < minY) minY = y
+  }
+  return { x: minX, y: minY }
+}

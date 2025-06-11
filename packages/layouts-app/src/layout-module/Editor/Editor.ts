@@ -1,7 +1,7 @@
 import { Application, FederatedPointerEvent } from 'pixi.js'
 import { distanceFromPointToLine, getLineLength, pointsToLines, shiftLine } from '../geometryFunc'
 import { Logger } from '../logger'
-import type { ALine, APoint, ASubscription, EditorDocument, FloorType } from '../types'
+import type { ALine, APoint, ASubscription, EditorDocument, FloorType, GeometryBlockTemplate } from '../types'
 import { InvalidOperation, LogicError, unsubscribe } from '../types'
 import { addVectors, aPoint, mapLine, mapPoint, multiplyVector, subtractVectors } from '../geometryFunc'
 import type { BlockDragConfig, DragConfig, WallDragConfig, WindowDragConfig } from './dragConfig'
@@ -57,6 +57,8 @@ export class Editor {
     private _keyboardState = new KeyboardState()
 
     private _currentLayout: EditorDocument | null = null
+
+    private _geometryBlockTemplates = new Map<string, GeometryBlockTemplate>()
 
     /**
      * @description Cleanup functions to be called on dispose
@@ -145,7 +147,7 @@ export class Editor {
             case 'window':
                 return WindowObj.deserialize(this.eventService, dto)
             case 'geometryBlock':
-                return GeometryBlock.deserialize(this.eventService, dto)
+                return GeometryBlock.deserialize(this.eventService, dto, assertDefined(this._geometryBlockTemplates.get(dto.templateId)))
             default:
                 throw assertUnreachable(dto)
         }
@@ -270,7 +272,13 @@ export class Editor {
         await this.unloadSection()
         await this.loadSection(sectionId)
         await this.saveLayout(this._currentLayout)
-        events.setCurrentLayout({ sectionId, layoutId })
+        const section = await this._dataAccess.getSection(sectionId)
+        events.setCurrentLayout({
+            sectionId,
+            layoutId,
+            minFloors: section.minFloors,
+            maxFloors: section.maxFloors,
+        })
         events.setEditorReady(true)
     }
 
@@ -292,8 +300,14 @@ export class Editor {
         await this.loadSection(layout.sectionId)
         this._currentLayout = layout
         this.populateEditorObjects(this.currentFloorType)
+        const section = await this._dataAccess.getSection(layout.sectionId)
+        events.setCurrentLayout({
+            sectionId: layout.sectionId,
+            layoutId: layout.layoutId,
+            minFloors: section.minFloors,
+            maxFloors: section.maxFloors
+        })
         events.setEditorReady(true)
-        events.setCurrentLayout({ sectionId: layout.sectionId, layoutId: layout.layoutId })
         // TODO: почему обьекты не добавлятюся синхронно, сразу?
         setTimeout(() => this.zoomToExtents(), 10)
     }

@@ -3,6 +3,7 @@ import { LogicError, NotFoundError } from '../types'
 import Dexie from 'dexie'
 import { apartmentTemplates } from '../data/apartmentData'
 import { sectionsData } from '../data/sectionsData'
+import { lluData } from '../data/lluData'
 
 export interface EditorDocumentRecord {
     id: string
@@ -54,6 +55,15 @@ export class DataAccess {
             .equals(sectionId)
             .toArray()
         return layouts
+    }
+
+    public async getLlu() {
+        return lluData
+    }
+
+    public async getLluFiltered(options: { minFloors: number, maxFloors: number }) {
+        return lluData
+            .filter(x => x.minFloors >= options.minFloors && x.maxFloors <= options.maxFloors)
     }
 
     public async getApartmentTemplates() {

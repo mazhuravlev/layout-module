@@ -3,7 +3,7 @@ import { Container, Graphics, Matrix, Polygon } from 'pixi.js'
 import type { EventService } from '../EventService/EventService'
 import { EditorObject } from './EditorObject'
 import { assertUnreachable, degreesToRadians, deserializeMatrix, pairwise, serializeMatrix, withNullable } from '../func'
-import type { ALine, APoint, LluData } from '../types'
+import type { ALine, APoint, GeometryBlockTemplate } from '../types'
 import { OutlineFilter, GlowFilter } from 'pixi-filters'
 import { getPolygonCenter } from '../geometryFunc'
 import type { GeometryBlockDto } from '../Editor/dto'
@@ -39,7 +39,7 @@ export class GeometryBlock extends EditorObject {
     }
 
     public get globalPoints() {
-        return this._data.outline.map((point) => this._container.toGlobal(point))
+        return this._template.outline.map((point) => this._container.toGlobal(point))
     }
 
     public get globalLines(): ALine[] {
@@ -47,13 +47,9 @@ export class GeometryBlock extends EditorObject {
         return pairwise(globalPoints).map(([start, end]) => ({ start, end }))
     }
 
-    public get data(): LluData {
-        return this._data
-    }
-
     constructor(
         _eventService: EventService,
-        private _data: LluData,
+        private _template: GeometryBlockTemplate,
         options?: {
             id?: string
             transform?: Matrix
@@ -71,13 +67,13 @@ export class GeometryBlock extends EditorObject {
         return {
             type: 'geometryBlock',
             id: this._id,
-            data: this._data,
+            templateId: this._template.id,
             transform: serializeMatrix(this.transform),
         }
     }
 
-    public static deserialize(eventService: EventService, dto: GeometryBlockDto): GeometryBlock {
-        return new GeometryBlock(eventService, dto.data, {
+    public static deserialize(eventService: EventService, dto: GeometryBlockDto, template: GeometryBlockTemplate): GeometryBlock {
+        return new GeometryBlock(eventService, template, {
             id: dto.id,
             transform: deserializeMatrix(dto.transform),
         })
@@ -87,7 +83,7 @@ export class GeometryBlock extends EditorObject {
         const { _container, _outline, _lines } = this
         _container.eventMode = 'static'
         _container.cursor = 'pointer'
-        _container.hitArea = new Polygon(this._data.outline)
+        _container.hitArea = new Polygon(this._template.outline)
         _container
             .on('mouseenter', e => this.emit(e, 'mouseenter'))
             .on('mouseleave', e => this.emit(e, 'mouseleave'))
@@ -95,11 +91,11 @@ export class GeometryBlock extends EditorObject {
             .on('mouseup', e => this.emit(e, 'mouseup'))
 
         _outline
-            .poly(this._data.outline)
+            .poly(this._template.outline)
             .fill({ color: 0xffffff })
         _container.addChild(_outline)
 
-        this._data.geometry.forEach(line => {
+        this._template.geometry.forEach(line => {
             _lines.poly(line, false)
         })
         _lines.stroke({ color: 0, width: 1, pixelLine: true })
@@ -120,7 +116,7 @@ export class GeometryBlock extends EditorObject {
         const outline = new Container()
         const graphics = new Graphics()
         graphics
-            .poly(this._data.outline)
+            .poly(this._template.outline)
             .stroke({ color: 0x666666, pixelLine: true, alpha: 0.6 })
         outline.addChild(graphics)
         outline.setFromMatrix(this.transform)
@@ -152,7 +148,7 @@ export class GeometryBlock extends EditorObject {
     }
 
     private getCenter(): APoint {
-        return getPolygonCenter(this._data.outline)
+        return getPolygonCenter(this._template.outline)
     }
 
     public updatePosition(point: APoint) {
@@ -172,7 +168,7 @@ export class GeometryBlock extends EditorObject {
     public clone(): GeometryBlock {
         return new GeometryBlock(
             this._eventService,
-            this._data,
+            this._template,
             { transform: this.transform.clone() })
     }
 

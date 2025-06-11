@@ -27,6 +27,7 @@ export class LogicError extends Error { }
 export class NotFoundError extends Error { }
 
 export type FloorType = 'first' | 'typical'
+export type SectionType = 'regular' | 'tower' | 'corner'
 
 export interface EditorDocument {
     sectionId: string
@@ -44,4 +45,16 @@ export interface LluData {
     name: string
     outline: APoint[]
     geometry: APoint[][]
+    minFloors: number
+    maxFloors: number
+    sectionType: SectionType
 }
+
+export interface GeometryBlockTemplate {
+    id: string
+    outline: APoint[]
+    geometry: APoint[][]
+}
+
+export type LayoutAddress = { sectionId: string, layoutId: string }
+export type FloorRange = { minFloors: number, maxFloors: number }

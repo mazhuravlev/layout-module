@@ -43,16 +43,10 @@ export const SectionOutlineDtoSchema = z.object({
     points: z.array(APointSchema),
 })
 
-export const GeometryBlockDataSchema = z.object({
-    name: z.string(),
-    outline: z.array(APointSchema),
-    geometry: z.array(z.array(APointSchema))
-})
-
 export const GeometryBlockDtoSchema = z.object({
     type: z.literal('geometryBlock'),
     id: z.string(),
-    data: GeometryBlockDataSchema,
+    templateId: z.string(),
     transform: TransformMatrixSchema
 })
 
