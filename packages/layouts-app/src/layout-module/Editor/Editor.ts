@@ -326,9 +326,9 @@ export class Editor {
             .map(x => x.serialize())
             .filter(notNull)
         const type = this.currentFloorType
+        assert(assertDefined(this._currentLayout).floors.filter(x => x.type === type).length === 1)
         this._currentLayout = {
             ...this.currentLayout,
-            // TODO: на будущее! если будет несколько этажей с одинаковым типом, они станут одинаковые
             floors: this.currentLayout.floors
                 .map(x => x.type === type ? { type, objects } : x),
         }
