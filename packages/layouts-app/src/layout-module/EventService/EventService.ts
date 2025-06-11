@@ -1,12 +1,9 @@
-// EventService.ts
-import type { Observable} from 'rxjs'
+import type { Observable } from 'rxjs'
 import { Subject, filter } from 'rxjs'
 import type { AppEvent, MouseDownEvent, MouseEnterEvent, MouseLeaveEvent, MouseMoveEvent, MouseUpEvent } from './eventTypes'
 import type { IDisposable } from '../types'
-import { Logger } from '../logger'
 
 export class EventService implements IDisposable {
-    private _logger = new Logger('EventService')
     private _eventSubject = new Subject<AppEvent>()
 
     get events$(): Observable<AppEvent> {

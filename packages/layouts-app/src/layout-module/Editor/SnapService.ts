@@ -1,9 +1,9 @@
-import type { Container} from 'pixi.js'
+import type { Container } from 'pixi.js'
 import { Graphics } from 'pixi.js'
-import type { APoint, ALine, IDisposable, ASubscription} from '../types'
+import type { APoint, ALine, IDisposable, ASubscription } from '../types'
 import { unsubscribe } from '../types'
 import type { SnapConfig } from '../events'
-import { $debugConfig, $snapConfig } from '../events'
+import { $snapConfig } from '../events'
 import { areLinesCollinear, getPointDistance, getSlope, pointsToLines, projectPointOnLine } from '../geometryFunc'
 import { Units } from '../Units'
 import { assertUnreachable, not } from '../func'
@@ -33,7 +33,6 @@ type SnapResult =
 const snapIndicatorColor = 0xee0000
 
 export class SnapService implements IDisposable {
-    private _drawDebug = $debugConfig.getState().drawDebug
     private _subscriptions: ASubscription[] = []
     private _config: SnapConfig
     private _snapIndicator = new Graphics()
@@ -46,7 +45,6 @@ export class SnapService implements IDisposable {
     ) {
         _stage.addChild(this._snapIndicator)
         this._config = $snapConfig.getState()
-        this._subscriptions.push($debugConfig.watch(x => this._drawDebug = x.drawDebug))
         this._subscriptions.push($snapConfig.watch(x => this._config = x))
     }
 
@@ -159,31 +157,6 @@ export class SnapService implements IDisposable {
                     snapped: 'point',
                     snapPoint: staticPoint,
                     originalPoint: point,
-                }
-            }
-        }
-
-        return result
-    }
-
-    private checkPointToLine(point: APoint): SnapResult {
-        if (!this._config.enableLine) return emptyResult
-        let minDistance = Infinity
-        let result: SnapResult = emptyResult
-
-        for (const line of this._staticLines) {
-            const projected = projectPointOnLine(point, line)
-            const dx = projected.x - point.x
-            const dy = projected.y - point.y
-            const distance = Math.hypot(dx, dy)
-
-            if (distance < this._config.lineThreshold! && distance < minDistance) {
-                minDistance = distance
-                result = {
-                    snapped: 'line',
-                    snapPoint: projected,
-                    originalPoint: point,
-                    k: getSlope(line.start, line.end),
                 }
             }
         }

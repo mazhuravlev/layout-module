@@ -4,6 +4,7 @@
   "scripts": {
     "dev": "pnpm --parallel run start",
     "lint": "pnpm --parallel run lint",
+    "build": "pnpm --filter layouts-app run build",
     "prepare": "husky"
   },
   "devDependencies": {

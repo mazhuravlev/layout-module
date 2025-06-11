@@ -1,4 +1,3 @@
-import type { Editor } from '../Editor/Editor'
 import type { APoint } from '../types'
 import type { EditorCommand } from './EditorCommand'
 import type { EditorObject } from '../entities/EditorObject'
@@ -8,7 +7,6 @@ export class MoveObjectCommand implements EditorCommand {
     public get description() { return 'Переместить' }
 
     constructor(
-        private _editor: Editor,
         private _object: EditorObject,
         private _config: {
             startPos: APoint,

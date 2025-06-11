@@ -548,7 +548,6 @@ export class Editor {
                     this.executeCommand(new AddObjectCommand(this, copy))
                 } else {
                     this.executeCommand(new MoveObjectCommand(
-                        this,
                         dragConfig.target,
                         {
                             startPos: dragConfig.startPos,
