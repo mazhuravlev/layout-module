@@ -1,12 +1,11 @@
 import { useState } from 'react'
-import type { SectionDto } from '../../Editor/dto'
 import { Button } from '../common/Button'
 import { Sections } from '../Sections/Sections'
 import styles from './Sidebar.module.scss'
 import { Layouts } from '../Layouts/Layouts'
 
 export const Sidebar: React.FC = () => {
-    const [selectedSection, setSelectedSection] = useState<SectionDto | null>(null)
+    const [selectedSectionId, setSelectedSectionId] = useState<string | null>(null)
 
     return <div className={styles.container}>
         <div className={styles.modeSwitch}>
@@ -16,13 +15,13 @@ export const Sidebar: React.FC = () => {
         <div className={styles.layouts}>
             <header>Секции</header>
             <div>
-                <Sections selectedSection={selectedSection ?? undefined} onSelectSection={setSelectedSection} />
+                <Sections onSelectSection={setSelectedSectionId} />
             </div>
         </div>
         <div className={styles.layouts}>
             <header>Планировки</header>
             <div>
-                {selectedSection && <Layouts section={selectedSection} />}
+                {selectedSectionId && <Layouts sectionId={selectedSectionId} />}
             </div>
         </div>
         <div className={styles.layoutButtons}>

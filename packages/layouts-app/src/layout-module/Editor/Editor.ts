@@ -1,10 +1,10 @@
 import { Application, FederatedPointerEvent } from 'pixi.js'
 import { distanceFromPointToLine, getLineLength, pointsToLines, shiftLine } from '../geometryFunc'
 import { Logger } from '../logger'
-import type { ALine, APoint, ASubscription, EditorDocument, FloorType} from '../types'
+import type { ALine, APoint, ASubscription, EditorDocument, FloorType } from '../types'
 import { LogicError, unsubscribe } from '../types'
 import { addVectors, aPoint, mapLine, mapPoint, multiplyVector, subtractVectors } from '../geometryFunc'
-import type { BlockDragConfig, DragConfig, WallDragConfig, WindowDragConfig} from './dragConfig'
+import type { BlockDragConfig, DragConfig, WallDragConfig, WindowDragConfig } from './dragConfig'
 import { withDragOutline } from './dragConfig'
 import { Apartment } from '../entities/Apartment'
 import { EventService } from '../EventService/EventService'
@@ -211,7 +211,7 @@ export class Editor {
             events.createNewLayout.watch(async ({ sectionId, name }) => {
                 await this.createNewLayout(sectionId, name)
             }),
-            events.loadLayout.watch(id => this.loadLayout(id)),
+            events.loadLayout.watch(({ layoutId }) => this.loadLayout(layoutId)),
             events.copySelected.watch(() => this.copySelected()),
             events.pasteObjects.watch(() => this.pasteObjects()),
             this._eventService.events$
@@ -292,9 +292,9 @@ export class Editor {
     }
 
     private updateDocument(): void {
-        const objects = [...this._editorObjects.values()
+        const objects = [...this._editorObjects.values()]
             .map(x => x.serialize())
-            .filter(notNull)]
+            .filter(notNull)
         const type = this.currentFloorType
         this._currentLayout = {
             ...this.currentLayout,
@@ -577,8 +577,7 @@ export class Editor {
         const { _sectionOutline } = this
         return [
             ...(_sectionOutline ? pointsToLines(_sectionOutline.globalPoints) : []),
-            ...this._editorObjects
-                .values()
+            ...[...this._editorObjects.values()]
                 .filter(x => x !== options?.exclude)
                 .flatMap(getLines)
         ]
@@ -595,8 +594,7 @@ export class Editor {
         const { _sectionOutline } = this
         return [
             ...(_sectionOutline ? _sectionOutline.globalPoints : []),
-            ...this._editorObjects
-                .values()
+            ...[...this._editorObjects.values()]
                 .filter(x => x !== options?.exclude)
                 .flatMap(getPoints)
         ]

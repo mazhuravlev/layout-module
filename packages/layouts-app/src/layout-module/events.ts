@@ -1,10 +1,9 @@
-import { createEvent, createStore } from 'effector'
+import { createEvent, createStore, sample } from 'effector'
 import type { ApartmentTemplate, FloorType } from './types'
 import persist from 'effector-localstorage'
 import type { EditorObjectDto } from './Editor/dto'
 import type { ApartmentProperties } from './entities/ApartmentProperties'
 import type { WindowProperties } from './entities/Window'
-
 
 export const undo = createEvent<void>()
 export const redo = createEvent<void>()
@@ -80,23 +79,48 @@ export const setWindowProperties = createEvent<Partial<WindowProperties>>()
 export const $editorState = createStore<{
     ready: boolean
     floorType: FloorType
-    layoutId: string | null
-    sectionId: string | null
+    currentLayout:
+    | {
+        layoutId: string
+        sectionId: string
+    }
+    | null
 }>({
     ready: false,
     floorType: 'typical',
-    layoutId: null,
-    sectionId: null,
+    currentLayout: null
 })
+
 export const createNewLayout = createEvent<{ sectionId: string, name: string }>()
 export const setEditorReady = createEvent<boolean>()
 $editorState.on(setEditorReady, (s, ready) => ({ ...s, ready }))
+
 export const selectFloorType = createEvent<FloorType>()
 export const setFloorType = createEvent<FloorType>()
 $editorState.on(setFloorType, (s, floorType) => ({ ...s, floorType }))
-export const loadLayout = createEvent<string>()
+
+export const loadLayout = createEvent<{ sectionId: string, layoutId: string }>()
 export const setCurrentLayout = createEvent<{ sectionId: string, layoutId: string }>()
-$editorState.on(setCurrentLayout, (s, { sectionId, layoutId }) => ({ ...s, sectionId, layoutId }))
+$editorState.on(setCurrentLayout, (s, currentLayout) => ({ ...s, currentLayout }))
 
 export const copySelected = createEvent<void>()
 export const pasteObjects = createEvent<void>()
+
+/**
+ * Сохранение выбранной планировки между перезагрузками
+ */
+export const $savedSelectedLayout = createStore<{
+    layoutId: string
+    sectionId: string
+} | null>(null)
+persist({
+    store: $savedSelectedLayout,
+    key: 'savedSelectedLayout.v1',
+
+})
+sample({
+    clock: $editorState,
+    source: $editorState,
+    fn: s => s.currentLayout,
+    target: $savedSelectedLayout,
+})

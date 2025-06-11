@@ -1,5 +1,4 @@
 import { useQueryClient } from '@tanstack/react-query'
-import type { SectionDto } from '../../Editor/dto'
 import { generateLayoutName, notEmpty, watchOnce } from '../../func'
 import { LogicError } from '../../types'
 import { Button } from '../common/Button'
@@ -9,13 +8,13 @@ import { useSectionLayouts } from '../hooks'
 import { useStoreMap } from 'effector-react'
 
 interface LayoutsComponentProps {
-    section: SectionDto
+    sectionId: string
 }
 
 export const Layouts: React.FC<LayoutsComponentProps> = props => {
-    const layoutId = useStoreMap($editorState, x => x.layoutId)
+    const layoutId = useStoreMap($editorState, x => x.currentLayout?.layoutId)
     const queryClient = useQueryClient()
-    const { data: layouts, isLoading, error } = useSectionLayouts(props.section.id)
+    const { data: layouts, isLoading, error } = useSectionLayouts(props.sectionId)
     if (isLoading) return 'Загрузка...'
     if (error) return 'Ошибка'
     if (layouts === undefined) throw new LogicError()
@@ -27,18 +26,18 @@ export const Layouts: React.FC<LayoutsComponentProps> = props => {
             setEditorReady.filter({ fn: x => x }),
             () => {
                 queryClient.invalidateQueries({
-                    queryKey: ['SectionLayouts', props.section.id]
+                    queryKey: ['SectionLayouts', props.sectionId]
                 })
             }
         )
-        createNewLayout({ sectionId: props.section.id, name })
+        createNewLayout({ sectionId: props.sectionId, name })
     }
 
     return <>
         {notEmpty(layouts) && <List>
             {layouts.map(x => <li
                 style={layoutId === x.id ? { fontWeight: 600 } : undefined}
-                onClick={() => loadLayout(x.id)}
+                onClick={() => loadLayout({ sectionId: x.sectionId, layoutId: x.id })}
                 key={x.id}>{x.name}</li>)}
         </List>}
         <Button onClick={() => handleCreateNewLayout()}>Новый</Button>

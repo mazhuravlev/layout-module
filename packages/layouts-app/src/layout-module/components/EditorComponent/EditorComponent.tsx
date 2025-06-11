@@ -4,6 +4,7 @@ import type { EditorProps } from './EditorProps'
 import { Editor } from '../../Editor/Editor'
 import { withNullable } from '../../func'
 import { useDataAccess } from '../hooks'
+import { $savedSelectedLayout, loadLayout } from '../../events'
 
 export const EditorComponent: React.FC<EditorProps> = (_props) => {
   const containerRef = useRef<HTMLDivElement>(null)
@@ -15,6 +16,11 @@ export const EditorComponent: React.FC<EditorProps> = (_props) => {
     editorRef.current = editor
     await Promise.resolve()
       .then(() => editor.init())
+      .then(() => {
+        withNullable(
+          $savedSelectedLayout.getState(),
+          s => loadLayout(s))
+      })
   }, [dataAccess])
 
   useEffect(() => {
