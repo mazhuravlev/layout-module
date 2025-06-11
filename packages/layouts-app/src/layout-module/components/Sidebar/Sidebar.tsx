@@ -1,5 +1,4 @@
 import { useState } from 'react'
-import { Button } from '../common/Button'
 import { Sections } from '../Sections/Sections'
 import styles from './Sidebar.module.scss'
 import { Layouts } from '../Layouts/Layouts'
