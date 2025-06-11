@@ -44,6 +44,7 @@ export const SectionOutlineDtoSchema = z.object({
 })
 
 export const GeometryBlockDataSchema = z.object({
+    name: z.string(),
     outline: z.array(APointSchema),
     geometry: z.array(z.array(APointSchema))
 })

@@ -1,13 +1,12 @@
-import type { Bounds} from 'pixi.js'
+import type { Bounds } from 'pixi.js'
 import { Container, Graphics, Matrix, Polygon } from 'pixi.js'
-import type { EventService } from '../../EventService/EventService'
-import { EditorObject } from '../EditorObject'
-import { assertUnreachable, degreesToRadians, deserializeMatrix, pairwise, serializeMatrix, withNullable } from '../../func'
-import type { ALine, APoint } from '../../types'
+import type { EventService } from '../EventService/EventService'
+import { EditorObject } from './EditorObject'
+import { assertUnreachable, degreesToRadians, deserializeMatrix, pairwise, serializeMatrix, withNullable } from '../func'
+import type { ALine, APoint, LluData } from '../types'
 import { OutlineFilter, GlowFilter } from 'pixi-filters'
-import type { GeometryBlockData } from './GeometryBlockData'
-import { getPolygonCenter } from '../../geometryFunc'
-import type { GeometryBlockDto } from '../../Editor/dto'
+import { getPolygonCenter } from '../geometryFunc'
+import type { GeometryBlockDto } from '../Editor/dto'
 
 const outlineFilter = new OutlineFilter({
     thickness: 2,
@@ -48,13 +47,13 @@ export class GeometryBlock extends EditorObject {
         return pairwise(globalPoints).map(([start, end]) => ({ start, end }))
     }
 
-    public get data(): GeometryBlockData {
+    public get data(): LluData {
         return this._data
     }
 
     constructor(
         _eventService: EventService,
-        private _data: GeometryBlockData,
+        private _data: LluData,
         options?: {
             id?: string
             transform?: Matrix

@@ -1,9 +1,8 @@
-import type { EditorDocument} from '../types'
+import type { EditorDocument } from '../types'
 import { LogicError, NotFoundError } from '../types'
-import type { SectionDto } from '../Editor/dto'
-import { parseShapes } from './parseShapes'
-import rawShapesJson from './shapesData.json'
 import Dexie from 'dexie'
+import { apartmentTemplates } from '../data/apartmentData'
+import { sectionsData } from '../data/sectionsData'
 
 export interface EditorDocumentRecord {
     id: string
@@ -58,7 +57,7 @@ export class DataAccess {
     }
 
     public async getApartmentTemplates() {
-        return parseShapes(rawShapesJson)
+        return apartmentTemplates
     }
 
     public async saveLayout(doc: EditorDocument) {
@@ -71,31 +70,3 @@ export class DataAccess {
     }
 }
 
-const sectionsData: SectionDto[] = [
-    {
-        id: '7814470a-9017-41d1-9721-9fd87e61e634',
-        name: '15 х 25',
-        type: 'lateral',
-        minFloors: 9,
-        maxFloors: 16,
-        outline: [
-            { x: 0, y: 0 },
-            { x: 0, y: 15000 },
-            { x: 25000, y: 15000 },
-            { x: 25000, y: 0 },
-        ],
-    },
-    {
-        id: '1faefa99-4eb9-4462-9c0f-2dea55ddbc9a',
-        name: '15 х 23',
-        type: 'meridional',
-        minFloors: 9,
-        maxFloors: 16,
-        outline: [
-            { x: 0, y: 0 },
-            { x: 0, y: 15000 },
-            { x: 23000, y: 15000 },
-            { x: 23000, y: 0 },
-        ],
-    },
-]

@@ -12,11 +12,6 @@ export interface ALine {
     end: APoint
 }
 
-export interface ApartmentTemplate {
-    name: string
-    points: APoint[]
-}
-
 export interface IDisposable {
     dispose(): void
 }
@@ -38,4 +33,15 @@ export interface EditorDocument {
     layoutId: string
     name: string
     floors: { type: FloorType, objects: EditorObjectDto[] }[]
+}
+
+export interface ApartmentTemplate {
+    name: string
+    points: APoint[]
+}
+
+export interface LluData {
+    name: string
+    outline: APoint[]
+    geometry: APoint[][]
 }

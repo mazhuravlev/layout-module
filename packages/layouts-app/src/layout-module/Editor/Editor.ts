@@ -21,7 +21,7 @@ import { UpdateApartmentPointsCommand } from '../commands/UpdateApartmentPointsC
 import { initDevtools } from '@pixi/devtools'
 import { Wall } from '../entities/Wall'
 import { UpdateApartmentPropertiesCommand } from '../commands/UpdateApartmentPropertiesCommand'
-import { GeometryBlock } from '../entities/GeometryBlock/GeometryBlock'
+import { GeometryBlock } from '../entities/GeometryBlock'
 import type { EditorObject } from '../entities/EditorObject'
 import { Units } from '../Units'
 import { SimpleCommand } from '../commands/SimpleCommand'
@@ -35,7 +35,6 @@ import { UpdateWindowPropertiesCommand } from '../commands/UpdateWindowPropertie
 import { MoveWindowCommand } from '../commands/MoveWindowCommand'
 import { EDITOR_CONFIG } from './editorConfig'
 import { KeyboardState } from './KeyboardState'
-import lluData from '../entities/GeometryBlock/llu'
 import type { DataAccess } from '../DataAccess/DataAccess'
 import { EntityDtoArray } from './dtoSchema'
 import type { EditorObjectDto } from './dto'
@@ -166,7 +165,8 @@ export class Editor {
                     new Apartment(this._eventService, shape.points.map(mapPoint(Units.fromMm)))))
             }),
             events.addLLU.watch(() => {
-                this.executeCommand(new AddObjectCommand(this, new GeometryBlock(this._eventService, lluData)))
+                // TODO ЛЛУ
+                //this.executeCommand(new AddObjectCommand(this, new GeometryBlock(this._eventService, lluData)))
             }),
             events.deleteSelected.watch(() => this.deleteSelected()),
             events.zoomToExtents.watch(() => this.zoomToExtents()),

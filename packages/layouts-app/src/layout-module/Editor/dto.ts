@@ -1,7 +1,6 @@
-import type { APoint } from '../types'
+import type { APoint, LluData } from '../types'
 import type { ApartmentProperties } from '../entities/ApartmentProperties'
 import type { WindowProperties } from '../entities/Window'
-import type { GeometryBlockData } from '../entities/GeometryBlock/GeometryBlockData'
 
 export interface MatrixDto {
     a: number
@@ -30,7 +29,7 @@ export interface WindowDto {
 export interface GeometryBlockDto {
     type: 'geometryBlock'
     id: string
-    data: GeometryBlockData
+    data: LluData
     transform: MatrixDto
 }
 
@@ -42,7 +41,7 @@ export type EditorObjectDto =
 export interface SectionDto {
     id: string
     name: string
-    type: 'lateral' | 'meridional'
+    type: 'lateral' | 'meridional' | 'corner'
     minFloors: number
     maxFloors: number
     outline: { x: number; y: number }[]

@@ -3,7 +3,7 @@ import type { SnapService } from './SnapService'
 import type { ALine, APoint } from '../types'
 import type { Wall } from '../entities/Wall'
 import type { EditorObject } from '../entities/EditorObject'
-import type { GeometryBlock } from '../entities/GeometryBlock/GeometryBlock'
+import type { GeometryBlock } from '../entities/GeometryBlock'
 import type { WindowObj } from '../entities/Window'
 import type { Container } from 'pixi.js'
 
