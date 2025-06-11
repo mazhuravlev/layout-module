@@ -2,7 +2,7 @@ import { z } from 'zod'
 
 export const APointSchema = z.object({
     x: z.number(),
-    y: z.number()
+    y: z.number(),
 })
 
 export const TransformMatrixSchema = z.object({
@@ -11,16 +11,16 @@ export const TransformMatrixSchema = z.object({
     c: z.number(),
     d: z.number(),
     tx: z.number(),
-    ty: z.number()
+    ty: z.number(),
 })
 
 export const ApartmentPropertiesSchema = z.object({
     isEuro: z.boolean(),
-    bedroomCount: z.number().int().nonnegative()
+    bedroomCount: z.number().int().nonnegative(),
 })
 
 export const WindowPropertiesSchema = z.object({
-    size: z.number().positive()
+    size: z.number().positive(),
 })
 
 export const ApartmentDtoSchema = z.object({
@@ -28,14 +28,14 @@ export const ApartmentDtoSchema = z.object({
     id: z.string(),
     points: z.array(APointSchema),
     transform: TransformMatrixSchema,
-    properties: ApartmentPropertiesSchema
+    properties: ApartmentPropertiesSchema,
 })
 
 export const WindowDtoSchema = z.object({
     type: z.literal('window'),
     id: z.string(),
     position: APointSchema,
-    properties: WindowPropertiesSchema
+    properties: WindowPropertiesSchema,
 })
 
 export const SectionOutlineDtoSchema = z.object({
@@ -47,7 +47,7 @@ export const GeometryBlockDtoSchema = z.object({
     type: z.literal('geometryBlock'),
     id: z.string(),
     templateId: z.string(),
-    transform: TransformMatrixSchema
+    transform: TransformMatrixSchema,
 })
 
 export const EntityDtoSchema = z.discriminatedUnion('type', [

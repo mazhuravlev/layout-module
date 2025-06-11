@@ -89,7 +89,7 @@ export class Apartment extends EditorObject {
             id?: string
             transform?: Matrix
             properties?: ApartmentProperties
-        }
+        },
     ) {
         super(eventService)
         withNullable(options?.id, id => this._id = id)
@@ -163,7 +163,7 @@ export class Apartment extends EditorObject {
             id: this._id,
             points: this.points,
             transform: serializeMatrix(this.transform),
-            properties: this._properties
+            properties: this._properties,
         }
     }
 
@@ -259,7 +259,7 @@ export class Apartment extends EditorObject {
         const flatmixType = calculateApartmentType(exampleFlatmix, {
             area,
             bedroomCount: this._properties.bedroomCount,
-            isEuro: this._properties.isEuro
+            isEuro: this._properties.isEuro,
         })
         _typeLabel.text = `${this.properties.bedroomCount}${flatmixType}`
         _typeLabel.position.set(center.x, center.y - 8)

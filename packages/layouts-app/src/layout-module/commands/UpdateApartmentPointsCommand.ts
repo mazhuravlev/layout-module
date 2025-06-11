@@ -11,7 +11,7 @@ export class UpdateApartmentPointsCommand implements EditorCommand {
         private _config: {
             newPoints: APoint[],
             originalPoints: APoint[],
-        }
+        },
     ) {
     }
 

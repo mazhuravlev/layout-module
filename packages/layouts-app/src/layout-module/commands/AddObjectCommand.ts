@@ -9,7 +9,7 @@ export class AddObjectCommand implements EditorCommand {
 
     constructor(
         private _editor: Editor,
-        object: EditorObject | EditorObject[]
+        object: EditorObject | EditorObject[],
     ) {
         this._objects = object instanceof Array ? object : [object]
     }

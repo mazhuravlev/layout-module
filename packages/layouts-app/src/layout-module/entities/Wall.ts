@@ -15,7 +15,7 @@ const wallSettings = {
         fontSize: 10,
         fontColor: 0x660000,
         offset: 4,
-    }
+    },
 }
 
 const glowFilter = new GlowFilter({
@@ -45,7 +45,7 @@ export class Wall extends EditorObject {
     constructor(
         _eventService: EventService,
         private _apartment: Apartment,
-        private _line: ALine
+        private _line: ALine,
     ) {
         super(_eventService)
         this._subscriptions.push($sizeConfig

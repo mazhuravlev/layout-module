@@ -73,7 +73,7 @@ export class Editor {
     ) {
         this._selectionManager = new SelectionManager(
             this._eventService,
-            () => [...this._editorObjects.values()]
+            () => [...this._editorObjects.values()],
         )
         this._mouseEventProcessor = new MouseEventProcessor(
             this._eventService,
@@ -204,7 +204,7 @@ export class Editor {
                 const windows = createWindowsAlongOutline(
                     points,
                     this._eventService,
-                    options
+                    options,
                 )
                 this.executeCommand(new AddObjectCommand(this, windows))
             }),
@@ -305,7 +305,7 @@ export class Editor {
             sectionId: layout.sectionId,
             layoutId: layout.layoutId,
             minFloors: section.minFloors,
-            maxFloors: section.maxFloors
+            maxFloors: section.maxFloors,
         })
         events.setEditorReady(true)
         // TODO: почему обьекты не добавлятюся синхронно, сразу?
@@ -321,7 +321,7 @@ export class Editor {
             ...this.currentLayout,
             // TODO: на будущее! если будет несколько этажей с одинаковым типом, они станут одинаковые
             floors: this.currentLayout.floors
-                .map(x => x.type === type ? { type, objects } : x)
+                .map(x => x.type === type ? { type, objects } : x),
         }
     }
 
@@ -333,12 +333,12 @@ export class Editor {
             merge(
                 this._eventService.mouseenter$.pipe(
                     filter(() => !this._isDragging),
-                    tap(e => e.target.setHovered(true))
+                    tap(e => e.target.setHovered(true)),
                 ),
                 this._eventService.mouseleave$.pipe(
-                    tap(e => e.target.setHovered(false))
-                )
-            ).subscribe()
+                    tap(e => e.target.setHovered(false)),
+                ),
+            ).subscribe(),
         )
 
         this._subscriptions.push(this._eventService.events$
@@ -348,7 +348,7 @@ export class Editor {
                     .filter(x => x.serializable)
                     .map(x => x.serialize()!)
                 events.selectionChanged(selection)
-            })
+            }),
         )
 
         // Drag sequence: mousedown -> mousemove (with threshold) -> drag operations -> mouseup
@@ -363,7 +363,7 @@ export class Editor {
                     map(mouseMoveEvent => ({
                         ...mouseMoveEvent,
                         distance: getLineLength({ start: startPos, end: mouseMoveEvent.pixiEvent.global }),
-                        dragConfig
+                        dragConfig,
                     })),
                     // Only proceed once threshold is exceeded
                     filter(({ distance }) => distance >= EDITOR_CONFIG.INTERACTION.DRAG_THRESHOLD),
@@ -384,7 +384,7 @@ export class Editor {
                                 this._isDragging = false
                                 withDragOutline(dragConfig, x => this.stage.removeChild(x))
                                 this.completeDrag(dragConfig)
-                            })
+                            }),
                         )
                     }),
                     // Cancel if mouseup occurs before threshold is reached
@@ -392,17 +392,17 @@ export class Editor {
                         tap(() => {
                             // This was just a click, clean up the unused drag config
                             dragConfig.snapService.dispose()
-                        })
-                    ))
+                        }),
+                    )),
                 )
-            })
+            }),
         )
         this._subscriptions.push(dragSequence$.subscribe())
 
         this._subscriptions.push(fromPixiEvent(this.stage, 'mousemove')
             .pipe(
                 filter(e => e instanceof FederatedPointerEvent),
-                map(pixiEvent => ({ type: 'mousemove', pixiEvent } as const))
+                map(pixiEvent => ({ type: 'mousemove', pixiEvent } as const)),
             )
             .subscribe(e => this._eventService.emit(e)))
 
@@ -453,7 +453,7 @@ export class Editor {
             if (snapResult.snapped) {
                 const globalTargetPos = subtractVectors(
                     addVectors(toGlobal(_dragConfig.startPos), delta),
-                    subtractVectors(snapResult.originalPoint, snapResult.snapPoint)
+                    subtractVectors(snapResult.originalPoint, snapResult.snapPoint),
                 )
                 return toParentLocal(globalTargetPos)
             } else {
@@ -515,7 +515,7 @@ export class Editor {
                         this.getSnapLines()),
                     target,
                     originalWallGlobalLine: target.globalPoints,
-                    originalApartmentPoints: target.apartment.points
+                    originalApartmentPoints: target.apartment.points,
                 }
                 return dragConfig
             } else if (target instanceof WindowObj) {
@@ -552,7 +552,7 @@ export class Editor {
                         dragConfig.target,
                         {
                             startPos: dragConfig.startPos,
-                            endPos: aPoint(dragConfig.dragOutline.position)
+                            endPos: aPoint(dragConfig.dragOutline.position),
                         }))
                 }
                 break
@@ -561,7 +561,7 @@ export class Editor {
                     dragConfig.target.apartment,
                     {
                         originalPoints: dragConfig.originalApartmentPoints,
-                        newPoints: dragConfig.target.apartment.points
+                        newPoints: dragConfig.target.apartment.points,
                     }))
                 break
             case 'dragWindow':
@@ -574,7 +574,7 @@ export class Editor {
                         dragConfig.target,
                         {
                             startPos: dragConfig.originalCenterPoint,
-                            endPos: aPoint(dragConfig.dragOutline.position)
+                            endPos: aPoint(dragConfig.dragOutline.position),
                         }))
                 }
                 break
@@ -600,7 +600,7 @@ export class Editor {
             ...(_sectionOutline ? pointsToLines(_sectionOutline.globalPoints) : []),
             ...[...this._editorObjects.values()]
                 .filter(x => x !== options?.exclude)
-                .flatMap(getLines)
+                .flatMap(getLines),
         ]
     }
 
@@ -617,7 +617,7 @@ export class Editor {
             ...(_sectionOutline ? _sectionOutline.globalPoints : []),
             ...[...this._editorObjects.values()]
                 .filter(x => x !== options?.exclude)
-                .flatMap(getPoints)
+                .flatMap(getPoints),
         ]
     }
 
@@ -656,7 +656,7 @@ export class Editor {
         assert(isNull(this._sectionOutline))
         this._sectionOutline = new SectionOutline(
             section.outline.map(mapPoint(Units.fromMm)),
-            Units.fromMm(events.$sectionSettings.getState().offset)
+            Units.fromMm(events.$sectionSettings.getState().offset),
         )
         this.stage.addChild(this._sectionOutline.container)
         this.zoomToExtents()

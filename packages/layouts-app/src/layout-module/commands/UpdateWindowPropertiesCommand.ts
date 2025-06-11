@@ -9,7 +9,7 @@ export class UpdateWindowPropertiesCommand implements EditorCommand {
 
     constructor(
         private _windows: WindowObj[],
-        private _newProperties: Partial<WindowProperties>
+        private _newProperties: Partial<WindowProperties>,
     ) {
         this._oldProperties = new Map(_windows.map(x => [x, { ...x.properties }]))
     }

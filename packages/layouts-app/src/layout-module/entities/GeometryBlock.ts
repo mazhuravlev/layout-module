@@ -53,7 +53,7 @@ export class GeometryBlock extends EditorObject {
         options?: {
             id?: string
             transform?: Matrix
-        }
+        },
     ) {
         super(_eventService)
         withNullable(options?.id, id => this._id = id)

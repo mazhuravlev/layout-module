@@ -29,7 +29,7 @@ export class SelectionFrame {
     public get globalBounds(): Bounds {
         return makeBounds(
             this._container.toGlobal(this._startPoint),
-            this._container.toGlobal(this._currentPoint)
+            this._container.toGlobal(this._currentPoint),
         )
     }
 
@@ -65,12 +65,12 @@ export class SelectionFrame {
                 .rect(x, y, width, height)
                 .fill({
                     color: EDITOR_CONFIG.SELECTION_FRAME.WINDOW_FILL_COLOR,
-                    alpha: EDITOR_CONFIG.SELECTION_FRAME.FILL_ALPHA
+                    alpha: EDITOR_CONFIG.SELECTION_FRAME.FILL_ALPHA,
                 })
                 .stroke({
                     color: EDITOR_CONFIG.SELECTION_FRAME.WINDOW_STROKE_COLOR,
                     width: EDITOR_CONFIG.SELECTION_FRAME.STROKE_WIDTH,
-                    alpha: EDITOR_CONFIG.SELECTION_FRAME.STROKE_ALPHA
+                    alpha: EDITOR_CONFIG.SELECTION_FRAME.STROKE_ALPHA,
                 })
         } else {
             // Right-to-left: dashed line, green fill (crossing selection)
@@ -92,7 +92,7 @@ export class SelectionFrame {
             .rect(x, y, width, height)
             .fill({
                 color: EDITOR_CONFIG.SELECTION_FRAME.CROSSING_FILL_COLOR,
-                alpha: EDITOR_CONFIG.SELECTION_FRAME.FILL_ALPHA
+                alpha: EDITOR_CONFIG.SELECTION_FRAME.FILL_ALPHA,
             })
 
         // Create a new Graphics object for the dashed border
@@ -124,7 +124,7 @@ export class SelectionFrame {
         x1: number, y1: number,
         x2: number, y2: number,
         dashLength: number, gapLength: number,
-        strokeWidth: number, color: number
+        strokeWidth: number, color: number,
     ) {
         const totalLength = Math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2)
         const unitX = (x2 - x1) / totalLength
@@ -149,7 +149,7 @@ export class SelectionFrame {
                     .stroke({
                         color,
                         width: strokeWidth,
-                        alpha: EDITOR_CONFIG.SELECTION_FRAME.STROKE_ALPHA
+                        alpha: EDITOR_CONFIG.SELECTION_FRAME.STROKE_ALPHA,
                     })
             }
 

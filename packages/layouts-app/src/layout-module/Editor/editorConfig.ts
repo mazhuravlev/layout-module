@@ -29,5 +29,5 @@ export const EDITOR_CONFIG = {
         // Dashed line properties for crossing selection
         DASH_LENGTH: 8,                   // Length of each dash
         GAP_LENGTH: 4,                    // Length of gap between dashes
-    }
+    },
 } as const

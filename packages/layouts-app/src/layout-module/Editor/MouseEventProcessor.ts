@@ -28,7 +28,7 @@ export class MouseEventProcessor {
         return this._eventService.mousedown$
             .pipe(
                 switchMap((downEvent) => this.processMouseDown(downEvent)),
-                filter(result => result !== null)
+                filter(result => result !== null),
             )
             .subscribe(result => this.handleClick(result!))
     }
@@ -46,7 +46,7 @@ export class MouseEventProcessor {
                 ctrlKey: isCtrlPressed,
                 shiftKey: isShiftPressed,
             })),
-            catchError(() => of(null))
+            catchError(() => of(null)),
         )
     }
 
@@ -79,8 +79,8 @@ export class MouseEventProcessor {
                             ...mouseMoveEvent,
                             distance: getLineLength({
                                 start: startPointGlobal,
-                                end: aPoint(mouseMoveEvent.pixiEvent.global)
-                            })
+                                end: aPoint(mouseMoveEvent.pixiEvent.global),
+                            }),
                         })),
                         // Only proceed once threshold is exceeded
                         filter(({ distance }) => distance >= EDITOR_CONFIG.INTERACTION.DRAG_THRESHOLD),
@@ -94,7 +94,7 @@ export class MouseEventProcessor {
                                 startPoint: startPointWorld,
                                 currentPoint: startPointWorld,
                                 isLeftToRight: true,
-                                selectionFrame
+                                selectionFrame,
                             }
 
                             this.onFrameSelectionStart(frameConfig)
@@ -113,7 +113,7 @@ export class MouseEventProcessor {
                                 takeUntil(this._eventService.mouseup$),
                                 finalize(() => {
                                     this.onFrameSelectionComplete(frameConfig)
-                                })
+                                }),
                             )
                         }),
                         // Cancel if mouseup occurs before threshold is reached
@@ -122,11 +122,11 @@ export class MouseEventProcessor {
                                 tap(() => {
                                     // Выполняем deselectAll когда mouseup происходит до достижения threshold
                                     this._eventService.emit({ type: 'deselectAll' })
-                                })
-                            )
-                        )
+                                }),
+                            ),
+                        ),
                     )
-                })
+                }),
             )
             .subscribe()
     }

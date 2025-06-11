@@ -46,7 +46,7 @@ export const $snapConfig = createStore<SnapConfig>({
     angleSnap: 90,
     pointThreshold: 10,
     lineThreshold: 10,
-    gridStep: 300
+    gridStep: 300,
 })
 export const toggleSnap = createEvent<void>()
 export const toggleSnapGrid = createEvent<void>()
@@ -82,7 +82,7 @@ export const $editorState = createStore<{
 }>({
     ready: false,
     floorType: 'typical',
-    currentLayout: null
+    currentLayout: null,
 })
 
 export const createNewLayout = createEvent<{ sectionId: string, name: string }>()

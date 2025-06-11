@@ -229,7 +229,7 @@ export class SnapService implements IDisposable {
                 g.moveTo(x - dx, y - dy)
                 g.lineTo(x + dx, y + dy)
             }
-            this._snapIndicator.stroke({ color: snapIndicatorColor, pixelLine: true, })
+            this._snapIndicator.stroke({ color: snapIndicatorColor, pixelLine: true })
 
         } else {
             throw new Error(`snapResult.snapped !== 'line': ${snapResult.snapped}`)

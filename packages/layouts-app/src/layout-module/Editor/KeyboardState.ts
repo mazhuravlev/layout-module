@@ -60,7 +60,7 @@ export class KeyboardState implements IDisposable {
             shift: this._shift,
             alt: this._alt,
             ctrl: this._ctrl,
-            hasModifiers: this.hasModifiers
+            hasModifiers: this.hasModifiers,
         }
     }
 

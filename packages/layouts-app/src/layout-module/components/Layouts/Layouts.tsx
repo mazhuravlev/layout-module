@@ -26,9 +26,9 @@ export const Layouts: React.FC<LayoutsComponentProps> = props => {
             setEditorReady.filter({ fn: x => x }),
             () => {
                 queryClient.invalidateQueries({
-                    queryKey: ['SectionLayouts', props.sectionId]
+                    queryKey: ['SectionLayouts', props.sectionId],
                 })
-            }
+            },
         )
         createNewLayout({ sectionId: props.sectionId, name })
     }

@@ -44,6 +44,6 @@ function parseFloorsRange(input: string | undefined): { minFloors: number; maxFl
 
     return {
         minFloors: min,
-        maxFloors: max
+        maxFloors: max,
     }
 }

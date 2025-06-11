@@ -120,7 +120,7 @@ export const withNullable = <T>(o: T | null | undefined, fn: (o: T) => void) => 
 
 export function fromPixiEvent<T extends Container, K extends keyof FederatedEventMap>(
   target: T,
-  eventName: K
+  eventName: K,
 ): Observable<FederatedEventMap[K]> {
   return fromEventPattern<FederatedEventMap[K]>(
     (handler: (event: FederatedEventMap[K]) => void) =>
@@ -128,7 +128,7 @@ export function fromPixiEvent<T extends Container, K extends keyof FederatedEven
       target.on(eventName, handler as any),
     (handler: (event: FederatedEventMap[K]) => void) =>
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      target.off(eventName, handler as any)
+      target.off(eventName, handler as any),
   )
 }
 
@@ -176,7 +176,7 @@ export function timeout(ms: number): Promise<void> {
 
 export function watchOnce<T>(
   unit: Event<T>,
-  handler: (payload: T) => void
+  handler: (payload: T) => void,
 ): Subscription {
   let sub: Subscription | null = null
   sub = unit.watch(payload => {

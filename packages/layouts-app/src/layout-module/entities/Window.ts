@@ -27,7 +27,7 @@ export interface WindowProperties {
 }
 
 export const defaultWindowProperties: WindowProperties = {
-    size: 900
+    size: 900,
 }
 
 export class WindowObj extends EditorObject {
@@ -48,7 +48,7 @@ export class WindowObj extends EditorObject {
         options?: {
             properties?: WindowProperties
             id?: string
-        }
+        },
     ) {
         super(eventService)
         if (options?.id) this._id = options.id
@@ -133,7 +133,7 @@ export class WindowObj extends EditorObject {
             type: 'window',
             id: this._id,
             position: aPoint(this.localPosition),
-            properties: this.properties
+            properties: this.properties,
         }
     }
 
@@ -146,7 +146,7 @@ export class WindowObj extends EditorObject {
         return new WindowObj(
             this._eventService,
             aPoint(this._container.position),
-            { properties: this._properties }
+            { properties: this._properties },
         )
     }
 
@@ -188,7 +188,7 @@ export interface WindowPlacementOptions {
 export function createWindowsAlongOutline(
     outlinePoints: APoint[],
     eventService: EventService,
-    options: WindowPlacementOptions
+    options: WindowPlacementOptions,
 ): WindowObj[] {
     const { windowSize, spacing } = options
     const windows: WindowObj[] = []
@@ -221,7 +221,7 @@ export function createWindowsAlongOutline(
  */
 export function snapWindowToOutline(
     windowCenter: APoint,
-    outlinePoints: APoint[]
+    outlinePoints: APoint[],
 ): APoint {
     const lines = pointsToLines(outlinePoints)
     let closestPoint = windowCenter

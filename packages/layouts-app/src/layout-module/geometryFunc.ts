@@ -83,7 +83,7 @@ export function makeLineHitbox(
   p1: APoint,
   p2: APoint,
   width: number,
-  padding: number
+  padding: number,
 ): APoint[] {
   // Вектор направления линии
   const dx = p2.x - p1.x
@@ -108,12 +108,12 @@ export function makeLineHitbox(
   // Вычисляем смещенные точки с учетом отступа
   const p1Start = {
     x: p1.x + nx * padding,
-    y: p1.y + ny * padding
+    y: p1.y + ny * padding,
   }
 
   const p2End = {
     x: p2.x - nx * padding,
-    y: p2.y - ny * padding
+    y: p2.y - ny * padding,
   }
 
   // Вычисляем 4 угла прямоугольника
@@ -121,23 +121,23 @@ export function makeLineHitbox(
     // Первая точка + перпендикуляр в одну сторону
     {
       x: p1Start.x + perpX * halfWidth,
-      y: p1Start.y + perpY * halfWidth
+      y: p1Start.y + perpY * halfWidth,
     },
     // Первая точка + перпендикуляр в другую сторону
     {
       x: p1Start.x - perpX * halfWidth,
-      y: p1Start.y - perpY * halfWidth
+      y: p1Start.y - perpY * halfWidth,
     },
     // Вторая точка + перпендикуляр в другую сторону
     {
       x: p2End.x - perpX * halfWidth,
-      y: p2End.y - perpY * halfWidth
+      y: p2End.y - perpY * halfWidth,
     },
     // Вторая точка + перпендикуляр в одну сторону
     {
       x: p2End.x + perpX * halfWidth,
-      y: p2End.y + perpY * halfWidth
-    }
+      y: p2End.y + perpY * halfWidth,
+    },
   ]
 
   return points
@@ -167,7 +167,7 @@ export function distanceFromPointToLine({ start, end }: ALine, point: APoint): n
   // Знаменатель формулы
   const denominator = Math.sqrt(
     (end.y - start.y) ** 2 +
-    (end.x - start.x) ** 2
+    (end.x - start.x) ** 2,
   )
 
   return numerator / denominator
@@ -201,12 +201,12 @@ export function shiftLine(line: ALine, distance: number): ALine {
   // Смещаем обе точки на перпендикулярный вектор
   const newP1 = {
     x: start.x + perpX,
-    y: start.y + perpY
+    y: start.y + perpY,
   }
 
   const newP2 = {
     x: end.x + perpX,
-    y: end.y + perpY
+    y: end.y + perpY,
   }
 
   return { start: newP1, end: newP2 }
@@ -230,7 +230,7 @@ export function findCircularAdjacentElements<T>(array: T[], targetElement: T): {
 
   return {
     left: array[(index - 1 + length) % length],
-    right: array[(index + 1) % length]
+    right: array[(index + 1) % length],
   }
 }
 
@@ -333,7 +333,7 @@ export const lineCenter = (line: ALine): APoint => {
   const { start, end } = line
   return {
     x: (start.x + end.x) / 2,
-    y: (start.y + end.y) / 2
+    y: (start.y + end.y) / 2,
   }
 }
 
@@ -373,14 +373,14 @@ export const lineLength = (line: ALine): number => {
 export function getLineLength(line: ALine): number {
   return Math.sqrt(
     Math.pow(line.end.x - line.start.x, 2) +
-    Math.pow(line.end.y - line.start.y, 2)
+    Math.pow(line.end.y - line.start.y, 2),
   )
 }
 
 export function interpolatePoint(start: APoint, end: APoint, t: number): APoint {
   return {
     x: start.x + (end.x - start.x) * t,
-    y: start.y + (end.y - start.y) * t
+    y: start.y + (end.y - start.y) * t,
   }
 }
 
@@ -391,7 +391,7 @@ export function projectPointOnLine(point: APoint, line: ALine): APoint {
   if (lineLength === 0) return start
 
   const t = Math.max(0, Math.min(1,
-    ((point.x - start.x) * (end.x - start.x) + (point.y - start.y) * (end.y - start.y)) / (lineLength * lineLength)
+    ((point.x - start.x) * (end.x - start.x) + (point.y - start.y) * (end.y - start.y)) / (lineLength * lineLength),
   ))
 
   return interpolatePoint(start, end, t)

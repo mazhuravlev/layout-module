@@ -75,7 +75,7 @@ export class DataAccess {
             id: doc.layoutId,
             sectionId: doc.sectionId,
             name: doc.name,
-            data: JSON.stringify(doc)
+            data: JSON.stringify(doc),
         })
     }
 }

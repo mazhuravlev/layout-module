@@ -28,48 +28,48 @@ export const exampleFlatmix: FlatTypeConfig[] = [
         'isEuro': false,
         'minArea': 26,
         'maxArea': 30,
-        'typeName': 'L'
+        'typeName': 'L',
     },
     {
         'bedroomCount': 1,
         'isEuro': false,
         'minArea': 36,
         'maxArea': 40,
-        'typeName': 'M'
+        'typeName': 'M',
     },
     {
         'bedroomCount': 1,
         'isEuro': false,
         'minArea': 41,
         'maxArea': 45,
-        'typeName': 'L'
+        'typeName': 'L',
     },
     {
         'bedroomCount': 2,
         'isEuro': false,
         'minArea': 55,
         'maxArea': 59,
-        'typeName': 'M'
+        'typeName': 'M',
     },
     {
         'bedroomCount': 2,
         'isEuro': false,
         'minArea': 60,
         'maxArea': 65,
-        'typeName': 'L'
+        'typeName': 'L',
     },
     {
         'bedroomCount': 3,
         'isEuro': false,
         'minArea': 68,
         'maxArea': 73,
-        'typeName': 'S'
+        'typeName': 'S',
     },
     {
         'bedroomCount': 3,
         'isEuro': false,
         'minArea': 74,
         'maxArea': 80,
-        'typeName': 'M'
-    }
+        'typeName': 'M',
+    },
 ]

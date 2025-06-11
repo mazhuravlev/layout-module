@@ -13,7 +13,7 @@ export class MoveObjectCommand implements EditorCommand {
         private _config: {
             startPos: APoint,
             endPos: APoint,
-        }
+        },
     ) {
     }
 

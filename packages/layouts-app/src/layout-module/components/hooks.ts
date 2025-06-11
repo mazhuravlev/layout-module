@@ -23,7 +23,7 @@ export function useApartmentTemplates() {
     const dataAccess = useDataAccess()
     return useQuery({
         queryKey: ['ApartmentTemplates'] as const,
-        queryFn: () => dataAccess.getApartmentTemplates()
+        queryFn: () => dataAccess.getApartmentTemplates(),
     })
 }
 
@@ -31,6 +31,6 @@ export function useSectionLayouts(sectionId: string) {
     const dataAccess = useDataAccess()
     return useQuery({
         queryKey: ['SectionLayouts', sectionId] as const,
-        queryFn: () => dataAccess.getSectionLayouts(sectionId)
+        queryFn: () => dataAccess.getSectionLayouts(sectionId),
     })
 }

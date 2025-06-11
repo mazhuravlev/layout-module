@@ -11,7 +11,7 @@ export class MoveWindowCommand implements EditorCommand {
         private moveData: {
             startPos: APoint
             endPos: APoint
-        }
+        },
     ) { }
 
     execute(): void {

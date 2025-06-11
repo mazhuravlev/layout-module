@@ -52,7 +52,14 @@ export default tseslint.config(
           fixStyle: 'separate-type-imports' // or 'inline-type-imports'
         }
       ],
-      '@typescript-eslint/no-import-type-side-effects': 'error'
+      '@typescript-eslint/no-import-type-side-effects': 'error',
+      'comma-dangle': ['error', {
+        arrays: 'always-multiline',
+        objects: 'always-multiline',
+        imports: 'always-multiline',
+        exports: 'always-multiline',
+        functions: 'always-multiline',
+      }]
     },
   },
 )

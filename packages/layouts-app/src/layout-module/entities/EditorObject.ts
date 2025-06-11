@@ -58,7 +58,7 @@ export abstract class EditorObject implements IDisposable {
     protected emit(
         pixiEvent: FederatedPointerEvent,
         type: 'mouseup' | 'mousedown' | 'mousemove' | 'mouseenter' | 'mouseleave',
-        stopEvent = true
+        stopEvent = true,
     ) {
         if (stopEvent) {
             pixiEvent.preventDefault()

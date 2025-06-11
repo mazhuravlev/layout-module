@@ -31,7 +31,7 @@ export class SectionOutline implements IDisposable {
      */
     constructor(
         private _points: APoint[],
-        private _offset: number
+        private _offset: number,
     ) {
         const { _container, _graphics, _offsetGraphics } = this
         _container.addChild(_graphics)
@@ -64,7 +64,7 @@ export class SectionOutline implements IDisposable {
         return {
             type: 'sectionOutline',
             points: this._points.map(mapPoint(Units.toMm)),
-            offset: Units.toMm(this._offset)
+            offset: Units.toMm(this._offset),
         }
     }
 

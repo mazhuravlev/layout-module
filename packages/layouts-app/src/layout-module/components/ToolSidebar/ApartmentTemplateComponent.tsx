@@ -10,7 +10,7 @@ export const ApartmentTemplateComponent: React.FC<ApartmentTemplateProps> = ({ t
         0,
         0,
         Math.max(...template.points.map(p => p.x)),
-        Math.max(...template.points.map(p => p.y))
+        Math.max(...template.points.map(p => p.y)),
     ].join(' ')
 
     return (
