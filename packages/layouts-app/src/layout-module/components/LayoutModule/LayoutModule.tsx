@@ -63,6 +63,7 @@ export const LayoutModule: React.FC<LayoutModuleProps> = (_props) => {
           Типовой этаж
         </a>
         &nbsp;| X-Ray</header>}
+      <span className={styles.releaseDate}>{import.meta.env.VITE_DATE}</span>
     </header>)
   }
 

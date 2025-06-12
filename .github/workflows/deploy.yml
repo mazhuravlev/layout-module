@@ -29,7 +29,9 @@ jobs:
         run: pnpm install
 
       - name: Build layouts-app
-        run: pnpm run build
+        run: |
+          export VITE_DATE=$(date +"%d.%m %H:%M")
+          pnpm run build
        
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
