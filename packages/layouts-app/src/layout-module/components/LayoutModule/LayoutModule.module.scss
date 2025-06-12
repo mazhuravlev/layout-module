@@ -48,6 +48,12 @@
   transform: translateY(-50%);
 }
 
+.snapControls {
+  position: absolute;
+  bottom: 12px;
+  left: 12px
+}
+
 .rightSidebar {
   width: 250px;
   background: white;

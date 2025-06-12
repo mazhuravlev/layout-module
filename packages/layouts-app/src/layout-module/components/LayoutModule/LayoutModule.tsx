@@ -12,6 +12,7 @@ import * as events from '../../events'
 import { useUnit } from 'effector-react'
 import type { FloorType } from '../../types'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { SnapControls } from '../SnapControls/SnapControls'
 
 const queryClient = new QueryClient()
 const dataAccess = new DataAccess()
@@ -76,9 +77,14 @@ export const LayoutModule: React.FC<LayoutModuleProps> = (_props) => {
             {renderHeader(editorState.floorType)}
             <div className={styles.content}>
               <div className={styles.editor}>
-                {editorState.ready && <div className={styles.editorButtons}>
-                  <EditorButtons />
-                </div>}
+                {editorState.ready && <>
+                  <div className={styles.editorButtons}>
+                    <EditorButtons />
+                  </div>
+                  <div className={styles.snapControls}>
+                    <SnapControls />
+                  </div>
+                </>}
                 <EditorComponent />
               </div>
               <aside className={styles.rightSidebar}>

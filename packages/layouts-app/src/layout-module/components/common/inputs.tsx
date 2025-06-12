@@ -3,13 +3,14 @@ import styles from './inputs.module.scss'
 interface NumberInputProps {
     label: string
     value: number
-    width?: number
+    width?: number | string
     step?: number
+    title?: string
     onChange: (v: number) => void
 }
 
 export const NumberInput: React.FC<NumberInputProps> = (props) => {
-    return <label className={styles.label}>
+    return <label title={props.title} className={styles.label}>
         {props.label}:
         <input type='number'
             className={styles.input}
