@@ -2,7 +2,7 @@ import type { Bounds } from 'pixi.js'
 import { Container, Graphics, Matrix, Text } from 'pixi.js'
 import { assert, assertUnreachable, degreesToRadians, deserializeMatrix, pairwise, serializeMatrix, withNullable } from '../func'
 import * as geometryFunc from '../geometryFunc'
-import type { APoint, CoordType, ALine } from '../types'
+import type { APoint, ALine } from '../types'
 import type { EventService } from '../EventService/EventService'
 import { Wall } from './Wall'
 import type { ApartmentProperties } from './ApartmentProperties'
@@ -226,11 +226,11 @@ export class Apartment extends EditorObject {
         _container.addChild(_euroLabel)
     }
 
-    public updateWall(wall: Wall, newLine: ALine, coordType: CoordType) {
-        wall.update(newLine, coordType)
+    public updateWall(wall: Wall, newLine: ALine) {
+        wall.update(newLine)
         const { left, right } = geometryFunc.findCircularAdjacentElements(this._walls, wall)
-        left.updateEnd(newLine.start, coordType)
-        right.updateStart(newLine.end, coordType)
+        left.updateEnd(newLine.start)
+        right.updateStart(newLine.end)
         this.render()
     }
 

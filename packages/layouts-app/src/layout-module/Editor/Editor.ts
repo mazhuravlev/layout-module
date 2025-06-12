@@ -38,6 +38,8 @@ import { KeyboardState } from './KeyboardState'
 import type { DataAccess } from '../DataAccess/DataAccess'
 import { EntityDtoArray } from './dtoSchema'
 import type { EditorObjectDto } from './dto'
+import * as geometryFunc from '../geometryFunc'
+import { BatchCommand } from '../commands/BatchCommand'
 
 const COPIED_OBJECTS_KEY = 'copiedObjects.v1'
 
@@ -475,18 +477,20 @@ export class Editor {
 
     private dragWall(_dragConfig: WallDragConfig, pixiEvent: FederatedPointerEvent) {
         const { target: wall, snapService } = _dragConfig
-        const distance = distanceFromPointToLine(_dragConfig.originalWallGlobalLine, pixiEvent.global)
-        const newLine = shiftLine(_dragConfig.originalWallGlobalLine, -1 * snapService.applyGridSnap(distance))
-        const snapResult = snapService.checkLineSnap(newLine)
+        const inputDistance = snapService.applyGridSnap(
+            distanceFromPointToLine(_dragConfig.originalWallGlobalLine, pixiEvent.global))
+        const snapResult = snapService.checkLineSnap(
+            shiftLine(_dragConfig.originalWallGlobalLine, -1 * inputDistance))
         snapService.showSnapIndicator(snapResult)
-        if (snapResult.snapped) {
-            const snapDistance = distanceFromPointToLine(_dragConfig.originalWallGlobalLine, snapResult.snapPoint)
-            const snapLine = shiftLine(_dragConfig.originalWallGlobalLine, -snapDistance)
-            wall.apartment.updateWall(wall, snapLine, 'global')
-        } else {
-            snapService.hideSnapIndicator()
-            wall.apartment.updateWall(wall, newLine, 'global')
-        }
+        const resultDistance = snapResult.snapped
+            ? distanceFromPointToLine(_dragConfig.originalWallGlobalLine, snapResult.snapPoint)
+            : inputDistance
+        const newLine = shiftLine(_dragConfig.originalWallGlobalLine, -1 * resultDistance)
+        _dragConfig.adjacentWalls.forEach(({ wall, originalWallGlobalLine, sameDirection }) => {
+            const newLine = shiftLine(originalWallGlobalLine, sameDirection ? -resultDistance : resultDistance)
+            wall.apartment.updateWall(wall, newLine)
+        })
+        wall.apartment.updateWall(wall, newLine)
     }
 
     private dragWindow(_dragConfig: WindowDragConfig, pixiEvent: FederatedPointerEvent) {
@@ -523,8 +527,11 @@ export class Editor {
                         this.getSnapPoints({ exclude: target.apartment }),
                         this.getSnapLines()),
                     target,
-                    originalWallGlobalLine: target.globalPoints,
+                    originalWallGlobalLine: target.globalLine,
                     originalApartmentPoints: target.apartment.points,
+                    adjacentWalls: events.$snapConfig.getState().syncWalls
+                        ? this.findAdjacentWalls(target)
+                        : [],
                 }
                 return dragConfig
             } else if (target instanceof WindowObj) {
@@ -546,6 +553,25 @@ export class Editor {
         throw new LogicError('Didn\'t expect to get here')
     }
 
+    private findAdjacentWalls(target: Wall): WallDragConfig['adjacentWalls'] {
+        return Array.from(this._editorObjects.values())
+            .filter(x => x instanceof Apartment)
+            .filter(x => x !== target.apartment)
+            .flatMap(apartment => {
+                for (const wall of apartment.walls) {
+                    if (geometryFunc.doLinesShareSegment(target.globalLine, wall.globalLine)) {
+                        return [{
+                            wall,
+                            originalWallGlobalLine: wall.globalLine,
+                            originalApartmentPoints: apartment.points,
+                            sameDirection: geometryFunc.areLinesSameDirection(target.globalLine, wall.globalLine),
+                        }]
+                    }
+                }
+                return []
+            })
+    }
+
     private completeDrag(dragConfig: DragConfig) {
         dragConfig.snapService.dispose()
         const { type, target } = dragConfig
@@ -565,12 +591,19 @@ export class Editor {
                 }
                 break
             case 'dragWall':
-                this.executeCommand(new UpdateApartmentPointsCommand(
-                    dragConfig.target.apartment,
-                    {
-                        originalPoints: dragConfig.originalApartmentPoints,
-                        newPoints: dragConfig.target.apartment.points,
-                    }))
+                this.executeCommand(new BatchCommand(
+                    [new UpdateApartmentPointsCommand(
+                        dragConfig.target.apartment,
+                        {
+                            originalPoints: dragConfig.originalApartmentPoints,
+                            newPoints: dragConfig.target.apartment.points,
+                        }),
+                    ...dragConfig.adjacentWalls.map(x => new UpdateApartmentPointsCommand(
+                        x.wall.apartment,
+                        {
+                            originalPoints: x.originalApartmentPoints,
+                            newPoints: x.wall.apartment.points,
+                        }))]))
                 break
             case 'dragWindow':
                 if (this._keyboardState.shift) {

@@ -1,6 +1,6 @@
 import { Container, Graphics, Polygon, Text } from 'pixi.js'
 import type { EventService } from '../EventService/EventService'
-import type { ALine, APoint, ASubscription, CoordType} from '../types'
+import type { ALine, APoint, ASubscription } from '../types'
 import { InvalidOperation, unsubscribe } from '../types'
 import { mapLine } from '../geometryFunc'
 import type { Apartment } from '../entities/Apartment'
@@ -38,7 +38,7 @@ export class Wall extends EditorObject {
 
     public get line() { return this._line }
 
-    public get globalPoints(): ALine {
+    public get globalLine(): ALine {
         return mapLine(x => this._graphics.toGlobal(x))(this._line)
     }
 
@@ -135,30 +135,18 @@ export class Wall extends EditorObject {
         this._subscriptions.forEach(unsubscribe)
     }
 
-    public update(line: ALine, coordType: CoordType) {
-        if (coordType === 'local') {
-            this._line = line
-        } else {
-            this._line = mapLine(x => this._graphics.toLocal(x))(line)
-        }
+    public update(line: ALine) {
+        this._line = mapLine(x => this._graphics.toLocal(x))(line)
         this.render()
     }
 
-    public updateEnd(point: APoint, coordType: CoordType) {
-        if (coordType === 'local') {
-            throw new Error('updateEnd is not supported for local coordinates')
-        } else {
-            this._line = { ...this._line, end: this._graphics.toLocal(point) }
-        }
+    public updateEnd(point: APoint) {
+        this._line = { ...this._line, end: this._graphics.toLocal(point) }
         this.render()
     }
 
-    public updateStart(point: APoint, coordType: CoordType) {
-        if (coordType === 'local') {
-            throw new Error('updateStart is not supported for local coordinates')
-        } else {
-            this._line = { ...this._line, start: this._graphics.toLocal(point) }
-        }
+    public updateStart(point: APoint) {
+        this._line = { ...this._line, start: this._graphics.toLocal(point) }
         this.render()
     }
 }

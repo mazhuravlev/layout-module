@@ -2,6 +2,11 @@ import { Bounds, Polygon } from 'pixi.js'
 import type { ALine, APoint } from './types'
 import { pairwise } from './func'
 
+// TODO что-то придумать с оценкой малых значений
+// для больших координат фиксированного значения может быть мало
+// для малых координат его может быть много
+const EPSILON = 1e-3
+
 /**
  * Вычисляет центр (центроид) многоугольника
  * @param points Массив точек многоугольника в порядке обхода (по или против часовой стрелки)
@@ -253,7 +258,16 @@ export const areLinesCollinear = (line1: ALine, line2: ALine): boolean => {
   // Cross product to determine collinearity
   const cross = vecA.x * vecB.y - vecA.y * vecB.x
 
-  return Math.abs(cross) < 1e-10
+  return Math.abs(cross) <= EPSILON
+}
+
+export const areLinesCollinearAndOnSameLine = (line1: ALine, line2: ALine): boolean => {
+  if (!areLinesCollinear(line1, line2)) return false
+  // Проверяем, лежит ли одна из точек line2 на line1
+  const { start: a1, end: a2 } = line1
+  const { start: b1 } = line2
+  const area = (a2.x - a1.x) * (b1.y - a1.y) - (a2.y - a1.y) * (b1.x - a1.x)
+  return Math.abs(area) < EPSILON
 }
 
 export const pointsToLines = (points: APoint[]): ALine[] => {
@@ -339,7 +353,7 @@ export const lineCenter = (line: ALine): APoint => {
 
 export const isVerticalLine = (line: ALine): 1 | -1 | false => {
   const { start, end } = line
-  if (Math.abs(start.x - end.x) < 1e-10) {
+  if (Math.abs(start.x - end.x) < EPSILON) {
     return start.y > end.y ? 1 : -1
   }
   return false
@@ -491,6 +505,57 @@ export function normalizePoints(points: APoint[]) {
     const localY = (v.y - minY)
     return { x: localX, y: localY }
   })
+}
+
+export function doLinesShareSegment(line1: ALine, line2: ALine): boolean {
+  const { start: a1, end: a2 } = line1
+  const { start: b1, end: b2 } = line2
+
+  if (!areLinesCollinearAndOnSameLine(line1, line2)) {
+    return false
+  }
+
+  // Check if the segments overlap when projected onto the line
+  // We can parameterize the segments along the line direction
+  const lineDir = { x: a2.x - a1.x, y: a2.y - a1.y }
+
+  // Project all points onto the line direction
+  const project = (point: APoint) => {
+    return lineDir.x * point.x + lineDir.y * point.y
+  }
+
+  const a1Proj = project(a1)
+  const a2Proj = project(a2)
+  const b1Proj = project(b1)
+  const b2Proj = project(b2)
+
+  const minA = Math.min(a1Proj, a2Proj)
+  const maxA = Math.max(a1Proj, a2Proj)
+  const minB = Math.min(b1Proj, b2Proj)
+  const maxB = Math.max(b1Proj, b2Proj)
+
+  // Check for overlap in the projections
+  return (minA <= maxB) && (maxA >= minB)
+}
+
+export const areLinesSameDirection = (line1: ALine, line2: ALine): boolean => {
+  const { start: a1, end: a2 } = line1
+  const { start: b1, end: b2 } = line2
+
+  // Проверяем коллинеарность (если нет — направление не определено)
+  if (!areLinesCollinear(line1, line2)) {
+    throw new Error('Lines are not collinear')
+  }
+
+  // Вычисляем вектора направлений
+  const vecA = { x: a2.x - a1.x, y: a2.y - a1.y }
+  const vecB = { x: b2.x - b1.x, y: b2.y - b1.y }
+
+  // Скалярное произведение
+  const dot = vecA.x * vecB.x + vecA.y * vecB.y
+
+  // Если dot > 0 — направление совпадает, иначе — противоположное
+  return dot > 0
 }
 
 /**

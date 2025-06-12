@@ -16,8 +16,6 @@ export interface IDisposable {
     dispose(): void
 }
 
-export type CoordType = 'local' | 'global'
-
 export type ASubscription = RxSubscription | EffectorSubscription
 export const unsubscribe = (s: ASubscription) => s.unsubscribe()
 

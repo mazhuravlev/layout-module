@@ -42,6 +42,12 @@ export interface WallDragConfig extends DragConfigType {
     target: Wall
     originalWallGlobalLine: ALine
     originalApartmentPoints: APoint[]
+    adjacentWalls: {
+        wall: Wall
+        originalWallGlobalLine: ALine
+        originalApartmentPoints: APoint[]
+        sameDirection: boolean
+    }[]
 }
 
 export interface WindowDragConfig {

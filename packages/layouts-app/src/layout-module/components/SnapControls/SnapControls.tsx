@@ -50,5 +50,12 @@ export const SnapControls: React.FC = () => {
             onChange={x => events.setGridStep(x)}
             step={100}
         />
+        <Button
+            active={snapConfig.syncWalls}
+            title='Синхронизировать стены'
+            onClick={() => events.toggleSyncWalls()}
+        >
+            🧱↔🧱
+        </Button>
     </div>
 }
