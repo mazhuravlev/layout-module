@@ -17,11 +17,10 @@ export const PropertyBlock: React.FC<{
 
     return (
         <div className={styles.container}>
-            <div className={styles.header}>
+            <div className={styles.header} onClick={toggleCollapse}>
                 <span>{props.header}</span>
                 <button
                     type='button'
-                    onClick={toggleCollapse}
                     className={styles.toggleButton}
                     aria-label={collapsed ? 'Развернуть' : 'Свернуть'}
                 >

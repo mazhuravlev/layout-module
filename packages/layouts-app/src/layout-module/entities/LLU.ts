@@ -92,7 +92,7 @@ export class LLU extends EditorObject {
 
         _outline
             .poly(this._template.outline)
-            .fill({ color: { r: 0xff, g: 0xff, b: 0xff, a: 0xff } })
+            .fill({ color: { r: 0xff, g: 0xff, b: 0xff, a: 0x00 } })
         _container.addChild(_outline)
 
         this._template.geometry.forEach(line => {
