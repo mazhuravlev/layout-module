@@ -6,4 +6,7 @@ export default defineConfig({
   base: '/layout-module/',
   plugins: [react()],
   publicDir: 'public',
+  build: {
+    chunkSizeWarningLimit: 5000,
+  },
 })
