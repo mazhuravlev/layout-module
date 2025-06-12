@@ -30,7 +30,7 @@ jobs:
 
       - name: Build layouts-app
         run: |
-          export VITE_DATE=$(date +"%d.%m %H:%M")
+          export VITE_DATE=$(TZ="Europe/Moscow" date +"%d.%m %H:%M")
           pnpm run build
        
       - name: Deploy to GitHub Pages
