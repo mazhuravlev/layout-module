@@ -90,9 +90,6 @@ export class LLU extends EditorObject {
             .on('mousedown', e => this.emit(e, 'mousedown'))
             .on('mouseup', e => this.emit(e, 'mouseup'))
 
-        _outline
-            .poly(this._template.outline)
-            .fill({ color: { r: 0xff, g: 0xff, b: 0xff, a: 0x00 } })
         _container.addChild(_outline)
 
         this._template.geometry.forEach(line => {
@@ -106,10 +103,11 @@ export class LLU extends EditorObject {
 
     render() {
         const { _outline, _isHovered, _isSelected } = this
-        _outline.filters = [
-            ...(_isHovered ? [glowFilter] : []),
-            ...(_isSelected ? [outlineFilter] : []),
-        ]
+        const transparent = { r: 0xff, g: 0xff, b: 0xff, a: 0x00 }
+        _outline
+            .clear()
+            .poly(this._template.outline)
+            .fill(_isSelected ? 0xaaaaaa : _isHovered ? 0xdddddd : transparent)
     }
 
     public createDragOutline(): Container {
