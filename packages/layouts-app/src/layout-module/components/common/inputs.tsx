@@ -1,7 +1,7 @@
 import styles from './inputs.module.scss'
 
 interface NumberInputProps {
-    label: string
+    label?: string
     value: number
     width?: number | string
     step?: number
@@ -11,7 +11,7 @@ interface NumberInputProps {
 
 export const NumberInput: React.FC<NumberInputProps> = (props) => {
     return <label title={props.title} className={styles.label}>
-        {props.label}:
+        {props.label && `${props.label}:`}
         <input type='number'
             className={styles.input}
             value={props.value}

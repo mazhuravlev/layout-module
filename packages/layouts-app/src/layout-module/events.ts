@@ -37,6 +37,7 @@ export interface SnapConfig {
     angleSnap: number,
     gridStep: number,
     syncWalls: boolean,
+    snapToSelf: boolean,
 }
 
 export const $snapConfig = createStore<SnapConfig>({
@@ -49,19 +50,24 @@ export const $snapConfig = createStore<SnapConfig>({
     lineThreshold: 10,
     gridStep: 300,
     syncWalls: true,
+    snapToSelf: false,
 })
 export const toggleSnap = createEvent<void>()
 export const toggleSnapGrid = createEvent<void>()
 export const toggleSnapPoint = createEvent<void>()
 export const toggleSnapLine = createEvent<void>()
-export const setGridStep = createEvent<number>()
 export const toggleSyncWalls = createEvent<void>()
+export const toggleSnapToSelf = createEvent<void>()
+export const setGridStep = createEvent<number>()
+export const setPointThreshold = createEvent<number>()
 $snapConfig.on(toggleSnap, (state, _payload) => ({ ...state, enable: !state.enable }))
 $snapConfig.on(toggleSnapGrid, (state, _payload) => ({ ...state, enableGrid: !state.enableGrid }))
 $snapConfig.on(toggleSnapPoint, (state, _payload) => ({ ...state, enablePoint: !state.enablePoint }))
 $snapConfig.on(toggleSnapLine, (state, _payload) => ({ ...state, enableLine: !state.enableLine }))
 $snapConfig.on(toggleSyncWalls, (state, _payload) => ({ ...state, syncWalls: !state.syncWalls }))
+$snapConfig.on(toggleSnapToSelf, (state, _payload) => ({ ...state, snapToSelf: !state.snapToSelf }))
 $snapConfig.on(setGridStep, (state, payload) => ({ ...state, gridStep: payload < 0 ? 1 : payload }))
+$snapConfig.on(setPointThreshold, (state, payload) => ({ ...state, pointThreshold: payload }))
 persist({ store: $snapConfig, key: 'snapConfig.v3' })
 
 export const $sectionSettings = createStore({ offset: 500 })

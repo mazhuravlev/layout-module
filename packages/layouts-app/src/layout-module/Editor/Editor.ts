@@ -3,7 +3,7 @@ import { distanceFromPointToLine, getLineLength, pointsToLines, shiftLine } from
 import { Logger } from '../logger'
 import type { ALine, APoint, ASubscription, EditorDocument, FloorType, LLUTemplate } from '../types'
 import { InvalidOperation, LogicError, unsubscribe } from '../types'
-import { addVectors, aPoint, mapLine, mapPoint, multiplyVector, subtractVectors } from '../geometryFunc'
+import { addVectors, aPoint, mapLine, mapPoint, subtractVectors } from '../geometryFunc'
 import type { BlockDragConfig, DragConfig, WallDragConfig, WindowDragConfig } from './dragConfig'
 import { withDragOutline } from './dragConfig'
 import { Apartment } from '../entities/Apartment'
@@ -91,8 +91,8 @@ export class Editor {
         return assertDefined(this._viewportManager).stage
     }
 
-    public get scale() {
-        return assertDefined(this._viewportManager).scale
+    public get viewport() {
+        return assertDefined(this._viewportManager)
     }
 
     public get eventService() {
@@ -387,7 +387,10 @@ export class Editor {
                         withDragOutline(dragConfig, x => this.stage.addChild(x))
                         return this._eventService.mousemoves$.pipe(
                             // Perform drag operations
-                            tap(({ pixiEvent }) => this.performDrag(dragConfig, pixiEvent)),
+                            tap(({ pixiEvent }) => this.performDrag(
+                                dragConfig,
+                                this.viewport.pointToStage(pixiEvent.global),
+                            )),
                             // Continue until mouseup
                             takeUntil(this._eventService.mouseup$),
                             finalize(() => {
@@ -435,87 +438,97 @@ export class Editor {
         this._editorObjects.clear()
     }
 
-    private performDrag(dragConfig: DragConfig, pixiEvent: FederatedPointerEvent) {
+    /**
+     * 
+     * @param dragConfig 
+     * @param mousePos в координатах stage
+     */
+    private performDrag(dragConfig: DragConfig, mousePos: APoint) {
         switch (dragConfig.type) {
             case 'dragBlock':
-                this.dragBlock(dragConfig, pixiEvent)
+                this.dragBlock(dragConfig, mousePos)
                 break
             case 'dragWall':
-                this.dragWall(dragConfig, pixiEvent)
+                this.dragWall(dragConfig, mousePos)
                 break
             case 'dragWindow':
-                this.dragWindow(dragConfig, pixiEvent)
+                this.dragWindow(dragConfig, mousePos)
                 break
             default:
                 assertUnreachable(dragConfig)
         }
     }
 
-    private dragBlock(_dragConfig: BlockDragConfig, pixiEvent: FederatedPointerEvent) {
-        const { target, snapService, dragOutline } = _dragConfig
-        const toParentLocal = (point: APoint) => target.container.parent.toLocal(point)
-        const toGlobal = (point: APoint) => target.container.parent.toGlobal(point)
-        const delta = subtractVectors(pixiEvent.global, _dragConfig.startMousePos)
-        const movedPoints = _dragConfig.originalGlobalPoints.map(p => addVectors(p, delta))
+    private dragBlock(_dragConfig: BlockDragConfig, mousePos: APoint) {
+        const { snapService, dragOutline, startMousePos, originalPoints, startPos } = _dragConfig
+        const delta = subtractVectors(mousePos, startMousePos)
+        const movedPoints = originalPoints.map(p => addVectors(p, delta))
         const snapResult = snapService.checkOutlineSnap(movedPoints)
         snapService.showSnapIndicator(snapResult)
-
         const newPos = (() => {
             if (snapResult.snapped) {
-                const globalTargetPos = subtractVectors(
-                    addVectors(toGlobal(_dragConfig.startPos), delta),
+                return subtractVectors(
+                    addVectors(startPos, delta),
                     subtractVectors(snapResult.originalPoint, snapResult.snapPoint),
                 )
-                return toParentLocal(globalTargetPos)
             } else {
-                snapService.hideSnapIndicator()
-                return toParentLocal(addVectors(toGlobal(_dragConfig.startPos), delta))
+                return addVectors(startPos, delta)
             }
         })()
         dragOutline.position.copyFrom(newPos)
     }
 
-    private dragWall(_dragConfig: WallDragConfig, pixiEvent: FederatedPointerEvent) {
-        const { target: wall, snapService } = _dragConfig
+    private dragWall(_dragConfig: WallDragConfig, mousePos: APoint) {
+        const { target: wall, snapService, originalWallLine } = _dragConfig
         const inputDistance = snapService.applyGridSnap(
-            distanceFromPointToLine(_dragConfig.originalWallGlobalLine, pixiEvent.global))
+            distanceFromPointToLine(originalWallLine, mousePos))
         const snapResult = snapService.checkLineSnap(
-            shiftLine(_dragConfig.originalWallGlobalLine, -1 * inputDistance))
+            shiftLine(originalWallLine, -1 * inputDistance))
         snapService.showSnapIndicator(snapResult)
         const resultDistance = snapResult.snapped
-            ? distanceFromPointToLine(_dragConfig.originalWallGlobalLine, snapResult.snapPoint)
+            ? distanceFromPointToLine(originalWallLine, snapResult.snapPoint)
             : inputDistance
-        const newLine = shiftLine(_dragConfig.originalWallGlobalLine, -1 * resultDistance)
-        _dragConfig.adjacentWalls.forEach(({ wall, originalWallGlobalLine, sameDirection }) => {
-            const newLine = shiftLine(originalWallGlobalLine, sameDirection ? -resultDistance : resultDistance)
-            wall.apartment.updateWall(wall, newLine)
+        const newLine = shiftLine(originalWallLine, -1 * resultDistance)
+        const updateWall = (wall: Wall, stageLine: ALine) => {
+            wall.apartment.updateWall(wall, this.viewport.lineToGlobal(stageLine))
+        }
+        _dragConfig.adjacentWalls.forEach(({ wall, originalWallLine, sameDirection }) => {
+            const direction = sameDirection ? -1 : 1
+            const newLine = shiftLine(originalWallLine, direction * resultDistance)
+            updateWall(wall, newLine)
         })
-        wall.apartment.updateWall(wall, newLine)
+        updateWall(wall, newLine)
     }
 
-    private dragWindow(_dragConfig: WindowDragConfig, pixiEvent: FederatedPointerEvent) {
+    private dragWindow(_dragConfig: WindowDragConfig, mousePos: APoint) {
         const { startMousePos, originalCenterPoint, sectionOutlinePoints, dragOutline } = _dragConfig
-        const delta = subtractVectors(pixiEvent.global, startMousePos)
-        const newPosition = addVectors(originalCenterPoint, multiplyVector(delta, 1 / this.scale))
+        const delta = subtractVectors(mousePos, startMousePos)
+        const newPosition = addVectors(originalCenterPoint, delta)
         const snappedPosition = snapWindowToOutline(newPosition, sectionOutlinePoints)
         dragOutline.position.copyFrom(snappedPosition)
     }
 
     private createDragConfig({ pixiEvent, target }: MouseDownEvent): DragConfig {
         assert(isDefined(target))
-        if (target)
+        if (target) {
+            const startMousePos = this.viewport.pointToStage(pixiEvent.global)
             if (target instanceof Apartment || target instanceof LLU) {
                 const dragOutline = target.createDragOutline()
+                const excludeConfig = events.$snapConfig.getState().snapToSelf
+                    ?
+                    undefined
+                    : { exclude: target }
                 const dragConfig: BlockDragConfig = {
                     type: 'dragBlock',
                     snapService: new SnapService(
+                        // TODO конвертировать в координаты stage
                         this.stage,
-                        this.getSnapPoints(),
-                        this.getSnapLines()),
+                        this.getSnapPoints(excludeConfig),
+                        this.getSnapLines(excludeConfig)),
                     target,
-                    startPos: aPoint(target.container.position),
-                    startMousePos: aPoint(pixiEvent.global),
-                    originalGlobalPoints: target.globalPoints.map(aPoint),
+                    startPos: this.viewport.pointToStage(target.container.getGlobalPosition()),
+                    startMousePos,
+                    originalPoints: this.viewport.pointsToStage(target.globalPoints),
                     dragOutline,
                 }
                 return dragConfig
@@ -523,11 +536,12 @@ export class Editor {
                 const dragConfig: WallDragConfig = {
                     type: 'dragWall',
                     snapService: new SnapService(
+                        // TODO конвертировать в координаты stage
                         this.stage,
                         this.getSnapPoints({ exclude: target.apartment }),
                         this.getSnapLines()),
                     target,
-                    originalWallGlobalLine: target.globalLine,
+                    originalWallLine: this.viewport.lineToStage(target.globalLine),
                     originalApartmentPoints: target.apartment.points,
                     adjacentWalls: events.$snapConfig.getState().syncWalls
                         ? this.findAdjacentWalls(target)
@@ -543,13 +557,15 @@ export class Editor {
                         [],
                         []),
                     target,
-                    startMousePos: aPoint(pixiEvent.global),
+                    startMousePos,
                     originalCenterPoint: aPoint(target.localPosition),
-                    sectionOutlinePoints: this._sectionOutline?.points ?? [],
+                    // TODO убрать sectionOutlinePoints
+                    sectionOutlinePoints: assertDefined(this._sectionOutline).points,
                     dragOutline,
                 }
                 return dragConfig
             }
+        }
         throw new LogicError('Didn\'t expect to get here')
     }
 
@@ -562,7 +578,7 @@ export class Editor {
                     if (geometryFunc.doLinesShareSegment(target.globalLine, wall.globalLine)) {
                         return [{
                             wall,
-                            originalWallGlobalLine: wall.globalLine,
+                            originalWallLine: this.viewport.lineToStage(wall.globalLine),
                             originalApartmentPoints: apartment.points,
                             sameDirection: geometryFunc.areLinesSameDirection(target.globalLine, wall.globalLine),
                         }]
@@ -630,15 +646,15 @@ export class Editor {
 
     private getSnapLines(options?: { exclude?: EditorObject }): ALine[] {
         const getLines = (o: EditorObject) => {
-            if (o instanceof Apartment) return o.wallLines.map(mapLine(x => o.container.toGlobal(x)))
-            if (o instanceof LLU) return o.globalLines
+            if (o instanceof Apartment) return this.viewport.linesToStage(
+                o.wallLines.map(mapLine(x => o.container.toGlobal(x))))
+            if (o instanceof LLU) return this.viewport.linesToStage(o.globalLines)
             if (o instanceof Wall) return []
             if (o instanceof WindowObj) return []
             throw new Error('Unknown object type')
         }
-        const { _sectionOutline } = this
         return [
-            ...(_sectionOutline ? pointsToLines(_sectionOutline.globalPoints) : []),
+            ...(this.viewport.linesToStage(pointsToLines(assertDefined(this._sectionOutline).globalPoints))),
             ...[...this._editorObjects.values()]
                 .filter(x => x !== options?.exclude)
                 .flatMap(getLines),
@@ -647,15 +663,14 @@ export class Editor {
 
     private getSnapPoints(options?: { exclude?: EditorObject }): APoint[] {
         const getPoints = (o: EditorObject) => {
-            if (o instanceof Apartment) return o.globalPoints
-            if (o instanceof LLU) return o.globalPoints
+            if (o instanceof Apartment) return this.viewport.pointsToStage(o.globalPoints)
+            if (o instanceof LLU) return this.viewport.pointsToStage(o.globalPoints)
             if (o instanceof Wall) return []
             if (o instanceof WindowObj) return []
             throw new Error('Unknown object type')
         }
-        const { _sectionOutline } = this
         return [
-            ...(_sectionOutline ? _sectionOutline.globalPoints : []),
+            ...this.viewport.pointsToStage(assertDefined(this._sectionOutline).globalPoints),
             ...[...this._editorObjects.values()]
                 .filter(x => x !== options?.exclude)
                 .flatMap(getPoints),

@@ -1,10 +1,11 @@
 import type { Application, Container } from 'pixi.js'
 import { EDITOR_CONFIG } from './editorConfig'
 import { Viewport } from 'pixi-viewport'
-import { type ASubscription, type IDisposable, unsubscribe } from '../types'
+import { type ALine, type APoint, type ASubscription, type IDisposable, unsubscribe } from '../types'
 import { fromEvent } from 'rxjs'
 import { empty } from '../func'
 import { assert } from '../func'
+import { mapLine } from '../geometryFunc'
 
 export class ViewportManager implements IDisposable {
     private _viewport: Viewport
@@ -42,6 +43,34 @@ export class ViewportManager implements IDisposable {
         this._subscriptions.push(fromEvent(container, 'resize')
             .subscribe(() => this._viewport.resize(container.clientWidth, container.clientHeight)))
         _app.stage.addChild(this._viewport)
+    }
+
+    public pointToStage(globalPt: APoint) {
+        return this.stage.toLocal(globalPt)
+    }
+
+    public pointsToStage(globalPts: APoint[]) {
+        return globalPts.map(x => this.stage.toLocal(x))
+    }
+
+    public pointToGlobal(stagePt: APoint) {
+        return this.stage.toGlobal(stagePt)
+    }
+
+    public pointsToGlobal(stagePts: APoint[]) {
+        return stagePts.map(x => this.stage.toGlobal(x))
+    }
+
+    public lineToStage(globalLine: ALine) {
+        return mapLine(x => this.stage.toLocal(x))(globalLine)
+    }
+
+    public linesToStage(globalLines: ALine[]) {
+        return globalLines.map(gl => mapLine(x => this.stage.toLocal(x))(gl))
+    }
+
+    public lineToGlobal(globalLine: ALine) {
+        return mapLine(x => this.stage.toGlobal(x))(globalLine)
     }
 
     public zoomToExtents() {

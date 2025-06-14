@@ -226,6 +226,11 @@ export class Apartment extends EditorObject {
         _container.addChild(_euroLabel)
     }
 
+    /**
+     * 
+     * @param wall 
+     * @param newLine в глобальных координатах
+     */
     public updateWall(wall: Wall, newLine: ALine) {
         wall.update(newLine)
         const { left, right } = geometryFunc.findCircularAdjacentElements(this._walls, wall)

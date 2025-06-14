@@ -30,9 +30,10 @@ export interface BlockDragConfig extends DragConfigType {
     startMousePos: APoint
 
     /**
-     * Точки контура квартиры до начала перемещения
+     * Точки контура квартиры до начала перемещения,
+     * в координатах stage
      */
-    originalGlobalPoints: APoint[]
+    originalPoints: APoint[]
 
     dragOutline: Container
 }
@@ -40,11 +41,21 @@ export interface BlockDragConfig extends DragConfigType {
 export interface WallDragConfig extends DragConfigType {
     type: 'dragWall'
     target: Wall
-    originalWallGlobalLine: ALine
+
+    /**
+     * В координатах stage
+     */
+    originalWallLine: ALine
+
     originalApartmentPoints: APoint[]
     adjacentWalls: {
         wall: Wall
-        originalWallGlobalLine: ALine
+
+        /**
+         * В координатах stage
+         */
+        originalWallLine: ALine
+
         originalApartmentPoints: APoint[]
         sameDirection: boolean
     }[]

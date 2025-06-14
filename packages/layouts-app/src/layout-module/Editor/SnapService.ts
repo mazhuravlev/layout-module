@@ -39,11 +39,11 @@ export class SnapService implements IDisposable {
     private _disposed = false
 
     constructor(
-        private _stage: Container,
+        stage: Container,
         private _staticPoints: APoint[],
         private _staticLines: ALine[],
     ) {
-        _stage.addChild(this._snapIndicator)
+        stage.addChild(this._snapIndicator)
         this._config = $snapConfig.getState()
         this._subscriptions.push($snapConfig.watch(x => this._config = x))
     }
@@ -53,7 +53,7 @@ export class SnapService implements IDisposable {
      */
     public checkPointSnap(point: APoint): SnapResult {
         if (this._disposed) return emptyResult
-        if (!this._config.enable) return emptyResult
+        if (not(this._config.enable)) return emptyResult
 
         if (this._config.enablePoint) {
             const pointSnap = this.checkPointToPoint(point)
@@ -65,10 +65,9 @@ export class SnapService implements IDisposable {
 
     public applyGridSnap(distance: number) {
         if (this._disposed) return distance
-        if (!this._config.enable) return distance
-        if (!this._config.enableGrid) return distance
-        const zoom = this._stage.scale.x
-        const gridStep = Units.fromMm(this._config.gridStep) * zoom
+        if (not(this._config.enable)) return distance
+        if (not(this._config.enableGrid)) return distance
+        const gridStep = Units.fromMm(this._config.gridStep)
         const result = Math.round(distance / gridStep) * gridStep
         return result
     }
@@ -188,7 +187,7 @@ export class SnapService implements IDisposable {
 
     private showLineSnapIndicator(snapResult: SnapResult) {
         if (snapResult.snapped === 'line') {
-            const { x, y } = this._stage.toLocal(snapResult.snapPoint)
+            const { x, y } = snapResult.snapPoint
             const g = this._snapIndicator
             g.clear()
             const { k } = snapResult
@@ -210,7 +209,7 @@ export class SnapService implements IDisposable {
     }
 
     private showPointSnapIndicator(point: APoint) {
-        const { x, y } = this._stage.toLocal(point)
+        const { x, y } = point
         const offset = 3
         this._snapIndicator
             .clear()
@@ -220,10 +219,6 @@ export class SnapService implements IDisposable {
             .moveTo(x - offset, y)
             .lineTo(x + offset, y)
             .stroke({ color: snapIndicatorColor, pixelLine: true })
-    }
-
-    public hideSnapIndicator() {
-        this._snapIndicator.clear()
     }
 
     public dispose() {
