@@ -4,22 +4,8 @@ import type { EventService } from '../EventService/EventService'
 import { EditorObject } from './EditorObject'
 import { assertUnreachable, degreesToRadians, deserializeMatrix, pairwise, serializeMatrix, withNullable } from '../func'
 import type { ALine, APoint, LLUTemplate } from '../types'
-import { OutlineFilter, GlowFilter } from 'pixi-filters'
 import { getPolygonCenter } from '../geometryFunc'
 import type { LLUDto } from '../Editor/dto'
-
-const outlineFilter = new OutlineFilter({
-    thickness: 2,
-    color: 0x000000,
-    alpha: 0.5,
-})
-
-const glowFilter = new GlowFilter({
-    color: 0x000000,
-    innerStrength: 0,
-    outerStrength: 2,
-    alpha: 0.5,
-})
 
 export class LLU extends EditorObject {
     private _outline = new Graphics()
